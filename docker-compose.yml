@@ -1,0 +1,38 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: crmpexe-postgres
+    environment:
+      POSTGRES_USER: crmpexe
+      POSTGRES_PASSWORD: crmpexe
+      POSTGRES_DB: crmpexe
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: crmpexe-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  # Opcional: n8n para automações
+  # n8n:
+  #   image: n8nio/n8n:latest
+  #   container_name: crmpexe-n8n
+  #   ports:
+  #     - "5678:5678"
+  #   environment:
+  #     N8N_BASIC_AUTH_ACTIVE: "false"
+  #   volumes:
+  #     - n8n_data:/home/node/.n8n
+
+volumes:
+  postgres_data:
+  redis_data:
+  # n8n_data:
