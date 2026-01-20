@@ -50,6 +50,13 @@ POST /api/auth/refresh
 POST /api/auth/logout
 ```
 
+### Endpoints de workspaces
+```
+POST /api/workspaces
+GET /api/workspaces
+POST /api/workspaces/:id/switch
+```
+
 ### 4) Frontend (Web)
 ```bash
 cd apps/web
