@@ -57,6 +57,11 @@ GET /api/workspaces
 POST /api/workspaces/:id/switch
 ```
 
+### Endpoints de auditoria
+```
+GET /api/audit-logs?page=1&perPage=20
+```
+
 ### 4) Frontend (Web)
 ```bash
 cd apps/web

@@ -34,4 +34,10 @@ describe("AppController (e2e)", () => {
 
     expect(response.status).toBe(401);
   });
+
+  it("/audit-logs (GET) should reject unauthenticated requests", async () => {
+    const response = await request(app.getHttpServer()).get("/audit-logs");
+
+    expect(response.status).toBe(401);
+  });
 });

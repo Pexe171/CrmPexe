@@ -9,6 +9,9 @@ datasource db {
 }
 
 enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
   USER_LOGIN
   USER_LOGOUT
   WORKSPACE_CREATED
@@ -121,6 +124,8 @@ model AuditLog {
   workspaceId String
   userId      String
   action      AuditAction
+  entity      String
+  entityId    String
   metadata    Json?
   createdAt   DateTime    @default(now())
 
