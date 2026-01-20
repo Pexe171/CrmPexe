@@ -57,6 +57,15 @@ GET /api/workspaces
 POST /api/workspaces/:id/switch
 ```
 
+### Endpoints de empresas
+```
+POST /api/companies
+GET /api/companies
+GET /api/companies/:id
+PATCH /api/companies/:id
+DELETE /api/companies/:id
+```
+
 ### Endpoints de auditoria
 ```
 GET /api/audit-logs?page=1&perPage=20

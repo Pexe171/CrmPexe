@@ -140,6 +140,12 @@ export default function DashboardPage() {
           >
             Workspaces
           </Link>
+          <Link
+            href="/companies"
+            className={buttonVariants({ variant: "outline", size: "sm" })}
+          >
+            Empresas
+          </Link>
           <Button variant="outline" size="sm">
             Ajuda
           </Button>
