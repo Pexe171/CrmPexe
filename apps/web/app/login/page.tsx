@@ -3,9 +3,15 @@ import { redirect } from "next/navigation";
 
 import { SESSION_COOKIE } from "@/lib/auth";
 
-export default function Home() {
+import { LoginForm } from "./login-form";
+
+export default function LoginPage() {
   const cookieStore = cookies();
   const session = cookieStore.get(SESSION_COOKIE);
 
-  redirect(session ? "/dashboard" : "/login");
+  if (session) {
+    redirect("/dashboard");
+  }
+
+  return <LoginForm />;
 }
