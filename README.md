@@ -36,6 +36,7 @@ cd apps/api
 cp .env.example .env
 pnpm prisma:generate
 pnpm prisma:migrate
+pnpm prisma db seed # opcional
 pnpm dev:api
 ```
 
@@ -58,7 +59,7 @@ Web disponível em `http://localhost:3000`.
 ### Checklist de validação
 - [ ] `docker compose up -d`
 - [ ] `pnpm install`
-- [ ] `cd apps/api && cp .env.example .env && pnpm prisma:generate && pnpm prisma:migrate && pnpm dev:api`
+- [ ] `cd apps/api && cp .env.example .env && pnpm prisma:generate && pnpm prisma:migrate && pnpm prisma db seed (opcional) && pnpm dev:api`
 - [ ] `cd apps/web && cp .env.example .env.local && pnpm dev:web`
 - [ ] `cd apps/api && pnpm test`
 
