@@ -42,6 +42,14 @@ pnpm dev:api
 
 API disponível em `http://localhost:3001/api/health`.
 
+### Endpoints de autenticação
+```
+POST /api/auth/signup
+POST /api/auth/login
+POST /api/auth/refresh
+POST /api/auth/logout
+```
+
 ### 4) Frontend (Web)
 ```bash
 cd apps/web
