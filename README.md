@@ -25,23 +25,27 @@ apps/
 docker compose up -d
 ```
 
-### 2) Backend (API)
+### 2) Dependências
+```bash
+pnpm install
+```
+
+### 3) Backend (API)
 ```bash
 cd apps/api
 cp .env.example .env
-npm install
-npm run prisma:generate
-npm run prisma:migrate
-npm run dev
+pnpm prisma:generate
+pnpm prisma:migrate
+pnpm dev:api
 ```
 
 API disponível em `http://localhost:3001/api/health`.
 
-### 3) Frontend (Web)
+### 4) Frontend (Web)
 ```bash
 cd apps/web
-npm install
-npm run dev
+cp .env.example .env.local
+pnpm dev:web
 ```
 
 Web disponível em `http://localhost:3000`.
@@ -53,9 +57,10 @@ Web disponível em `http://localhost:3000`.
 
 ### Checklist de validação
 - [ ] `docker compose up -d`
-- [ ] `cd apps/api && npm install && npm run prisma:generate && npm run prisma:migrate && npm run dev`
-- [ ] `cd apps/web && npm install && npm run dev`
-- [ ] `cd apps/api && npm run test`
+- [ ] `pnpm install`
+- [ ] `cd apps/api && cp .env.example .env && pnpm prisma:generate && pnpm prisma:migrate && pnpm dev:api`
+- [ ] `cd apps/web && cp .env.example .env.local && pnpm dev:web`
+- [ ] `cd apps/api && pnpm test`
 
 ## Mapa macro de módulos (visão de produto)
 

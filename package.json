@@ -1,15 +1,18 @@
 {
   "name": "crmpexe",
   "private": true,
-  "workspaces": [
-    "apps/api",
-    "apps/web"
-  ],
   "scripts": {
-    "dev": "npm run dev --workspace apps/api & npm run dev --workspace apps/web",
-    "dev:api": "npm run dev --workspace apps/api",
-    "dev:web": "npm run dev --workspace apps/web",
-    "lint": "npm run lint --workspace apps/api && npm run lint --workspace apps/web",
-    "test": "npm run test --workspace apps/api"
-  }
+    "dev": "turbo run dev --parallel",
+    "dev:api": "turbo run dev --filter=crmpexe-api",
+    "dev:web": "turbo run dev --filter=crmpexe-web",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "prisma:generate": "turbo run prisma:generate --filter=crmpexe-api",
+    "prisma:migrate": "turbo run prisma:migrate --filter=crmpexe-api"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.9"
+  },
+  "packageManager": "pnpm@9.0.0"
 }
