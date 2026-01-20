@@ -1,3 +1,4 @@
+// apps/api/prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,6 +15,11 @@ enum AuditAction {
   WORKSPACE_UPDATED
   ROLE_ASSIGNED
   ROLE_REVOKED
+}
+
+model HealthCheck {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
 }
 
 model Workspace {
