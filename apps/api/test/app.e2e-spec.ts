@@ -28,4 +28,10 @@ describe("AppController (e2e)", () => {
       service: "crmpexe-api"
     });
   });
+
+  it("/workspaces (GET) should reject unauthenticated requests", async () => {
+    const response = await request(app.getHttpServer()).get("/workspaces");
+
+    expect(response.status).toBe(401);
+  });
 });

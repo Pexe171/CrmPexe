@@ -1,4 +1,5 @@
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { LogoutButton } from "./logout-button";
 
 export default function DashboardPage() {
@@ -133,6 +134,12 @@ export default function DashboardPage() {
           Painel de Controle
         </h1>
         <div className="ml-auto flex items-center gap-4">
+          <Link
+            href="/workspaces"
+            className={buttonVariants({ variant: "outline", size: "sm" })}
+          >
+            Workspaces
+          </Link>
           <Button variant="outline" size="sm">
             Ajuda
           </Button>

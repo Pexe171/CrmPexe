@@ -32,6 +32,7 @@ model Workspace {
   roles       Role[]
   permissions Permission[]
   auditLogs   AuditLog[]
+  currentUsers User[] @relation("UserCurrentWorkspace")
 }
 
 model User {
@@ -40,11 +41,13 @@ model User {
   name         String
   passwordHash String
   refreshTokenHash String?
+  currentWorkspaceId String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   memberships WorkspaceMember[]
   auditLogs   AuditLog[]
+  currentWorkspace Workspace? @relation("UserCurrentWorkspace", fields: [currentWorkspaceId], references: [id])
 }
 
 model WorkspaceMember {

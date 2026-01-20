@@ -2,13 +2,9 @@ import { BadRequestException, ConflictException, Injectable, UnauthorizedExcepti
 import { JwtService } from "@nestjs/jwt";
 import bcrypt from "bcryptjs";
 import { PrismaService } from "../prisma/prisma.service";
+import { ACCESS_TOKEN_COOKIE, ACCESS_TOKEN_TTL_MS, REFRESH_TOKEN_COOKIE, REFRESH_TOKEN_TTL_MS } from "./auth.constants";
 import { LoginDto } from "./dto/login.dto";
 import { SignupDto } from "./dto/signup.dto";
-
-const ACCESS_TOKEN_COOKIE = "access_token";
-const REFRESH_TOKEN_COOKIE = "refresh_token";
-const ACCESS_TOKEN_TTL_MS = 15 * 60 * 1000;
-const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 @Injectable()
 export class AuthService {
@@ -150,6 +146,16 @@ export class AuthService {
     });
 
     return { accessToken, refreshToken };
+  }
+
+  async verifyAccessToken(token: string) {
+    try {
+      return await this.jwtService.verifyAsync<{ sub: string; email: string }>(token, {
+        secret: this.accessTokenSecret
+      });
+    } catch {
+      throw new UnauthorizedException("Token de acesso inválido.");
+    }
   }
 
   private async verifyRefreshToken(token: string) {
