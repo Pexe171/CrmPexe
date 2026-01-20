@@ -35,6 +35,7 @@ model Workspace {
   roles       Role[]
   permissions Permission[]
   auditLogs   AuditLog[]
+  companies   Company[]
   currentUsers User[] @relation("UserCurrentWorkspace")
 }
 
@@ -134,4 +135,20 @@ model AuditLog {
 
   @@index([workspaceId])
   @@index([userId])
+}
+
+model Company {
+  id           String   @id @default(uuid())
+  workspaceId  String
+  name         String
+  domain       String?
+  phone        String?
+  customFields Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+
+  @@index([workspaceId])
+  @@index([workspaceId, name])
 }
