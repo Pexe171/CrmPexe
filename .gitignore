@@ -1,0 +1,61 @@
+# .gitignore
+
+# Dependências (Node.js)
+node_modules/
+.pnpm-store/
+
+# Turbo Repo (Cache de build)
+.turbo/
+
+# Next.js (Build e cache)
+.next/
+out/
+build/
+
+# NestJS (Build)
+dist/
+
+# Logs de erro e debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Variáveis de Ambiente (SEGURANÇA: Nunca cometer chaves reais)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+
+# Exceção: Manter ficheiros de exemplo
+!.env.example
+
+# Testes e Cobertura
+coverage/
+junit.xml
+
+# IDEs e Editores de Texto
+.idea/
+.vscode/
+*.swp
+*.swo
+*.swn
+.DS_Store
+Thumbs.db
+
+# Vercel
+.vercel/
+
+# TypeScript
+*.tsbuildinfo
+
+# Prisma (apenas se usar SQLite localmente, mas bom prevenir)
+*.sqlite
+*.sqlite-journal
+
+# Ficheiros temporários do SO
+.DS_Store
+Thumbs.db
