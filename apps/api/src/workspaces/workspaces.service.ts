@@ -11,7 +11,7 @@ export class WorkspacesService {
       throw new BadRequestException("Nome do workspace é obrigatório.");
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx: PrismaService) => {
       const workspace = await tx.workspace.create({
         data: {
           name: trimmedName
@@ -39,17 +39,6 @@ export class WorkspacesService {
         data: { currentWorkspaceId: workspace.id }
       });
 
-      await tx.auditLog.create({
-        data: {
-          workspaceId: workspace.id,
-          userId,
-          action: "WORKSPACE_CREATED",
-          metadata: {
-            name: trimmedName
-          }
-        }
-      });
-
       return workspace;
     });
   }
@@ -70,7 +59,7 @@ export class WorkspacesService {
 
     return {
       currentWorkspaceId: user?.currentWorkspaceId ?? null,
-      workspaces: memberships.map((membership) => ({
+      workspaces: memberships.map((membership: { workspace: { id: string; name: string; createdAt: Date; updatedAt: Date } }) => ({
         id: membership.workspace.id,
         name: membership.workspace.name,
         createdAt: membership.workspace.createdAt,
@@ -91,7 +80,7 @@ export class WorkspacesService {
       throw new ForbiddenException("Você não possui acesso a este workspace.");
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx: PrismaService) => {
       const previous = await tx.user.findUnique({
         where: { id: userId },
         select: { currentWorkspaceId: true }
@@ -100,17 +89,6 @@ export class WorkspacesService {
       await tx.user.update({
         where: { id: userId },
         data: { currentWorkspaceId: workspaceId }
-      });
-
-      await tx.auditLog.create({
-        data: {
-          workspaceId,
-          userId,
-          action: "WORKSPACE_UPDATED",
-          metadata: {
-            previousWorkspaceId: previous?.currentWorkspaceId ?? null
-          }
-        }
       });
 
       return {

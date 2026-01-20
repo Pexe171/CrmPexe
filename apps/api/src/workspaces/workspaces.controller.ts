@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Param, Post, UseGuards } from "@nestjs/common";
+import { AuditEntity } from "../audit-logs/audit-log.decorator";
 import { AccessTokenGuard } from "../auth/access-token.guard";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { AuthUser } from "../auth/auth.types";
@@ -11,6 +12,14 @@ export class WorkspacesController {
   constructor(private readonly workspacesService: WorkspacesService) {}
 
   @Post()
+  @AuditEntity({
+    entity: "Workspace",
+    entityId: { source: "response", key: "id" },
+    workspaceId: { source: "response", key: "id" },
+    metadata: (request) => ({
+      name: request.body?.name
+    })
+  })
   async createWorkspace(@CurrentUser() user: AuthUser, @Body() body: CreateWorkspaceDto) {
     return this.workspacesService.createWorkspace(user.id, body.name);
   }

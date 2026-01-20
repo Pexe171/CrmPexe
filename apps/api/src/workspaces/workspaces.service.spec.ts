@@ -19,9 +19,6 @@ const prismaMock = {
     update: jest.fn(),
     findUnique: jest.fn()
   },
-  auditLog: {
-    create: jest.fn()
-  },
   $transaction: jest.fn()
 };
 
@@ -53,7 +50,6 @@ describe("WorkspacesService", () => {
     prismaMock.role.create.mockResolvedValue({ id: "role-1", name: "Owner" });
     prismaMock.workspaceMember.create.mockResolvedValue({ id: "member-1" });
     prismaMock.user.update.mockResolvedValue({ id: "user-1" });
-    prismaMock.auditLog.create.mockResolvedValue({ id: "audit-1" });
 
     const result = await service.createWorkspace("user-1", "Equipe Comercial");
 
