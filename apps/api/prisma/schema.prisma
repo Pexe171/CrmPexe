@@ -31,11 +31,12 @@ model Workspace {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  members     WorkspaceMember[]
-  roles       Role[]
-  permissions Permission[]
-  auditLogs   AuditLog[]
-  companies   Company[]
+  members      WorkspaceMember[]
+  roles        Role[]
+  permissions  Permission[]
+  auditLogs    AuditLog[]
+  companies    Company[]
+  contacts     Contact[]
   currentUsers User[] @relation("UserCurrentWorkspace")
 }
 
@@ -148,7 +149,27 @@ model Company {
   updatedAt    DateTime @updatedAt
 
   workspace Workspace @relation(fields: [workspaceId], references: [id])
+  contacts  Contact[]
 
   @@index([workspaceId])
   @@index([workspaceId, name])
+}
+
+model Contact {
+  id           String   @id @default(uuid())
+  workspaceId  String
+  companyId    String?
+  name         String
+  email        String?
+  phone        String?
+  customFields Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+  company   Company?  @relation(fields: [companyId], references: [id])
+
+  @@index([workspaceId])
+  @@index([workspaceId, name])
+  @@index([companyId])
 }

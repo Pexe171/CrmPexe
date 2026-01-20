@@ -66,6 +66,15 @@ PATCH /api/companies/:id
 DELETE /api/companies/:id
 ```
 
+### Endpoints de contatos
+```
+POST /api/contacts
+GET /api/contacts
+GET /api/contacts/:id
+PATCH /api/contacts/:id
+DELETE /api/contacts/:id
+```
+
 ### Endpoints de auditoria
 ```
 GET /api/audit-logs?page=1&perPage=20
