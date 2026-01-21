@@ -1,10 +1,3 @@
-export type AuditLogAction =
-  | "CREATE"
-  | "UPDATE"
-  | "DELETE"
-  | "USER_LOGIN"
-  | "USER_LOGOUT"
-  | "WORKSPACE_CREATED"
-  | "WORKSPACE_UPDATED"
-  | "ROLE_ASSIGNED"
-  | "ROLE_REVOKED";
+import type { Prisma } from "@prisma/client";
+
+export type AuditLogAction = Prisma.AuditAction;
