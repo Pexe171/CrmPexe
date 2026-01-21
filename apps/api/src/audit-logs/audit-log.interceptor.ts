@@ -97,7 +97,8 @@ export class AuditLogInterceptor implements NestInterceptor {
       return null;
     }
 
-    return this.getValueByPath(container, source.key);
+    const value = this.getValueByPath(container, source.key);
+    return this.normalizeId(value);
   }
 
   private getSourceContainer(
@@ -126,5 +127,18 @@ export class AuditLogInterceptor implements NestInterceptor {
       }
       return (value as Record<string, unknown>)[key] ?? null;
     }, target as unknown);
+  }
+
+  private normalizeId(value: unknown) {
+    if (value === null || value === undefined) {
+      return null;
+    }
+    if (typeof value === "string") {
+      return value;
+    }
+    if (typeof value === "number" || typeof value === "boolean") {
+      return String(value);
+    }
+    return null;
   }
 }

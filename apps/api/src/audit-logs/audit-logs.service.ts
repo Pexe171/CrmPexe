@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
+import type { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuditLogAction } from "./audit-log.types";
 
@@ -50,7 +51,7 @@ export class AuditLogsService {
     action: AuditLogAction;
     entity: string;
     entityId: string;
-    metadata?: Record<string, unknown>;
+    metadata?: Prisma.InputJsonValue;
   }) {
     return this.prisma.auditLog.create({
       data: {
