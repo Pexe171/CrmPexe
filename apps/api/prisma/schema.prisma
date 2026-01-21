@@ -27,6 +27,21 @@ enum TaskStatus {
   CANCELED
 }
 
+enum CustomFieldEntity {
+  COMPANY
+  CONTACT
+  DEAL
+}
+
+enum CustomFieldType {
+  TEXT
+  NUMBER
+  DATE
+  SELECT
+  MULTI_SELECT
+  BOOLEAN
+}
+
 model HealthCheck {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
@@ -43,7 +58,10 @@ model Workspace {
   permissions Permission[]
   auditLogs   AuditLog[]
   companies   Company[]
+  deals       Deal[]
   tasks       Task[]
+  tags        Tag[]
+  customFieldDefinitions CustomFieldDefinition[]
   currentUsers User[] @relation("UserCurrentWorkspace")
 }
 
@@ -158,6 +176,7 @@ model Company {
 
   workspace Workspace @relation(fields: [workspaceId], references: [id])
   contacts   Contact[]
+  tags       TagOnCompany[]
 
   @@index([workspaceId])
   @@index([workspaceId, name])
@@ -176,9 +195,114 @@ model Contact {
 
   workspace Workspace @relation(fields: [workspaceId], references: [id])
   company   Company?  @relation(fields: [companyId], references: [id])
+  tags      TagOnContact[]
 
   @@index([workspaceId])
   @@index([companyId])
+}
+
+model Deal {
+  id          String   @id @default(uuid())
+  workspaceId String
+  title       String
+  amount      Float?
+  stage       String?
+  customFields Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+  tags      TagOnDeal[]
+
+  @@index([workspaceId])
+  @@index([workspaceId, title])
+}
+
+model Tag {
+  id          String   @id @default(uuid())
+  workspaceId String
+  name        String
+  color       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+  companies TagOnCompany[]
+  contacts  TagOnContact[]
+  deals     TagOnDeal[]
+
+  @@unique([workspaceId, name])
+  @@index([workspaceId])
+}
+
+model TagOnCompany {
+  id         String   @id @default(uuid())
+  workspaceId String
+  tagId      String
+  companyId  String
+  createdAt  DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+  tag      Tag     @relation(fields: [tagId], references: [id])
+  company  Company @relation(fields: [companyId], references: [id])
+
+  @@unique([tagId, companyId])
+  @@index([workspaceId])
+  @@index([tagId])
+  @@index([companyId])
+}
+
+model TagOnContact {
+  id         String   @id @default(uuid())
+  workspaceId String
+  tagId      String
+  contactId  String
+  createdAt  DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+  tag      Tag     @relation(fields: [tagId], references: [id])
+  contact  Contact @relation(fields: [contactId], references: [id])
+
+  @@unique([tagId, contactId])
+  @@index([workspaceId])
+  @@index([tagId])
+  @@index([contactId])
+}
+
+model TagOnDeal {
+  id         String   @id @default(uuid())
+  workspaceId String
+  tagId      String
+  dealId     String
+  createdAt  DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+  tag      Tag   @relation(fields: [tagId], references: [id])
+  deal     Deal  @relation(fields: [dealId], references: [id])
+
+  @@unique([tagId, dealId])
+  @@index([workspaceId])
+  @@index([tagId])
+  @@index([dealId])
+}
+
+model CustomFieldDefinition {
+  id          String   @id @default(uuid())
+  workspaceId String
+  entity      CustomFieldEntity
+  key         String
+  label       String
+  type        CustomFieldType
+  required    Boolean  @default(false)
+  options     Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+
+  @@unique([workspaceId, entity, key])
+  @@index([workspaceId])
+  @@index([workspaceId, entity])
 }
 
 model Task {

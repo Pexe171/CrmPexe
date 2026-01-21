@@ -147,6 +147,12 @@ export default function DashboardPage() {
           >
             Empresas
           </Link>
+          <Link
+            href="/admin/custom-fields"
+            className={buttonVariants({ variant: "outline", size: "sm" })}
+          >
+            Campos customizados
+          </Link>
           <Button variant="outline" size="sm">
             Ajuda
           </Button>

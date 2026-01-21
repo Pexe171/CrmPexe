@@ -74,6 +74,22 @@ PATCH /api/tasks/:id
 DELETE /api/tasks/:id
 ```
 
+### Endpoints de tags
+```
+GET /api/tags
+POST /api/tags
+PATCH /api/tags/:id
+DELETE /api/tags/:id
+```
+
+### Endpoints de custom fields (admin)
+```
+GET /api/custom-field-definitions?entity=COMPANY
+POST /api/custom-field-definitions
+PATCH /api/custom-field-definitions/:id
+DELETE /api/custom-field-definitions/:id
+```
+
 ### Endpoints de auditoria
 ```
 GET /api/audit-logs?page=1&perPage=20
