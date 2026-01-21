@@ -66,6 +66,14 @@ PATCH /api/companies/:id
 DELETE /api/companies/:id
 ```
 
+### Endpoints de tarefas
+```
+GET /api/tasks
+POST /api/tasks
+PATCH /api/tasks/:id
+DELETE /api/tasks/:id
+```
+
 ### Endpoints de auditoria
 ```
 GET /api/audit-logs?page=1&perPage=20

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { LogoutButton } from "./logout-button";
+import { TaskOverview } from "./task-overview";
 
 export default function DashboardPage() {
   // Dados simulados para o dashboard (substituir por chamadas de API reais futuramente)
@@ -208,6 +209,8 @@ export default function DashboardPage() {
               </div>
             ))}
           </div>
+
+          <TaskOverview />
 
           {/* Seção Principal: Gráfico e Atividade Recente */}
           <div className="grid gap-4 md:grid-cols-7">
