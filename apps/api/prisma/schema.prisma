@@ -20,6 +20,13 @@ enum AuditAction {
   ROLE_REVOKED
 }
 
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  DONE
+  CANCELED
+}
+
 model HealthCheck {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
@@ -36,6 +43,7 @@ model Workspace {
   permissions Permission[]
   auditLogs   AuditLog[]
   companies   Company[]
+  tasks       Task[]
   currentUsers User[] @relation("UserCurrentWorkspace")
 }
 
@@ -51,6 +59,7 @@ model User {
 
   memberships WorkspaceMember[]
   auditLogs   AuditLog[]
+  assignedTasks Task[] @relation("TaskAssignee")
   currentWorkspace Workspace? @relation("UserCurrentWorkspace", fields: [currentWorkspaceId], references: [id])
 }
 
@@ -170,4 +179,25 @@ model Contact {
 
   @@index([workspaceId])
   @@index([companyId])
+}
+
+model Task {
+  id          String     @id @default(uuid())
+  workspaceId String
+  title       String
+  dueAt       DateTime?
+  status      TaskStatus @default(PENDING)
+  assignedToId String?
+  relatedType String?
+  relatedId   String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+  assignedTo User? @relation("TaskAssignee", fields: [assignedToId], references: [id])
+
+  @@index([workspaceId])
+  @@index([assignedToId])
+  @@index([workspaceId, status])
+  @@index([workspaceId, dueAt])
 }
