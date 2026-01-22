@@ -136,6 +136,13 @@ PATCH /api/tasks/:id
 DELETE /api/tasks/:id
 ```
 
+### Endpoints de conversas e mensagens
+```
+GET /api/conversations
+GET /api/conversations/:id
+POST /api/conversations/:id/messages
+```
+
 ### Endpoints de tags
 ```
 GET /api/tags
