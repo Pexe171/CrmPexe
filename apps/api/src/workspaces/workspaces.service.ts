@@ -1,4 +1,5 @@
 import { BadRequestException, ForbiddenException, Injectable } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 
 @Injectable()
@@ -11,7 +12,7 @@ export class WorkspacesService {
       throw new BadRequestException("Nome do workspace é obrigatório.");
     }
 
-    return this.prisma.$transaction(async (tx: PrismaService) => {
+    return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const workspace = await tx.workspace.create({
         data: {
           name: trimmedName
@@ -80,12 +81,7 @@ export class WorkspacesService {
       throw new ForbiddenException("Você não possui acesso a este workspace.");
     }
 
-    return this.prisma.$transaction(async (tx: PrismaService) => {
-      const previous = await tx.user.findUnique({
-        where: { id: userId },
-        select: { currentWorkspaceId: true }
-      });
-
+    return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       await tx.user.update({
         where: { id: userId },
         data: { currentWorkspaceId: workspaceId }
