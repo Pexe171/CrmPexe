@@ -172,6 +172,7 @@ pnpm dev:web
 ```
 
 Web disponível em `http://localhost:3000`.
+Inbox disponível em `http://localhost:3000/inbox`.
 
 ## Entregáveis por passo
 - **Arquivos modificados**: sempre listar no PR e no summary do trabalho.

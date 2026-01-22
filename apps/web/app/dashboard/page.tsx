@@ -142,6 +142,12 @@ export default function DashboardPage() {
             Workspaces
           </Link>
           <Link
+            href="/inbox"
+            className={buttonVariants({ variant: "outline", size: "sm" })}
+          >
+            Inbox
+          </Link>
+          <Link
             href="/companies"
             className={buttonVariants({ variant: "outline", size: "sm" })}
           >
