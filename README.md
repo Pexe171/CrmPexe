@@ -177,6 +177,49 @@ pnpm dev:web
 Web disponível em `http://localhost:3000`.
 Inbox disponível em `http://localhost:3000/inbox`.
 
+## Como rodar em produção
+
+> **Pré-requisitos**: PostgreSQL e Redis prontos, variáveis de ambiente preenchidas e dependências instaladas.
+
+### 1) Variáveis de ambiente
+- `apps/api/.env` com `DATABASE_URL`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `JWT_ACCESS_EXPIRES_IN`, `JWT_REFRESH_EXPIRES_IN`.
+- `apps/web/.env.local` com `NEXT_PUBLIC_API_URL` apontando para a API (ex: `https://api.seudominio.com`).
+
+### 2) Build
+```bash
+pnpm install
+pnpm prisma:generate
+pnpm prisma:migrate
+pnpm build
+```
+
+### 3) Start
+```bash
+NODE_ENV=production pnpm --filter crmpexe-api start
+NODE_ENV=production pnpm --filter crmpexe-web start
+```
+
+API disponível em `https://api.seudominio.com/api/health`.
+Web disponível em `https://seudominio.com`.
+
+## Como rodar testes
+
+```bash
+pnpm test
+```
+
+**Testes específicos da API**
+```bash
+pnpm --filter crmpexe-api test
+pnpm --filter crmpexe-api test:e2e
+```
+
+**Checagens adicionais**
+```bash
+pnpm lint
+pnpm typecheck
+```
+
 ## Entregáveis por passo
 - **Arquivos modificados**: sempre listar no PR e no summary do trabalho.
 - **Comandos para rodar**: documentados nesta seção.
