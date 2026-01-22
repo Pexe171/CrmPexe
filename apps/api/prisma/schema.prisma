@@ -42,6 +42,18 @@ enum CustomFieldType {
   BOOLEAN
 }
 
+enum CustomerType {
+  PERSON
+  COMPANY
+}
+
+enum CustomerStatus {
+  LEAD
+  ACTIVE
+  INACTIVE
+  CHURNED
+}
+
 model HealthCheck {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
@@ -59,11 +71,13 @@ model Workspace {
   rolePermissions RolePermission[]
   auditLogs   AuditLog[]
   companies   Company[]
+  customers   Customer[]
   contacts    Contact[]
   deals       Deal[]
   tagOnCompanies TagOnCompany[]
   tagOnContacts TagOnContact[]
   tagOnDeals     TagOnDeal[]
+  tagOnCustomers TagOnCustomer[]
   tasks       Task[]
   tags        Tag[]
   customFieldDefinitions CustomFieldDefinition[]
@@ -181,10 +195,47 @@ model Company {
 
   workspace Workspace @relation(fields: [workspaceId], references: [id])
   contacts   Contact[]
+  customers  Customer[]
   tags       TagOnCompany[]
 
   @@index([workspaceId])
   @@index([workspaceId, name])
+}
+
+model Customer {
+  id           String         @id @default(uuid())
+  workspaceId  String
+  type         CustomerType   @default(PERSON)
+  status       CustomerStatus @default(LEAD)
+  name         String
+  legalName    String?
+  document     String?
+  email        String?
+  phone        String?
+  mobile       String?
+  birthDate    DateTime?
+  jobTitle     String?
+  companyId    String?
+  addressLine1 String?
+  addressLine2 String?
+  neighborhood String?
+  city         String?
+  state        String?
+  postalCode   String?
+  country      String?
+  notes        String?
+  customFields Json?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+  company   Company?  @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  tags      TagOnCustomer[]
+
+  @@index([workspaceId])
+  @@index([workspaceId, name])
+  @@index([workspaceId, document])
+  @@index([companyId])
 }
 
 model Contact {
@@ -235,6 +286,7 @@ model Tag {
   companies TagOnCompany[]
   contacts  TagOnContact[]
   deals     TagOnDeal[]
+  customers TagOnCustomer[]
 
   @@unique([workspaceId, name])
   @@index([workspaceId])
@@ -289,6 +341,23 @@ model TagOnDeal {
   @@index([workspaceId])
   @@index([tagId])
   @@index([dealId])
+}
+
+model TagOnCustomer {
+  id          String   @id @default(uuid())
+  workspaceId String
+  tagId       String
+  customerId  String
+  createdAt   DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+  tag       Tag      @relation(fields: [tagId], references: [id])
+  customer  Customer @relation(fields: [customerId], references: [id])
+
+  @@unique([tagId, customerId])
+  @@index([workspaceId])
+  @@index([tagId])
+  @@index([customerId])
 }
 
 model CustomFieldDefinition {

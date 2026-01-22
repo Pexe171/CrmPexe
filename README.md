@@ -18,12 +18,74 @@ apps/
   web/        # Next.js + Tailwind + shadcn/ui
 ```
 
+## Instalação de bancos de dados (PostgreSQL e outros)
+
+### PostgreSQL (recomendado)
+Você pode usar o Postgres localmente no próprio computador **sem Docker**. Depois, ajuste o `DATABASE_URL` do `apps/api/.env`.
+
+**macOS (Homebrew)**
+```bash
+brew install postgresql@16
+brew services start postgresql@16
+```
+
+**Ubuntu/Debian**
+```bash
+sudo apt update
+sudo apt install postgresql postgresql-contrib
+sudo systemctl enable --now postgresql
+```
+
+**Windows (winget)**
+```powershell
+winget install PostgreSQL.PostgreSQL
+```
+
+**Exemplo de `DATABASE_URL` local**
+```
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/crmpexe?schema=public"
+```
+
+### MongoDB (opcional)
+Caso queira explorar login/autenticação com MongoDB no futuro, você pode instalar localmente:
+
+**macOS (Homebrew)**
+```bash
+brew tap mongodb/brew
+brew install mongodb-community@7.0
+brew services start mongodb-community@7.0
+```
+
+**Ubuntu/Debian**
+```bash
+sudo apt update
+sudo apt install -y mongodb
+sudo systemctl enable --now mongodb
+```
+
+**Windows (winget)**
+```powershell
+winget install MongoDB.Server
+```
+
+### MySQL (opcional)
+```bash
+brew install mysql
+brew services start mysql
+```
+
+### SQLite (opcional)
+```bash
+brew install sqlite
+```
+
 ## Como rodar localmente
 
 ### 1) Infraestrutura
 ```bash
 docker compose up -d
 ```
+> Se estiver usando PostgreSQL local instalado no seu computador, você pode pular o `docker compose` e apenas garantir que o serviço esteja rodando.
 
 ### 2) Dependências
 ```bash
