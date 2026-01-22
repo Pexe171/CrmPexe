@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateCompanyDto } from "./dto/create-company.dto";
 import { UpdateCompanyDto } from "./dto/update-company.dto";
@@ -55,12 +55,20 @@ export class CompaniesService {
   async updateCompany(userId: string, companyId: string, payload: UpdateCompanyDto) {
     const workspaceId = await this.getCurrentWorkspaceId(userId);
 
+    if (payload.version === undefined) {
+      throw new BadRequestException("Versão da empresa é obrigatória.");
+    }
+
     const company = await this.prisma.company.findFirst({
       where: { id: companyId, workspaceId }
     });
 
     if (!company) {
       throw new NotFoundException("Empresa não encontrada.");
+    }
+
+    if (company.version !== payload.version) {
+      throw new ConflictException("Empresa foi atualizada por outro usuário.");
     }
 
     let name: string | undefined;
@@ -75,31 +83,43 @@ export class CompaniesService {
     const domain = payload.domain !== undefined ? this.normalizeOptionalString(payload.domain) : undefined;
     const phone = payload.phone !== undefined ? this.normalizeOptionalString(payload.phone) : undefined;
 
-    return this.prisma.company.update({
-      where: { id: company.id },
+    const updated = await this.prisma.company.updateMany({
+      where: { id: company.id, workspaceId, version: payload.version },
       data: {
         name,
         domain,
         phone,
-        customFields: payload.customFields ?? undefined
+        customFields: payload.customFields ?? undefined,
+        version: { increment: 1 }
       }
     });
+
+    if (updated.count === 0) {
+      throw new ConflictException("Empresa foi atualizada por outro usuário.");
+    }
+
+    const refreshed = await this.prisma.company.findFirst({
+      where: { id: company.id, workspaceId }
+    });
+
+    if (!refreshed) {
+      throw new NotFoundException("Empresa não encontrada.");
+    }
+
+    return refreshed;
   }
 
   async deleteCompany(userId: string, companyId: string) {
     const workspaceId = await this.getCurrentWorkspaceId(userId);
 
-    const company = await this.prisma.company.findFirst({
-      where: { id: companyId, workspaceId }
+    const result = await this.prisma.company.updateMany({
+      where: { id: companyId, workspaceId },
+      data: { deletedAt: new Date(), version: { increment: 1 } }
     });
 
-    if (!company) {
+    if (result.count === 0) {
       throw new NotFoundException("Empresa não encontrada.");
     }
-
-    await this.prisma.company.delete({
-      where: { id: company.id }
-    });
 
     return { success: true };
   }

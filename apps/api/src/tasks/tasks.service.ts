@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { Prisma, TaskStatus } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateTaskDto } from "./dto/create-task.dto";
@@ -99,12 +99,20 @@ export class TasksService {
   async updateTask(userId: string, taskId: string, payload: UpdateTaskDto) {
     const workspaceId = await this.getCurrentWorkspaceId(userId);
 
+    if (payload.version === undefined) {
+      throw new BadRequestException("Versão da task é obrigatória.");
+    }
+
     const task = await this.prisma.task.findFirst({
       where: { id: taskId, workspaceId }
     });
 
     if (!task) {
       throw new NotFoundException("Task não encontrada.");
+    }
+
+    if (task.version !== payload.version) {
+      throw new ConflictException("Task foi atualizada por outro usuário.");
     }
 
     let title: string | undefined;
@@ -145,16 +153,25 @@ export class TasksService {
       }
     }
 
-    return this.prisma.task.update({
-      where: { id: task.id },
+    const updated = await this.prisma.task.updateMany({
+      where: { id: task.id, workspaceId, version: payload.version },
       data: {
         title,
         dueAt,
         status: payload.status,
         assignedToId: assignedToId === undefined ? undefined : assignedToId,
         relatedType,
-        relatedId
-      },
+        relatedId,
+        version: { increment: 1 }
+      }
+    });
+
+    if (updated.count === 0) {
+      throw new ConflictException("Task foi atualizada por outro usuário.");
+    }
+
+    const refreshed = await this.prisma.task.findFirst({
+      where: { id: task.id, workspaceId },
       include: {
         assignedTo: {
           select: {
@@ -165,22 +182,25 @@ export class TasksService {
         }
       }
     });
+
+    if (!refreshed) {
+      throw new NotFoundException("Task não encontrada.");
+    }
+
+    return refreshed;
   }
 
   async deleteTask(userId: string, taskId: string) {
     const workspaceId = await this.getCurrentWorkspaceId(userId);
 
-    const task = await this.prisma.task.findFirst({
-      where: { id: taskId, workspaceId }
+    const result = await this.prisma.task.updateMany({
+      where: { id: taskId, workspaceId },
+      data: { deletedAt: new Date(), version: { increment: 1 } }
     });
 
-    if (!task) {
+    if (result.count === 0) {
       throw new NotFoundException("Task não encontrada.");
     }
-
-    await this.prisma.task.delete({
-      where: { id: task.id }
-    });
 
     return { success: true };
   }
