@@ -1,6 +1,5 @@
 import { ConflictException, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
-import bcrypt from "bcryptjs";
 import { Test } from "@nestjs/testing";
 import { AuthService } from "./auth.service";
 import { PrismaService } from "../prisma/prisma.service";
@@ -40,7 +39,7 @@ describe("AuthService", () => {
     jwtService = moduleRef.get(JwtService);
   });
 
-  it("hashes password on signup", async () => {
+  it("stores password on signup", async () => {
     prismaMock.user.findUnique.mockResolvedValue(null);
     prismaMock.user.create.mockImplementation(async ({ data }: { data: { email: string; name: string; passwordHash: string } }) => ({
       id: "user-1",
@@ -62,7 +61,7 @@ describe("AuthService", () => {
 
     const createdPasswordHash = prismaMock.user.create.mock.calls[0][0].data.passwordHash;
 
-    expect(createdPasswordHash).not.toEqual("secret");
+    expect(createdPasswordHash).toEqual("secret");
     expect(result.user.email).toEqual("user@example.com");
     expect(prismaMock.user.update).toHaveBeenCalledWith({
       where: { id: "user-1" },
@@ -83,12 +82,11 @@ describe("AuthService", () => {
   });
 
   it("rejects login with invalid password", async () => {
-    const passwordHash = await bcrypt.hash("secret", 10);
     prismaMock.user.findUnique.mockResolvedValue({
       id: "user-1",
       email: "user@example.com",
       name: "User",
-      passwordHash
+      passwordHash: "secret"
     });
 
     await expect(

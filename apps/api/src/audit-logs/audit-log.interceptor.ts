@@ -87,7 +87,7 @@ export class AuditLogInterceptor implements NestInterceptor {
       | undefined,
     request: AuthenticatedRequest,
     response: unknown
-  ) {
+  ): string | null {
     if (!source || !source.key) {
       return null;
     }
@@ -97,7 +97,14 @@ export class AuditLogInterceptor implements NestInterceptor {
       return null;
     }
 
-    return this.getValueByPath(container, source.key);
+    const value = this.getValueByPath(container, source.key);
+    if (typeof value === "string") {
+      return value;
+    }
+    if (typeof value === "number") {
+      return String(value);
+    }
+    return null;
   }
 
   private getSourceContainer(

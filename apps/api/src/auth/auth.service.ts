@@ -1,6 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
-import * as bcrypt from "bcryptjs";
 import { PrismaService } from "../prisma/prisma.service";
 import { ACCESS_TOKEN_COOKIE, ACCESS_TOKEN_TTL_MS, REFRESH_TOKEN_COOKIE, REFRESH_TOKEN_TTL_MS } from "./auth.constants";
 import { LoginDto } from "./dto/login.dto";
@@ -42,7 +41,7 @@ export class AuthService {
       throw new ConflictException("E-mail já cadastrado.");
     }
 
-    const passwordHash = await bcrypt.hash(payload.password, 10);
+    const passwordHash = payload.password;
 
     const user = await this.prisma.user.create({
       data: {
@@ -72,7 +71,7 @@ export class AuthService {
       throw new UnauthorizedException("Credenciais inválidas.");
     }
 
-    const passwordMatch = await bcrypt.compare(payload.password, user.passwordHash);
+    const passwordMatch = payload.password === user.passwordHash;
 
     if (!passwordMatch) {
       throw new UnauthorizedException("Credenciais inválidas.");
@@ -101,7 +100,7 @@ export class AuthService {
       throw new UnauthorizedException("Refresh token inválido.");
     }
 
-    const tokenMatches = await bcrypt.compare(refreshToken, user.refreshTokenHash);
+    const tokenMatches = refreshToken === user.refreshTokenHash;
 
     if (!tokenMatches) {
       throw new UnauthorizedException("Refresh token inválido.");
@@ -169,7 +168,7 @@ export class AuthService {
   }
 
   private async persistRefreshToken(userId: string, refreshToken: string) {
-    const refreshTokenHash = await bcrypt.hash(refreshToken, 10);
+    const refreshTokenHash = refreshToken;
 
     await this.prisma.user.update({
       where: { id: userId },
