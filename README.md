@@ -99,7 +99,7 @@ cp .env.example .env
 pnpm prisma:generate
 pnpm prisma:migrate
 pnpm prisma db seed # opcional
-pnpm dev:api
+pnpm dev
 ```
 
 API disponível em `http://localhost:3001/api/health`.
@@ -171,7 +171,7 @@ GET /api/audit-logs?page=1&perPage=20
 ```bash
 cd apps/web
 cp .env.example .env.local
-pnpm dev:web
+pnpm dev
 ```
 
 Web disponível em `http://localhost:3000`.
@@ -228,8 +228,8 @@ pnpm typecheck
 ### Checklist de validação
 - [ ] `docker compose up -d`
 - [ ] `pnpm install`
-- [ ] `cd apps/api && cp .env.example .env && pnpm prisma:generate && pnpm prisma:migrate && pnpm prisma db seed (opcional) && pnpm dev:api`
-- [ ] `cd apps/web && cp .env.example .env.local && pnpm dev:web`
+- [ ] `cd apps/api && cp .env.example .env && pnpm prisma:generate && pnpm prisma:migrate && pnpm prisma db seed (opcional) && pnpm dev`
+- [ ] `cd apps/web && cp .env.example .env.local && pnpm dev`
 - [ ] `cd apps/api && pnpm test`
 
 ## Mapa macro de módulos (visão de produto)
