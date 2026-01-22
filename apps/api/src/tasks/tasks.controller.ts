@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Headers, Param, Patch, Post, Query, UseGuards } from "@nestjs/common";
 import { TaskStatus } from "@prisma/client";
 import { AuditEntity } from "../audit-logs/audit-log.decorator";
 import { AccessTokenGuard } from "../auth/access-token.guard";
@@ -16,12 +16,13 @@ export class TasksController {
   @Get()
   async listTasks(
     @CurrentUser() user: AuthUser,
+    @Headers("x-workspace-id") workspaceId?: string,
     @Query("status") status?: TaskStatus,
     @Query("dueBefore") dueBefore?: string,
     @Query("dueAfter") dueAfter?: string,
     @Query("assignedToId") assignedToId?: string
   ) {
-    return this.tasksService.listTasks(user.id, { status, dueBefore, dueAfter, assignedToId });
+    return this.tasksService.listTasks(user.id, { status, dueBefore, dueAfter, assignedToId }, workspaceId);
   }
 
   @Post()
@@ -34,8 +35,12 @@ export class TasksController {
       status: request.body?.status
     })
   })
-  async createTask(@CurrentUser() user: AuthUser, @Body() body: CreateTaskDto) {
-    return this.tasksService.createTask(user.id, body);
+  async createTask(
+    @CurrentUser() user: AuthUser,
+    @Body() body: CreateTaskDto,
+    @Headers("x-workspace-id") workspaceId?: string
+  ) {
+    return this.tasksService.createTask(user.id, body, workspaceId);
   }
 
   @Patch(":id")
@@ -51,9 +56,10 @@ export class TasksController {
   async updateTask(
     @CurrentUser() user: AuthUser,
     @Param("id") taskId: string,
-    @Body() body: UpdateTaskDto
+    @Body() body: UpdateTaskDto,
+    @Headers("x-workspace-id") workspaceId?: string
   ) {
-    return this.tasksService.updateTask(user.id, taskId, body);
+    return this.tasksService.updateTask(user.id, taskId, body, workspaceId);
   }
 
   @Delete(":id")
@@ -62,7 +68,11 @@ export class TasksController {
     entityId: { source: "param", key: "id" },
     workspaceId: { source: "user" }
   })
-  async deleteTask(@CurrentUser() user: AuthUser, @Param("id") taskId: string) {
-    return this.tasksService.deleteTask(user.id, taskId);
+  async deleteTask(
+    @CurrentUser() user: AuthUser,
+    @Param("id") taskId: string,
+    @Headers("x-workspace-id") workspaceId?: string
+  ) {
+    return this.tasksService.deleteTask(user.id, taskId, workspaceId);
   }
 }

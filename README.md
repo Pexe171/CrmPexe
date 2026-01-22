@@ -104,6 +104,9 @@ pnpm dev:api
 
 API disponível em `http://localhost:3001/api/health`.
 
+> **Workspace atual via header**
+> Para reduzir latência de leitura do workspace atual, você pode enviar o header `X-Workspace-Id` em requisições que operam dados do tenant (companies, tasks, tags, conversations, custom fields, audit logs). Caso o header não seja enviado, a API continua usando o `currentWorkspaceId` salvo no usuário.
+
 ### Endpoints de autenticação
 ```
 POST /api/auth/signup

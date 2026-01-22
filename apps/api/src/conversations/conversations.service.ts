@@ -7,11 +7,11 @@ import { CreateOutgoingMessageDto } from "./dto/create-outgoing-message.dto";
 export class ConversationsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async listConversations(userId: string) {
-    const workspaceId = await this.getCurrentWorkspaceId(userId);
+  async listConversations(userId: string, workspaceId?: string) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
 
     return this.prisma.conversation.findMany({
-      where: { workspaceId },
+      where: { workspaceId: resolvedWorkspaceId },
       orderBy: [{ lastMessageAt: "desc" }, { createdAt: "desc" }],
       include: {
         contact: {
@@ -38,11 +38,11 @@ export class ConversationsService {
     });
   }
 
-  async getConversation(userId: string, conversationId: string) {
-    const workspaceId = await this.getCurrentWorkspaceId(userId);
+  async getConversation(userId: string, conversationId: string, workspaceId?: string) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
 
     const conversation = await this.prisma.conversation.findFirst({
-      where: { id: conversationId, workspaceId },
+      where: { id: conversationId, workspaceId: resolvedWorkspaceId },
       include: {
         contact: {
           select: {
@@ -72,10 +72,15 @@ export class ConversationsService {
     return conversation;
   }
 
-  async postOutgoingMessage(userId: string, conversationId: string, payload: CreateOutgoingMessageDto) {
-    const workspaceId = await this.getCurrentWorkspaceId(userId);
+  async postOutgoingMessage(
+    userId: string,
+    conversationId: string,
+    payload: CreateOutgoingMessageDto,
+    workspaceId?: string
+  ) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
     const conversation = await this.prisma.conversation.findFirst({
-      where: { id: conversationId, workspaceId }
+      where: { id: conversationId, workspaceId: resolvedWorkspaceId }
     });
 
     if (!conversation) {
@@ -94,7 +99,7 @@ export class ConversationsService {
     return this.prisma.$transaction(async (tx) => {
       const message = await tx.message.create({
         data: {
-          workspaceId,
+          workspaceId: resolvedWorkspaceId,
           conversationId: conversation.id,
           direction: MessageDirection.OUT,
           text,
@@ -115,6 +120,15 @@ export class ConversationsService {
     });
   }
 
+  private async resolveWorkspaceId(userId: string, workspaceId?: string) {
+    const normalized = workspaceId?.trim();
+    if (normalized) {
+      await this.ensureWorkspaceMembership(userId, normalized);
+      return normalized;
+    }
+    return this.getCurrentWorkspaceId(userId);
+  }
+
   private async getCurrentWorkspaceId(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -126,6 +140,16 @@ export class ConversationsService {
     }
 
     return user.currentWorkspaceId;
+  }
+
+  private async ensureWorkspaceMembership(userId: string, workspaceId: string) {
+    const membership = await this.prisma.workspaceMember.findFirst({
+      where: { userId, workspaceId }
+    });
+
+    if (!membership) {
+      throw new BadRequestException("Workspace inválido.");
+    }
   }
 
   private parseDate(value: string, field: string) {

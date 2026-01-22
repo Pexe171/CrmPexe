@@ -1,4 +1,11 @@
-export interface CreateTagDto {
-  name: string;
+import { IsNotEmpty, IsOptional, IsString } from "class-validator";
+
+export class CreateTagDto {
+  @IsString()
+  @IsNotEmpty()
+  name!: string;
+
+  @IsOptional()
+  @IsString()
   color?: string | null;
 }

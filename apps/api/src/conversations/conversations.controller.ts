@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Headers, Param, Post, UseGuards } from "@nestjs/common";
 import { AccessTokenGuard } from "../auth/access-token.guard";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { AuthUser } from "../auth/auth.types";
@@ -11,21 +11,26 @@ export class ConversationsController {
   constructor(private readonly conversationsService: ConversationsService) {}
 
   @Get()
-  async listConversations(@CurrentUser() user: AuthUser) {
-    return this.conversationsService.listConversations(user.id);
+  async listConversations(@CurrentUser() user: AuthUser, @Headers("x-workspace-id") workspaceId?: string) {
+    return this.conversationsService.listConversations(user.id, workspaceId);
   }
 
   @Get(":id")
-  async getConversation(@CurrentUser() user: AuthUser, @Param("id") conversationId: string) {
-    return this.conversationsService.getConversation(user.id, conversationId);
+  async getConversation(
+    @CurrentUser() user: AuthUser,
+    @Param("id") conversationId: string,
+    @Headers("x-workspace-id") workspaceId?: string
+  ) {
+    return this.conversationsService.getConversation(user.id, conversationId, workspaceId);
   }
 
   @Post(":id/messages")
   async postOutgoingMessage(
     @CurrentUser() user: AuthUser,
     @Param("id") conversationId: string,
-    @Body() body: CreateOutgoingMessageDto
+    @Body() body: CreateOutgoingMessageDto,
+    @Headers("x-workspace-id") workspaceId?: string
   ) {
-    return this.conversationsService.postOutgoingMessage(user.id, conversationId, body);
+    return this.conversationsService.postOutgoingMessage(user.id, conversationId, body, workspaceId);
   }
 }

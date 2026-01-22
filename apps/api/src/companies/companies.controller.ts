@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Headers, Param, Patch, Post, UseGuards } from "@nestjs/common";
 import { AuditEntity } from "../audit-logs/audit-log.decorator";
 import { AccessTokenGuard } from "../auth/access-token.guard";
 import { CurrentUser } from "../auth/current-user.decorator";
@@ -13,13 +13,17 @@ export class CompaniesController {
   constructor(private readonly companiesService: CompaniesService) {}
 
   @Get()
-  async listCompanies(@CurrentUser() user: AuthUser) {
-    return this.companiesService.listCompanies(user.id);
+  async listCompanies(@CurrentUser() user: AuthUser, @Headers("x-workspace-id") workspaceId?: string) {
+    return this.companiesService.listCompanies(user.id, workspaceId);
   }
 
   @Get(":id")
-  async getCompany(@CurrentUser() user: AuthUser, @Param("id") companyId: string) {
-    return this.companiesService.getCompany(user.id, companyId);
+  async getCompany(
+    @CurrentUser() user: AuthUser,
+    @Param("id") companyId: string,
+    @Headers("x-workspace-id") workspaceId?: string
+  ) {
+    return this.companiesService.getCompany(user.id, companyId, workspaceId);
   }
 
   @Post()
@@ -32,8 +36,12 @@ export class CompaniesController {
       domain: request.body?.domain
     })
   })
-  async createCompany(@CurrentUser() user: AuthUser, @Body() body: CreateCompanyDto) {
-    return this.companiesService.createCompany(user.id, body);
+  async createCompany(
+    @CurrentUser() user: AuthUser,
+    @Body() body: CreateCompanyDto,
+    @Headers("x-workspace-id") workspaceId?: string
+  ) {
+    return this.companiesService.createCompany(user.id, body, workspaceId);
   }
 
   @Patch(":id")
@@ -49,9 +57,10 @@ export class CompaniesController {
   async updateCompany(
     @CurrentUser() user: AuthUser,
     @Param("id") companyId: string,
-    @Body() body: UpdateCompanyDto
+    @Body() body: UpdateCompanyDto,
+    @Headers("x-workspace-id") workspaceId?: string
   ) {
-    return this.companiesService.updateCompany(user.id, companyId, body);
+    return this.companiesService.updateCompany(user.id, companyId, body, workspaceId);
   }
 
   @Delete(":id")
@@ -60,7 +69,11 @@ export class CompaniesController {
     entityId: { source: "param", key: "id" },
     workspaceId: { source: "user" }
   })
-  async deleteCompany(@CurrentUser() user: AuthUser, @Param("id") companyId: string) {
-    return this.companiesService.deleteCompany(user.id, companyId);
+  async deleteCompany(
+    @CurrentUser() user: AuthUser,
+    @Param("id") companyId: string,
+    @Headers("x-workspace-id") workspaceId?: string
+  ) {
+    return this.companiesService.deleteCompany(user.id, companyId, workspaceId);
   }
 }

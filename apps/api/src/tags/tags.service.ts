@@ -7,34 +7,34 @@ import { UpdateTagDto } from "./dto/update-tag.dto";
 export class TagsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async listTags(userId: string) {
-    const workspaceId = await this.getCurrentWorkspaceId(userId);
+  async listTags(userId: string, workspaceId?: string) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
 
     return this.prisma.tag.findMany({
-      where: { workspaceId },
+      where: { workspaceId: resolvedWorkspaceId },
       orderBy: { name: "asc" }
     });
   }
 
-  async createTag(userId: string, payload: CreateTagDto) {
-    const workspaceId = await this.getCurrentWorkspaceId(userId);
+  async createTag(userId: string, payload: CreateTagDto, workspaceId?: string) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
     const name = this.normalizeRequiredString(payload.name, "name");
     const color = this.normalizeOptionalString(payload.color);
 
     return this.prisma.tag.create({
       data: {
-        workspaceId,
+        workspaceId: resolvedWorkspaceId,
         name,
         color
       }
     });
   }
 
-  async updateTag(userId: string, tagId: string, payload: UpdateTagDto) {
-    const workspaceId = await this.getCurrentWorkspaceId(userId);
+  async updateTag(userId: string, tagId: string, payload: UpdateTagDto, workspaceId?: string) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
 
     const tag = await this.prisma.tag.findFirst({
-      where: { id: tagId, workspaceId }
+      where: { id: tagId, workspaceId: resolvedWorkspaceId }
     });
 
     if (!tag) {
@@ -53,11 +53,11 @@ export class TagsService {
     });
   }
 
-  async deleteTag(userId: string, tagId: string) {
-    const workspaceId = await this.getCurrentWorkspaceId(userId);
+  async deleteTag(userId: string, tagId: string, workspaceId?: string) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
 
     const tag = await this.prisma.tag.findFirst({
-      where: { id: tagId, workspaceId }
+      where: { id: tagId, workspaceId: resolvedWorkspaceId }
     });
 
     if (!tag) {
@@ -71,6 +71,15 @@ export class TagsService {
     return { success: true };
   }
 
+  private async resolveWorkspaceId(userId: string, workspaceId?: string) {
+    const normalized = workspaceId?.trim();
+    if (normalized) {
+      await this.ensureWorkspaceMembership(userId, normalized);
+      return normalized;
+    }
+    return this.getCurrentWorkspaceId(userId);
+  }
+
   private async getCurrentWorkspaceId(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -82,6 +91,16 @@ export class TagsService {
     }
 
     return user.currentWorkspaceId;
+  }
+
+  private async ensureWorkspaceMembership(userId: string, workspaceId: string) {
+    const membership = await this.prisma.workspaceMember.findFirst({
+      where: { userId, workspaceId }
+    });
+
+    if (!membership) {
+      throw new BadRequestException("Workspace inválido.");
+    }
   }
 
   private normalizeRequiredString(value: string | undefined | null, field: string) {

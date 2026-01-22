@@ -8,14 +8,18 @@ import { UpdateTaskDto } from "./dto/update-task.dto";
 export class TasksService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async listTasks(userId: string, filters: {
-    status?: TaskStatus;
-    dueBefore?: string;
-    dueAfter?: string;
-    assignedToId?: string;
-  }) {
-    const workspaceId = await this.getCurrentWorkspaceId(userId);
-    const where: Prisma.TaskWhereInput = { workspaceId };
+  async listTasks(
+    userId: string,
+    filters: {
+      status?: TaskStatus;
+      dueBefore?: string;
+      dueAfter?: string;
+      assignedToId?: string;
+    },
+    workspaceId?: string
+  ) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+    const where: Prisma.TaskWhereInput = { workspaceId: resolvedWorkspaceId };
 
     if (filters.status) {
       where.status = filters.status;
@@ -52,8 +56,8 @@ export class TasksService {
     });
   }
 
-  async createTask(userId: string, payload: CreateTaskDto) {
-    const workspaceId = await this.getCurrentWorkspaceId(userId);
+  async createTask(userId: string, payload: CreateTaskDto, workspaceId?: string) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
     const title = payload.title?.trim();
 
     if (!title) {
@@ -71,12 +75,12 @@ export class TasksService {
     const assignedToId = this.normalizeOptionalString(payload.assignedToId);
 
     if (assignedToId) {
-      await this.ensureAssigneeInWorkspace(workspaceId, assignedToId);
+      await this.ensureAssigneeInWorkspace(resolvedWorkspaceId, assignedToId);
     }
 
     return this.prisma.task.create({
       data: {
-        workspaceId,
+        workspaceId: resolvedWorkspaceId,
         title,
         dueAt,
         status: payload.status ?? TaskStatus.PENDING,
@@ -96,15 +100,15 @@ export class TasksService {
     });
   }
 
-  async updateTask(userId: string, taskId: string, payload: UpdateTaskDto) {
-    const workspaceId = await this.getCurrentWorkspaceId(userId);
+  async updateTask(userId: string, taskId: string, payload: UpdateTaskDto, workspaceId?: string) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
 
     if (payload.version === undefined) {
       throw new BadRequestException("Versão da task é obrigatória.");
     }
 
     const task = await this.prisma.task.findFirst({
-      where: { id: taskId, workspaceId }
+      where: { id: taskId, workspaceId: resolvedWorkspaceId }
     });
 
     if (!task) {
@@ -135,7 +139,7 @@ export class TasksService {
       : undefined;
 
     if (assignedToId) {
-      await this.ensureAssigneeInWorkspace(workspaceId, assignedToId);
+      await this.ensureAssigneeInWorkspace(resolvedWorkspaceId, assignedToId);
     }
 
     const relatedType = payload.relatedType !== undefined
@@ -154,7 +158,7 @@ export class TasksService {
     }
 
     const updated = await this.prisma.task.updateMany({
-      where: { id: task.id, workspaceId, version: payload.version },
+      where: { id: task.id, workspaceId: resolvedWorkspaceId, version: payload.version },
       data: {
         title,
         dueAt,
@@ -171,7 +175,7 @@ export class TasksService {
     }
 
     const refreshed = await this.prisma.task.findFirst({
-      where: { id: task.id, workspaceId },
+      where: { id: task.id, workspaceId: resolvedWorkspaceId },
       include: {
         assignedTo: {
           select: {
@@ -190,11 +194,11 @@ export class TasksService {
     return refreshed;
   }
 
-  async deleteTask(userId: string, taskId: string) {
-    const workspaceId = await this.getCurrentWorkspaceId(userId);
+  async deleteTask(userId: string, taskId: string, workspaceId?: string) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
 
     const result = await this.prisma.task.updateMany({
-      where: { id: taskId, workspaceId },
+      where: { id: taskId, workspaceId: resolvedWorkspaceId },
       data: { deletedAt: new Date(), version: { increment: 1 } }
     });
 
@@ -203,6 +207,15 @@ export class TasksService {
     }
 
     return { success: true };
+  }
+
+  private async resolveWorkspaceId(userId: string, workspaceId?: string) {
+    const normalized = workspaceId?.trim();
+    if (normalized) {
+      await this.ensureWorkspaceMembership(userId, normalized);
+      return normalized;
+    }
+    return this.getCurrentWorkspaceId(userId);
   }
 
   private async getCurrentWorkspaceId(userId: string) {
@@ -216,6 +229,16 @@ export class TasksService {
     }
 
     return user.currentWorkspaceId;
+  }
+
+  private async ensureWorkspaceMembership(userId: string, workspaceId: string) {
+    const membership = await this.prisma.workspaceMember.findFirst({
+      where: { userId, workspaceId }
+    });
+
+    if (!membership) {
+      throw new BadRequestException("Workspace inválido.");
+    }
   }
 
   private parseDate(value: string, field: string) {

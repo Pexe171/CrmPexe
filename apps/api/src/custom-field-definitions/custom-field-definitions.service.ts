@@ -8,11 +8,11 @@ import { UpdateCustomFieldDefinitionDto } from "./dto/update-custom-field-defini
 export class CustomFieldDefinitionsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async listDefinitions(userId: string, entity?: string) {
-    const workspaceId = await this.getCurrentWorkspaceId(userId);
+  async listDefinitions(userId: string, entity?: string, workspaceId?: string) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
 
     const where = {
-      workspaceId,
+      workspaceId: resolvedWorkspaceId,
       ...(entity ? { entity: this.parseEntity(entity) } : {})
     };
 
@@ -22,8 +22,8 @@ export class CustomFieldDefinitionsService {
     });
   }
 
-  async createDefinition(userId: string, payload: CreateCustomFieldDefinitionDto) {
-    const workspaceId = await this.getCurrentWorkspaceId(userId);
+  async createDefinition(userId: string, payload: CreateCustomFieldDefinitionDto, workspaceId?: string) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
     const key = this.normalizeRequiredString(payload.key, "key");
     const label = this.normalizeRequiredString(payload.label, "label");
     const entity = this.parseEntity(payload.entity);
@@ -33,7 +33,7 @@ export class CustomFieldDefinitionsService {
 
     return this.prisma.customFieldDefinition.create({
       data: {
-        workspaceId,
+        workspaceId: resolvedWorkspaceId,
         entity,
         key,
         label,
@@ -44,11 +44,16 @@ export class CustomFieldDefinitionsService {
     });
   }
 
-  async updateDefinition(userId: string, definitionId: string, payload: UpdateCustomFieldDefinitionDto) {
-    const workspaceId = await this.getCurrentWorkspaceId(userId);
+  async updateDefinition(
+    userId: string,
+    definitionId: string,
+    payload: UpdateCustomFieldDefinitionDto,
+    workspaceId?: string
+  ) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
 
     const definition = await this.prisma.customFieldDefinition.findFirst({
-      where: { id: definitionId, workspaceId }
+      where: { id: definitionId, workspaceId: resolvedWorkspaceId }
     });
 
     if (!definition) {
@@ -77,11 +82,11 @@ export class CustomFieldDefinitionsService {
     });
   }
 
-  async deleteDefinition(userId: string, definitionId: string) {
-    const workspaceId = await this.getCurrentWorkspaceId(userId);
+  async deleteDefinition(userId: string, definitionId: string, workspaceId?: string) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
 
     const definition = await this.prisma.customFieldDefinition.findFirst({
-      where: { id: definitionId, workspaceId }
+      where: { id: definitionId, workspaceId: resolvedWorkspaceId }
     });
 
     if (!definition) {
@@ -95,6 +100,15 @@ export class CustomFieldDefinitionsService {
     return { success: true };
   }
 
+  private async resolveWorkspaceId(userId: string, workspaceId?: string) {
+    const normalized = workspaceId?.trim();
+    if (normalized) {
+      await this.ensureWorkspaceMembership(userId, normalized);
+      return normalized;
+    }
+    return this.getCurrentWorkspaceId(userId);
+  }
+
   private async getCurrentWorkspaceId(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -106,6 +120,16 @@ export class CustomFieldDefinitionsService {
     }
 
     return user.currentWorkspaceId;
+  }
+
+  private async ensureWorkspaceMembership(userId: string, workspaceId: string) {
+    const membership = await this.prisma.workspaceMember.findFirst({
+      where: { userId, workspaceId }
+    });
+
+    if (!membership) {
+      throw new BadRequestException("Workspace inválido.");
+    }
   }
 
   private parseEntity(entity: CustomFieldEntity | string) {
