@@ -53,6 +53,24 @@ enum CustomFieldType {
   BOOLEAN
 }
 
+enum ActivityEntity {
+  DEAL
+  CONTACT
+  COMPANY
+}
+
+enum ActivityType {
+  CALL
+  EMAIL
+  NOTE
+  MEETING
+}
+
+enum WebhookEvent {
+  DEAL_WON
+  CONTACT_CREATED
+}
+
 enum CustomerType {
   PERSON
   COMPANY
@@ -95,6 +113,8 @@ model Workspace {
   currentUsers User[] @relation("UserCurrentWorkspace")
   conversations Conversation[]
   messages     Message[]
+  activities   Activity[]
+  webhookSubscriptions WebhookSubscription[]
 }
 
 model User {
@@ -111,6 +131,7 @@ model User {
   auditLogs   AuditLog[]
   assignedTasks Task[] @relation("TaskAssignee")
   assignedConversations Conversation[] @relation("ConversationAssignee")
+  activities Activity[]
   currentWorkspace Workspace? @relation("UserCurrentWorkspace", fields: [currentWorkspaceId], references: [id])
 }
 
@@ -422,6 +443,45 @@ model TagOnCustomer {
   @@index([workspaceId])
   @@index([tagId])
   @@index([customerId])
+}
+
+model Activity {
+  id          String   @id @default(uuid())
+  workspaceId String
+  userId      String
+  entityType  ActivityEntity
+  entityId    String
+  type        ActivityType
+  description String
+  metadata    Json?
+  occurredAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@index([workspaceId])
+  @@index([userId])
+  @@index([workspaceId, entityType, entityId])
+  @@index([workspaceId, occurredAt])
+}
+
+model WebhookSubscription {
+  id          String   @id @default(uuid())
+  workspaceId String
+  event       WebhookEvent
+  targetUrl   String
+  secret      String?
+  headers     Json?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+
+  @@index([workspaceId])
+  @@index([workspaceId, event])
 }
 
 model CustomFieldDefinition {
