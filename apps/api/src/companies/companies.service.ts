@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
-import { CustomFieldEntity, CustomFieldType } from "@prisma/client";
+import { CustomFieldEntity, CustomFieldType, Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateCompanyDto } from "./dto/create-company.dto";
 import { UpdateCompanyDto } from "./dto/update-company.dto";
@@ -42,6 +42,7 @@ export class CompaniesService {
     const domain = this.normalizeOptionalString(payload.domain);
     const phone = this.normalizeOptionalString(payload.phone);
     await this.validateCustomFields(resolvedWorkspaceId, payload.customFields);
+    const customFields = payload.customFields ?? undefined;
 
     return this.prisma.company.create({
       data: {
@@ -49,7 +50,7 @@ export class CompaniesService {
         name,
         domain,
         phone,
-        customFields: payload.customFields ?? undefined
+        customFields: customFields as Prisma.InputJsonValue | undefined
       }
     });
   }
@@ -87,6 +88,7 @@ export class CompaniesService {
     if (payload.customFields !== undefined) {
       await this.validateCustomFields(resolvedWorkspaceId, payload.customFields);
     }
+    const customFields = payload.customFields ?? undefined;
 
     const updated = await this.prisma.company.updateMany({
       where: { id: company.id, workspaceId: resolvedWorkspaceId, version: payload.version },
@@ -94,7 +96,7 @@ export class CompaniesService {
         name,
         domain,
         phone,
-        customFields: payload.customFields ?? undefined,
+        customFields: customFields as Prisma.InputJsonValue | undefined,
         version: { increment: 1 }
       }
     });

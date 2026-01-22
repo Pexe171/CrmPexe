@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { CustomFieldEntity, CustomFieldType } from "@prisma/client";
+import { CustomFieldEntity, CustomFieldType, Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateCustomFieldDefinitionDto } from "./dto/create-custom-field-definition.dto";
 import { UpdateCustomFieldDefinitionDto } from "./dto/update-custom-field-definition.dto";
@@ -162,7 +162,7 @@ export class CustomFieldDefinitionsService {
       if (type === CustomFieldType.SELECT || type === CustomFieldType.MULTI_SELECT) {
         throw new BadRequestException("Opções são obrigatórias para campos de seleção.");
       }
-      return null;
+      return Prisma.JsonNull;
     }
     const normalized = options
       .map((option) => option.trim())
@@ -171,7 +171,7 @@ export class CustomFieldDefinitionsService {
       if (type === CustomFieldType.SELECT || type === CustomFieldType.MULTI_SELECT) {
         throw new BadRequestException("Opções são obrigatórias para campos de seleção.");
       }
-      return null;
+      return Prisma.JsonNull;
     }
     return normalized;
   }
