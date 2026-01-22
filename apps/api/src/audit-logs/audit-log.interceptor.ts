@@ -72,7 +72,7 @@ export class AuditLogInterceptor implements NestInterceptor {
     }
 
     if (metadata.workspaceId.source === "user") {
-      return this.auditLogsService.getCurrentWorkspaceId(request.user.id);
+      return this.auditLogsService.resolveWorkspaceId(request.user.id, this.getWorkspaceHeader(request));
     }
 
     return this.resolveValue(metadata.workspaceId, request, response);
@@ -117,6 +117,14 @@ export class AuditLogInterceptor implements NestInterceptor {
       default:
         return null;
     }
+  }
+
+  private getWorkspaceHeader(request: AuthenticatedRequest) {
+    const header = request.headers["x-workspace-id"];
+    if (Array.isArray(header)) {
+      return header[0];
+    }
+    return header;
   }
 
   private getValueByPath(target: unknown, path: string) {

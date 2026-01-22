@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Headers, Param, Patch, Post, Query, UseGuards } from "@nestjs/common";
 import { AccessTokenGuard } from "../auth/access-token.guard";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { AuthUser } from "../auth/auth.types";
@@ -12,26 +12,39 @@ export class CustomFieldDefinitionsController {
   constructor(private readonly customFieldDefinitionsService: CustomFieldDefinitionsService) {}
 
   @Get()
-  async listDefinitions(@CurrentUser() user: AuthUser, @Query("entity") entity?: string) {
-    return this.customFieldDefinitionsService.listDefinitions(user.id, entity);
+  async listDefinitions(
+    @CurrentUser() user: AuthUser,
+    @Query("entity") entity?: string,
+    @Headers("x-workspace-id") workspaceId?: string
+  ) {
+    return this.customFieldDefinitionsService.listDefinitions(user.id, entity, workspaceId);
   }
 
   @Post()
-  async createDefinition(@CurrentUser() user: AuthUser, @Body() body: CreateCustomFieldDefinitionDto) {
-    return this.customFieldDefinitionsService.createDefinition(user.id, body);
+  async createDefinition(
+    @CurrentUser() user: AuthUser,
+    @Body() body: CreateCustomFieldDefinitionDto,
+    @Headers("x-workspace-id") workspaceId?: string
+  ) {
+    return this.customFieldDefinitionsService.createDefinition(user.id, body, workspaceId);
   }
 
   @Patch(":id")
   async updateDefinition(
     @CurrentUser() user: AuthUser,
     @Param("id") definitionId: string,
-    @Body() body: UpdateCustomFieldDefinitionDto
+    @Body() body: UpdateCustomFieldDefinitionDto,
+    @Headers("x-workspace-id") workspaceId?: string
   ) {
-    return this.customFieldDefinitionsService.updateDefinition(user.id, definitionId, body);
+    return this.customFieldDefinitionsService.updateDefinition(user.id, definitionId, body, workspaceId);
   }
 
   @Delete(":id")
-  async deleteDefinition(@CurrentUser() user: AuthUser, @Param("id") definitionId: string) {
-    return this.customFieldDefinitionsService.deleteDefinition(user.id, definitionId);
+  async deleteDefinition(
+    @CurrentUser() user: AuthUser,
+    @Param("id") definitionId: string,
+    @Headers("x-workspace-id") workspaceId?: string
+  ) {
+    return this.customFieldDefinitionsService.deleteDefinition(user.id, definitionId, workspaceId);
   }
 }

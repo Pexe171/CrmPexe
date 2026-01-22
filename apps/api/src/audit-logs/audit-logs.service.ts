@@ -10,8 +10,8 @@ const MAX_PER_PAGE = 100;
 export class AuditLogsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async listAuditLogs(userId: string, page?: number, perPage?: number) {
-    const currentWorkspaceId = await this.getCurrentWorkspaceId(userId);
+  async listAuditLogs(userId: string, page?: number, perPage?: number, workspaceId?: string) {
+    const currentWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
 
     if (!currentWorkspaceId) {
       throw new BadRequestException("Workspace atual não definido.");
@@ -62,6 +62,23 @@ export class AuditLogsService {
         metadata: payload.metadata
       }
     });
+  }
+
+  async resolveWorkspaceId(userId: string, workspaceId?: string) {
+    const normalized = workspaceId?.trim();
+    if (normalized) {
+      const membership = await this.prisma.workspaceMember.findFirst({
+        where: { userId, workspaceId: normalized }
+      });
+
+      if (!membership) {
+        throw new BadRequestException("Workspace inválido.");
+      }
+
+      return normalized;
+    }
+
+    return this.getCurrentWorkspaceId(userId);
   }
 
   async getCurrentWorkspaceId(userId: string) {
