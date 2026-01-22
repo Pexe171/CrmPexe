@@ -206,6 +206,8 @@ model Company {
   customFields Json?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  deletedAt    DateTime?
+  version      Int      @default(1)
 
   workspace Workspace @relation(fields: [workspaceId], references: [id])
   contacts   Contact[]
@@ -262,6 +264,8 @@ model Contact {
   customFields Json?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+  version     Int      @default(1)
 
   workspace Workspace @relation(fields: [workspaceId], references: [id])
   company   Company?  @relation(fields: [companyId], references: [id])
@@ -324,6 +328,8 @@ model Deal {
   customFields Json?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+  version     Int      @default(1)
 
   workspace Workspace @relation(fields: [workspaceId], references: [id])
   tags      TagOnDeal[]
@@ -448,6 +454,8 @@ model Task {
   relatedId   String?
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
+  deletedAt   DateTime?
+  version     Int        @default(1)
 
   workspace Workspace @relation(fields: [workspaceId], references: [id])
   assignedTo User? @relation("TaskAssignee", fields: [assignedToId], references: [id])

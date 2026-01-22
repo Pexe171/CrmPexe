@@ -7,4 +7,5 @@ export interface UpdateTaskDto {
   assignedToId?: string | null;
   relatedType?: string | null;
   relatedId?: string | null;
+  version?: number;
 }

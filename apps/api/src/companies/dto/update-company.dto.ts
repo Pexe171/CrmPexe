@@ -3,4 +3,5 @@ export interface UpdateCompanyDto {
   domain?: string | null;
   phone?: string | null;
   customFields?: Record<string, unknown> | null;
+  version?: number;
 }

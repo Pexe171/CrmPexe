@@ -11,8 +11,7 @@ const prismaMock = {
     findMany: jest.fn(),
     findFirst: jest.fn(),
     create: jest.fn(),
-    update: jest.fn(),
-    delete: jest.fn()
+    updateMany: jest.fn()
   }
 };
 
@@ -79,8 +78,8 @@ describe("CompaniesService", () => {
     prismaMock.user.findUnique.mockResolvedValue({ currentWorkspaceId: "ws-1" });
     prismaMock.company.findFirst.mockResolvedValue(null);
 
-    await expect(service.updateCompany("user-1", "comp-1", { name: "Nova" })).rejects.toBeInstanceOf(
-      NotFoundException
-    );
+    await expect(
+      service.updateCompany("user-1", "comp-1", { name: "Nova", version: 1 })
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 });
