@@ -27,6 +27,17 @@ enum TaskStatus {
   CANCELED
 }
 
+enum ConversationStatus {
+  OPEN
+  CLOSED
+}
+
+enum MessageDirection {
+  IN
+  OUT
+  SYSTEM
+}
+
 enum CustomFieldEntity {
   COMPANY
   CONTACT
@@ -82,6 +93,8 @@ model Workspace {
   tags        Tag[]
   customFieldDefinitions CustomFieldDefinition[]
   currentUsers User[] @relation("UserCurrentWorkspace")
+  conversations Conversation[]
+  messages     Message[]
 }
 
 model User {
@@ -97,6 +110,7 @@ model User {
   memberships WorkspaceMember[]
   auditLogs   AuditLog[]
   assignedTasks Task[] @relation("TaskAssignee")
+  assignedConversations Conversation[] @relation("ConversationAssignee")
   currentWorkspace Workspace? @relation("UserCurrentWorkspace", fields: [currentWorkspaceId], references: [id])
 }
 
@@ -252,9 +266,53 @@ model Contact {
   workspace Workspace @relation(fields: [workspaceId], references: [id])
   company   Company?  @relation(fields: [companyId], references: [id])
   tags      TagOnContact[]
+  conversations Conversation[]
 
   @@index([workspaceId])
   @@index([companyId])
+}
+
+model Conversation {
+  id               String   @id @default(uuid())
+  workspaceId      String
+  contactId        String
+  status           ConversationStatus @default(OPEN)
+  assignedToUserId String?
+  channel          String
+  lastMessageAt    DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+  contact   Contact   @relation(fields: [contactId], references: [id])
+  assignedToUser User? @relation("ConversationAssignee", fields: [assignedToUserId], references: [id])
+  messages  Message[]
+
+  @@index([workspaceId])
+  @@index([contactId])
+  @@index([assignedToUserId])
+  @@index([workspaceId, status])
+}
+
+model Message {
+  id               String   @id @default(uuid())
+  workspaceId      String
+  conversationId   String
+  direction        MessageDirection
+  text             String
+  providerMessageId String?
+  sentAt           DateTime
+  meta             Json?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id])
+  conversation Conversation @relation(fields: [conversationId], references: [id])
+
+  @@index([workspaceId])
+  @@index([conversationId])
+  @@index([providerMessageId])
+  @@index([workspaceId, sentAt])
 }
 
 model Deal {
