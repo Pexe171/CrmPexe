@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException, Injectable, UnauthorizedExcepti
 import { JwtService } from "@nestjs/jwt";
 import { OtpPurpose } from "@prisma/client";
 import { createHash, randomInt } from "crypto";
-import nodemailer from "nodemailer";
+import * as nodemailer from "nodemailer";
 import { PrismaService } from "../prisma/prisma.service";
 import { ACCESS_TOKEN_COOKIE, ACCESS_TOKEN_TTL_MS, REFRESH_TOKEN_COOKIE, REFRESH_TOKEN_TTL_MS } from "./auth.constants";
 import { RequestOtpDto } from "./dto/request-otp.dto";
