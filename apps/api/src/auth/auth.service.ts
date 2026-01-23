@@ -1,9 +1,12 @@
 import { BadRequestException, ConflictException, Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
+import { OtpPurpose } from "@prisma/client";
+import { createHash, randomInt } from "crypto";
+import nodemailer from "nodemailer";
 import { PrismaService } from "../prisma/prisma.service";
 import { ACCESS_TOKEN_COOKIE, ACCESS_TOKEN_TTL_MS, REFRESH_TOKEN_COOKIE, REFRESH_TOKEN_TTL_MS } from "./auth.constants";
-import { LoginDto } from "./dto/login.dto";
-import { SignupDto } from "./dto/signup.dto";
+import { RequestOtpDto } from "./dto/request-otp.dto";
+import { VerifyOtpDto } from "./dto/verify-otp.dto";
 
 @Injectable()
 export class AuthService {
@@ -11,6 +14,7 @@ export class AuthService {
   private readonly refreshTokenSecret = process.env.JWT_REFRESH_SECRET || "dev_refresh_secret";
   private readonly accessTokenExpiresIn = process.env.JWT_ACCESS_EXPIRES_IN || "15m";
   private readonly refreshTokenExpiresIn = process.env.JWT_REFRESH_EXPIRES_IN || "7d";
+  private readonly otpTtlMs = Number(process.env.OTP_TTL_MS || 10 * 60 * 1000);
 
   constructor(private readonly prisma: PrismaService, private readonly jwtService: JwtService) {}
 
@@ -30,58 +34,95 @@ export class AuthService {
     return REFRESH_TOKEN_TTL_MS;
   }
 
-  async signup(payload: SignupDto) {
-    this.ensureAuthPayload(payload);
+  async requestOtp(payload: RequestOtpDto) {
+    const email = payload.email.toLowerCase();
+    const isSignupPayload = Boolean(payload.name || payload.contact || payload.emailConfirmation);
+
+    if (isSignupPayload) {
+      this.ensureSignupPayload(payload);
+    }
 
     const existingUser = await this.prisma.user.findUnique({
-      where: { email: payload.email.toLowerCase() }
+      where: { email }
     });
 
-    if (existingUser) {
+    if (existingUser && isSignupPayload) {
       throw new ConflictException("E-mail já cadastrado.");
     }
 
-    const passwordHash = payload.password;
+    if (!existingUser && !isSignupPayload) {
+      throw new BadRequestException("E-mail ainda não cadastrado.");
+    }
 
-    const user = await this.prisma.user.create({
+    const purpose = existingUser ? OtpPurpose.LOGIN : OtpPurpose.SIGNUP;
+    const code = this.generateOtpCode();
+    const expiresAt = new Date(Date.now() + this.otpTtlMs);
+
+    await this.prisma.otpCode.deleteMany({ where: { email } });
+
+    await this.prisma.otpCode.create({
       data: {
-        email: payload.email.toLowerCase(),
-        name: payload.name.trim(),
-        passwordHash
+        email,
+        codeHash: this.hashOtpCode(code),
+        purpose,
+        name: payload.name?.trim() ?? null,
+        contact: payload.contact?.trim() ?? null,
+        expiresAt
       }
     });
 
-    const tokens = await this.issueTokens(user.id, user.email);
-    await this.persistRefreshToken(user.id, tokens.refreshToken);
+    await this.sendOtpEmail(email, code, purpose);
 
-    return {
-      user: { id: user.id, email: user.email, name: user.name },
-      tokens
-    };
+    return { message: "Código enviado.", expiresAt };
   }
 
-  async login(payload: LoginDto) {
-    this.ensureAuthPayload(payload);
+  async verifyOtp(payload: VerifyOtpDto) {
+    const email = payload.email.toLowerCase();
+    const codeHash = this.hashOtpCode(payload.code.trim());
 
-    const user = await this.prisma.user.findUnique({
-      where: { email: payload.email.toLowerCase() }
+    const otp = await this.prisma.otpCode.findFirst({
+      where: {
+        email,
+        usedAt: null,
+        expiresAt: { gt: new Date() }
+      },
+      orderBy: { createdAt: "desc" }
     });
 
-    if (!user) {
-      throw new UnauthorizedException("Credenciais inválidas.");
+    if (!otp || otp.codeHash !== codeHash) {
+      throw new UnauthorizedException("Código inválido ou expirado.");
     }
 
-    const passwordMatch = payload.password === user.passwordHash;
+    await this.prisma.otpCode.update({
+      where: { id: otp.id },
+      data: { usedAt: new Date() }
+    });
 
-    if (!passwordMatch) {
-      throw new UnauthorizedException("Credenciais inválidas.");
+    let user = await this.prisma.user.findUnique({ where: { email } });
+
+    if (!user && otp.purpose === OtpPurpose.SIGNUP) {
+      if (!otp.name || !otp.contact) {
+        throw new BadRequestException("Dados de cadastro ausentes.");
+      }
+
+      user = await this.prisma.user.create({
+        data: {
+          email,
+          name: otp.name.trim(),
+          contact: otp.contact.trim()
+        }
+      });
+    }
+
+    if (!user) {
+      throw new UnauthorizedException("Usuário não encontrado.");
     }
 
     const tokens = await this.issueTokens(user.id, user.email);
     await this.persistRefreshToken(user.id, tokens.refreshToken);
 
     return {
-      user: { id: user.id, email: user.email, name: user.name },
+      user: { id: user.id, email: user.email, name: user.name, contact: user.contact },
       tokens
     };
   }
@@ -176,9 +217,55 @@ export class AuthService {
     });
   }
 
-  private ensureAuthPayload(payload: { email: string; password: string; name?: string }) {
-    if (!payload.email || !payload.password || ("name" in payload && !payload.name)) {
-      throw new BadRequestException("Dados de autenticação inválidos.");
+  private ensureSignupPayload(payload: { email: string; name?: string; contact?: string; emailConfirmation?: string }) {
+    if (!payload.email || !payload.name || !payload.contact || !payload.emailConfirmation) {
+      throw new BadRequestException("Dados de cadastro inválidos.");
     }
+
+    if (payload.email.toLowerCase() !== payload.emailConfirmation.toLowerCase()) {
+      throw new BadRequestException("Os e-mails informados não conferem.");
+    }
+  }
+
+  private generateOtpCode() {
+    return randomInt(100000, 1000000).toString();
+  }
+
+  private hashOtpCode(code: string) {
+    return createHash("sha256").update(code).digest("hex");
+  }
+
+  private async sendOtpEmail(email: string, code: string, purpose: OtpPurpose) {
+    const host = process.env.SMTP_HOST || "smtp.gmail.com";
+    const port = Number(process.env.SMTP_PORT || 465);
+    const user = process.env.SMTP_USER;
+    const pass = process.env.SMTP_PASS;
+    const from = process.env.SMTP_FROM || user;
+
+    if (!user || !pass || !from) {
+      throw new BadRequestException("Configuração de SMTP ausente.");
+    }
+
+    const transport = nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465,
+      auth: {
+        user,
+        pass
+      }
+    });
+
+    const actionLabel = purpose === OtpPurpose.SIGNUP ? "criar sua conta" : "entrar no CRM";
+
+    await transport.sendMail({
+      from,
+      to: email,
+      subject: "Seu código de acesso CrmPexe",
+      text: `Use o código ${code} para ${actionLabel}. Ele expira em ${Math.round(this.otpTtlMs / 60000)} minutos.`,
+      html: `<p>Use o código abaixo para ${actionLabel}:</p><p style="font-size:24px;letter-spacing:4px;"><strong>${code}</strong></p><p>Este código expira em ${Math.round(
+        this.otpTtlMs / 60000
+      )} minutos.</p>`
+    });
   }
 }
