@@ -104,6 +104,15 @@ pnpm dev
 
 API disponível em `http://localhost:3001/api/health`.
 
+### 4) Frontend (Web)
+```bash
+cd apps/web
+cp .env.example .env # opcional (padrão http://localhost:3001)
+pnpm dev
+```
+
+Frontend disponível em `http://localhost:3000`.
+
 > **OTP por e-mail (Gmail SMTP)**
 > Configure `SMTP_USER` e `SMTP_PASS` com uma senha de app do Gmail. Use `SMTP_FROM` para o remetente exibido.
 > Sem SMTP válido o fluxo de OTP não envia códigos.

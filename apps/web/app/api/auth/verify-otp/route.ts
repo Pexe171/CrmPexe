@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
   if (!apiBaseUrl) {
     return NextResponse.json(
