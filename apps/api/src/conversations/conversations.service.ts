@@ -115,7 +115,12 @@ export class ConversationsService {
       meta
     });
 
-    if (result.isFirstResponse && result.firstResponseTimeSeconds > this.slaResponseSeconds) {
+    if (
+      result.isFirstResponse &&
+      result.firstResponseTimeSeconds !== null &&
+      result.firstResponseTimeSeconds !== undefined &&
+      result.firstResponseTimeSeconds > this.slaResponseSeconds
+    ) {
       await this.notifySlaBreach(resolvedWorkspaceId, conversation.id, conversation.assignedToUserId);
     }
 
@@ -196,7 +201,12 @@ export class ConversationsService {
       meta
     });
 
-    if (result.isFirstResponse && result.firstResponseTimeSeconds > this.slaResponseSeconds) {
+    if (
+      result.isFirstResponse &&
+      result.firstResponseTimeSeconds !== null &&
+      result.firstResponseTimeSeconds !== undefined &&
+      result.firstResponseTimeSeconds > this.slaResponseSeconds
+    ) {
       await this.notifySlaBreach(resolvedWorkspaceId, conversation.id, conversation.assignedToUserId);
     }
 
