@@ -108,6 +108,9 @@ API disponível em `http://localhost:3001/api/health`.
 > Configure `SMTP_USER` e `SMTP_PASS` com uma senha de app do Gmail. Use `SMTP_FROM` para o remetente exibido.
 > Sem SMTP válido o fluxo de OTP não envia códigos.
 
+> **CORS (Frontend local)**
+> Se o frontend estiver em outra origem, ajuste `CORS_ORIGIN` no `.env` da API (ex: `CORS_ORIGIN=http://localhost:3000` ou múltiplos separados por vírgula).
+
 > **Workspace atual via header**
 > Para reduzir latência de leitura do workspace atual, você pode enviar o header `X-Workspace-Id` em requisições que operam dados do tenant (companies, tasks, tags, conversations, custom fields, audit logs). Caso o header não seja enviado, a API continua usando o `currentWorkspaceId` salvo no usuário.
 
@@ -240,6 +243,10 @@ pnpm typecheck
 - [ ] `cd apps/api && cp .env.example .env && pnpm prisma:generate && pnpm prisma:migrate && pnpm prisma db seed (opcional) && pnpm dev`
 - [ ] `cd apps/web && cp .env.example .env.local && pnpm dev`
 - [ ] `cd apps/api && pnpm test`
+
+## Troubleshooting rápido
+- **Erro `User.contact` não existe no banco**: rode as migrations da API (`cd apps/api && pnpm prisma:migrate`). Se estiver com banco antigo, considere `pnpm prisma migrate reset` (isso apaga os dados locais).
+- **CORS ao chamar a API**: confira se `CORS_ORIGIN` aponta para a URL do frontend (ex: `http://localhost:3000`).
 
 ## Mapa macro de módulos (visão de produto)
 
