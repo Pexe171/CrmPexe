@@ -27,6 +27,12 @@ enum TaskStatus {
   CANCELED
 }
 
+enum AutomationInstanceStatus {
+  PENDING
+  ACTIVE
+  FAILED
+}
+
 enum ConversationStatus {
   OPEN
   CLOSED
@@ -138,6 +144,7 @@ model Workspace {
   webhookSubscriptions WebhookSubscription[]
   integrationAccounts IntegrationAccount[]
   messageTemplates MessageTemplate[]
+  automationInstances AutomationInstance[]
 }
 
 model User {
@@ -156,6 +163,8 @@ model User {
   assignedConversations Conversation[] @relation("ConversationAssignee")
   notifications Notification[]
   activities Activity[]
+  automationTemplatesCreated AutomationTemplate[] @relation("AutomationTemplateAdmin")
+  automationInstancesCreated AutomationInstance[] @relation("AutomationInstanceUser")
   currentWorkspace Workspace? @relation("UserCurrentWorkspace", fields: [currentWorkspaceId], references: [id])
 }
 
@@ -633,4 +642,42 @@ model Task {
   @@index([assignedToId])
   @@index([workspaceId, status])
   @@index([workspaceId, dueAt])
+}
+
+model AutomationTemplate {
+  id                   String   @id @default(uuid())
+  name                 String
+  description          String?
+  version              String
+  category             String
+  definitionJson       Json
+  requiredIntegrations String[]
+  createdByAdminId     String
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  createdByAdmin User @relation("AutomationTemplateAdmin", fields: [createdByAdminId], references: [id])
+  instances     AutomationInstance[]
+
+  @@index([category])
+  @@index([createdByAdminId])
+}
+
+model AutomationInstance {
+  id              String                    @id @default(uuid())
+  workspaceId     String
+  templateId      String
+  status          AutomationInstanceStatus  @default(PENDING)
+  configJson      Json
+  createdByUserId String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  workspace     Workspace          @relation(fields: [workspaceId], references: [id])
+  template      AutomationTemplate @relation(fields: [templateId], references: [id])
+  createdByUser User               @relation("AutomationInstanceUser", fields: [createdByUserId], references: [id])
+
+  @@index([workspaceId])
+  @@index([templateId])
+  @@index([createdByUserId])
 }

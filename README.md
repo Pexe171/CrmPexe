@@ -200,6 +200,15 @@ POST /api/message-templates
 DELETE /api/message-templates/:id
 ```
 
+### Endpoints de automações (templates + provisionamento mock)
+```
+GET /api/automation-templates
+POST /api/automation-templates
+POST /api/automation-templates/:id/install
+GET /api/automation-instances
+```
+> O provisionamento atual usa conectores mock, retornando ações simuladas para preparar a integração real.
+
 ### Endpoints de integrações (admin)
 ```
 GET /api/integration-accounts

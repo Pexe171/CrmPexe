@@ -165,6 +165,12 @@ export default function DashboardPage() {
           >
             Integrações
           </Link>
+          <Link
+            href="/admin/automations"
+            className={buttonVariants({ variant: "outline", size: "sm" })}
+          >
+            Automações
+          </Link>
           <Button variant="outline" size="sm">
             Ajuda
           </Button>
