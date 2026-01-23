@@ -158,6 +158,7 @@ DELETE /api/tasks/:id
 GET /api/conversations
 GET /api/conversations/:id
 POST /api/conversations/:id/messages
+POST /api/conversations/:id/send
 PATCH /api/conversations/:id/assign
 PATCH /api/conversations/:id/close
 ```
@@ -171,7 +172,20 @@ PATCH /api/notifications/:id/read
 ### Endpoints de canais (webhooks)
 ```
 POST /api/channels/:channel/webhook
+POST /api/webhooks/whatsapp
 ```
+
+### Endpoints de templates de mensagens (admin)
+```
+GET /api/message-templates
+POST /api/message-templates
+DELETE /api/message-templates/:id
+```
+
+### Integrações WhatsApp (secrets)
+- Cadastre uma integração do provedor **WHATSAPP** por workspace na tabela `Integration`.
+- Armazene as credenciais em `IntegrationSecret` com as chaves `apiUrl`, `apiToken` e (opcional) `webhookToken`.
+- O envio em `/api/conversations/:id/send` usa essas credenciais para chamar o provedor.
 
 ### Endpoints de tags
 ```

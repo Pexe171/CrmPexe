@@ -7,10 +7,12 @@ import { CompaniesModule } from "./companies/companies.module";
 import { ConversationsModule } from "./conversations/conversations.module";
 import { CustomFieldDefinitionsModule } from "./custom-field-definitions/custom-field-definitions.module";
 import { ChannelsModule } from "./channels/channels.module";
+import { MessageTemplatesModule } from "./message-templates/message-templates.module";
 import { NotificationsModule } from "./notifications/notifications.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { TagsModule } from "./tags/tags.module";
 import { TasksModule } from "./tasks/tasks.module";
+import { WebhooksModule } from "./webhooks/webhooks.module";
 import { WorkspacesModule } from "./workspaces/workspaces.module";
 
 @Module({
@@ -25,7 +27,9 @@ import { WorkspacesModule } from "./workspaces/workspaces.module";
     NotificationsModule,
     TasksModule,
     TagsModule,
-    CustomFieldDefinitionsModule
+    CustomFieldDefinitionsModule,
+    MessageTemplatesModule,
+    WebhooksModule
   ],
   controllers: [AppController],
   providers: [AppService]

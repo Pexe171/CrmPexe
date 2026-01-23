@@ -13,9 +13,22 @@ export interface ChannelInboundMessage {
   metadata?: Record<string, unknown>;
 }
 
+export interface ChannelIntegration {
+  id: string;
+  provider: string;
+  secrets: Record<string, string>;
+}
+
+export interface ChannelSendMessageTemplate {
+  name: string;
+  language: string;
+  parameters?: string[];
+}
+
 export interface ChannelSendMessageInput {
   to: string;
   text: string;
+  template?: ChannelSendMessageTemplate;
   conversationId?: string;
   metadata?: Record<string, unknown>;
 }

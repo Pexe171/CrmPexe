@@ -1,9 +1,11 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { ConversationStatus, MessageDirection, NotificationType, Prisma } from "@prisma/client";
+import { ChannelsService } from "../channels/channels.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { AssignConversationDto } from "./dto/assign-conversation.dto";
 import { CreateOutgoingMessageDto } from "./dto/create-outgoing-message.dto";
+import { SendConversationMessageDto } from "./dto/send-conversation-message.dto";
 
 @Injectable()
 export class ConversationsService {
@@ -11,7 +13,8 @@ export class ConversationsService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly notificationsService: NotificationsService
+    private readonly notificationsService: NotificationsService,
+    private readonly channelsService: ChannelsService
   ) {}
 
   async listConversations(userId: string, workspaceId?: string) {
@@ -103,38 +106,94 @@ export class ConversationsService {
     const sentAt = payload.sentAt ? this.parseDate(payload.sentAt, "sentAt") : new Date();
     const meta = payload.meta ?? undefined;
 
-    const result = await this.prisma.$transaction(async (tx) => {
-      const message = await tx.message.create({
-        data: {
-          workspaceId: resolvedWorkspaceId,
-          conversationId: conversation.id,
-          direction: MessageDirection.OUT,
-          text,
-          providerMessageId: providerMessageId ?? undefined,
-          sentAt,
-          meta: meta as Prisma.InputJsonValue | undefined
-        }
+    const result = await this.storeOutgoingMessage({
+      workspaceId: resolvedWorkspaceId,
+      conversation,
+      text,
+      providerMessageId: providerMessageId ?? undefined,
+      sentAt,
+      meta
+    });
+
+    if (result.isFirstResponse && result.firstResponseTimeSeconds > this.slaResponseSeconds) {
+      await this.notifySlaBreach(resolvedWorkspaceId, conversation.id, conversation.assignedToUserId);
+    }
+
+    return result.message;
+  }
+
+  async sendMessage(
+    userId: string,
+    conversationId: string,
+    payload: SendConversationMessageDto,
+    workspaceId?: string
+  ) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+    const conversation = await this.prisma.conversation.findFirst({
+      where: { id: conversationId, workspaceId: resolvedWorkspaceId },
+      include: {
+        contact: true
+      }
+    });
+
+    if (!conversation) {
+      throw new NotFoundException("Conversa não encontrada.");
+    }
+
+    const text = payload.text?.trim();
+    const templateId = payload.templateId?.trim();
+
+    if (!text && !templateId) {
+      throw new BadRequestException("Texto ou template é obrigatório.");
+    }
+
+    if (!conversation.contact.phone) {
+      throw new BadRequestException("Contato sem telefone para envio.");
+    }
+
+    let template = null;
+    if (templateId) {
+      template = await this.prisma.messageTemplate.findFirst({
+        where: { id: templateId, workspaceId: resolvedWorkspaceId }
       });
+      if (!template) {
+        throw new NotFoundException("Template não encontrado.");
+      }
+    }
 
-      const isFirstResponse = conversation.firstResponseTimeSeconds === null ||
-        conversation.firstResponseTimeSeconds === undefined;
-      const computedFirstResponseTimeSeconds = Math.max(
-        0,
-        Math.floor((sentAt.getTime() - conversation.createdAt.getTime()) / 1000)
-      );
-      const firstResponseTimeSeconds = isFirstResponse
-        ? computedFirstResponseTimeSeconds
-        : conversation.firstResponseTimeSeconds;
+    const outboundText = text ?? template?.content ?? "";
+    const sentAt = new Date();
+    const response = await this.channelsService.sendMessage(
+      conversation.channel,
+      {
+        to: conversation.contact.phone,
+        text: outboundText,
+        template: template
+          ? {
+              name: template.name,
+              language: template.language,
+              parameters: payload.templateParameters ?? []
+            }
+          : undefined,
+        conversationId: conversation.id
+      },
+      resolvedWorkspaceId
+    );
 
-      await tx.conversation.update({
-        where: { id: conversation.id },
-        data: {
-          lastMessageAt: sentAt,
-          firstResponseTimeSeconds: conversation.firstResponseTimeSeconds ?? firstResponseTimeSeconds
-        }
-      });
+    const meta = {
+      ...(payload.meta ?? {}),
+      templateId: template?.id ?? undefined,
+      templateName: template?.name ?? undefined,
+      providerResponse: response.raw ?? undefined
+    };
 
-      return { message, isFirstResponse, firstResponseTimeSeconds };
+    const result = await this.storeOutgoingMessage({
+      workspaceId: resolvedWorkspaceId,
+      conversation,
+      text: outboundText,
+      providerMessageId: response.providerMessageId,
+      sentAt,
+      meta
     });
 
     if (result.isFirstResponse && result.firstResponseTimeSeconds > this.slaResponseSeconds) {
@@ -283,6 +342,56 @@ export class ConversationsService {
           }
         }
       }
+    });
+  }
+
+  private async storeOutgoingMessage({
+    workspaceId,
+    conversation,
+    text,
+    providerMessageId,
+    sentAt,
+    meta
+  }: {
+    workspaceId: string;
+    conversation: { id: string; createdAt: Date; firstResponseTimeSeconds?: number | null };
+    text: string;
+    providerMessageId?: string;
+    sentAt: Date;
+    meta?: Record<string, unknown> | null;
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      const message = await tx.message.create({
+        data: {
+          workspaceId,
+          conversationId: conversation.id,
+          direction: MessageDirection.OUT,
+          text,
+          providerMessageId: providerMessageId ?? undefined,
+          sentAt,
+          meta: meta as Prisma.InputJsonValue | undefined
+        }
+      });
+
+      const isFirstResponse = conversation.firstResponseTimeSeconds === null ||
+        conversation.firstResponseTimeSeconds === undefined;
+      const computedFirstResponseTimeSeconds = Math.max(
+        0,
+        Math.floor((sentAt.getTime() - conversation.createdAt.getTime()) / 1000)
+      );
+      const firstResponseTimeSeconds = isFirstResponse
+        ? computedFirstResponseTimeSeconds
+        : conversation.firstResponseTimeSeconds;
+
+      await tx.conversation.update({
+        where: { id: conversation.id },
+        data: {
+          lastMessageAt: sentAt,
+          firstResponseTimeSeconds: conversation.firstResponseTimeSeconds ?? firstResponseTimeSeconds
+        }
+      });
+
+      return { message, isFirstResponse, firstResponseTimeSeconds };
     });
   }
 
