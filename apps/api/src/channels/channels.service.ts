@@ -1,10 +1,10 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
-import { MessageDirection, NotificationType, Prisma } from "@prisma/client";
+import { IntegrationProvider, MessageDirection, NotificationType, Prisma } from "@prisma/client";
 import { NotificationsService } from "../notifications/notifications.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { IChannelProvider } from "./interfaces/channel-provider.interface";
 import { WhatsappProvider } from "./providers/whatsapp.provider";
-import { ChannelInboundMessage, ChannelContact } from "./types";
+import { ChannelInboundMessage, ChannelContact, ChannelIntegration, ChannelSendMessageInput } from "./types";
 
 @Injectable()
 export class ChannelsService {
@@ -34,13 +34,14 @@ export class ChannelsService {
       throw new BadRequestException("Canal não suportado.");
     }
 
+    const integration = await this.getIntegration(resolvedWorkspaceId, channel);
     const normalizedHeaders = this.normalizeHeaders(headers);
-    const isValid = await provider.verifyWebhook(payload, normalizedHeaders);
+    const isValid = await provider.verifyWebhook(payload, normalizedHeaders, integration);
     if (!isValid) {
       throw new BadRequestException("Webhook inválido.");
     }
 
-    const inboundMessages = await provider.receiveWebhook(payload, normalizedHeaders);
+    const inboundMessages = await provider.receiveWebhook(payload, normalizedHeaders, integration);
     if (!inboundMessages.length) {
       return { processed: 0, results: [] };
     }
@@ -48,16 +49,33 @@ export class ChannelsService {
     const results = [];
     for (const inboundMessage of inboundMessages) {
       const contactInfo = provider.mapInboundToContact(inboundMessage);
-      const { conversationId, messageId } = await this.handleInboundMessage(
+      const { conversationId, messageId, isDuplicate } = await this.handleInboundMessage(
         resolvedWorkspaceId,
         channel,
         inboundMessage,
         contactInfo
       );
-      results.push({ conversationId, messageId });
+      if (!isDuplicate) {
+        results.push({ conversationId, messageId });
+      }
     }
 
     return { processed: results.length, results };
+  }
+
+  async sendMessage(channel: string, input: ChannelSendMessageInput, workspaceId?: string) {
+    const resolvedWorkspaceId = workspaceId?.trim();
+    if (!resolvedWorkspaceId) {
+      throw new BadRequestException("Workspace é obrigatório.");
+    }
+
+    const provider = this.providers.get(channel);
+    if (!provider) {
+      throw new BadRequestException("Canal não suportado.");
+    }
+
+    const integration = await this.getIntegration(resolvedWorkspaceId, channel);
+    return provider.sendMessage(input, integration);
   }
 
   private async handleInboundMessage(
@@ -69,6 +87,23 @@ export class ChannelsService {
     const contact = await this.upsertContact(workspaceId, contactInfo);
 
     const result = await this.prisma.$transaction(async (tx) => {
+      if (inboundMessage.id) {
+        const existingMessage = await tx.message.findUnique({
+          where: {
+            workspaceId_providerMessageId: {
+              workspaceId,
+              providerMessageId: inboundMessage.id
+            }
+          },
+          include: {
+            conversation: true
+          }
+        });
+        if (existingMessage) {
+          return { conversation: existingMessage.conversation, message: existingMessage, isDuplicate: true };
+        }
+      }
+
       let conversation = await tx.conversation.findFirst({
         where: {
           workspaceId,
@@ -107,12 +142,19 @@ export class ChannelsService {
         data: { lastMessageAt: inboundMessage.timestamp }
       });
 
-      return { conversation, message };
+      return { conversation, message, isDuplicate: false };
     });
 
-    await this.notifyInboundMessage(workspaceId, result.conversation.id, contact.name, result.conversation.assignedToUserId);
+    if (!result.isDuplicate) {
+      await this.notifyInboundMessage(
+        workspaceId,
+        result.conversation.id,
+        contact.name,
+        result.conversation.assignedToUserId
+      );
+    }
 
-    return { conversationId: result.conversation.id, messageId: result.message.id };
+    return { conversationId: result.conversation.id, messageId: result.message.id, isDuplicate: result.isDuplicate };
   }
 
   private async notifyInboundMessage(
@@ -191,5 +233,35 @@ export class ChannelsService {
       }
     });
     return normalized;
+  }
+
+  private async getIntegration(workspaceId: string, channel: string): Promise<ChannelIntegration> {
+    const provider = this.resolveProvider(channel);
+    const integration = await this.prisma.integration.findFirst({
+      where: { workspaceId, provider },
+      include: { secrets: true }
+    });
+
+    if (!integration) {
+      throw new BadRequestException("Integração do canal não configurada.");
+    }
+
+    const secrets = integration.secrets.reduce<Record<string, string>>((acc, secret) => {
+      acc[secret.key] = secret.value;
+      return acc;
+    }, {});
+
+    return {
+      id: integration.id,
+      provider: integration.provider,
+      secrets
+    };
+  }
+
+  private resolveProvider(channel: string) {
+    if (channel === "whatsapp") {
+      return IntegrationProvider.WHATSAPP;
+    }
+    throw new BadRequestException("Canal não suportado.");
   }
 }

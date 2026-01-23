@@ -259,7 +259,7 @@ export default function InboxPage() {
     );
 
     try {
-      const response = await fetch(`${apiUrl}/api/conversations/${activeConversationId}/messages`,
+      const response = await fetch(`${apiUrl}/api/conversations/${activeConversationId}/send`,
         {
           method: "POST",
           headers: {

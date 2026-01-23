@@ -1,6 +1,12 @@
-import { Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable } from "@nestjs/common";
 import { IChannelProvider } from "../interfaces/channel-provider.interface";
-import { ChannelContact, ChannelInboundMessage, ChannelSendMessageInput, ChannelSendMessageResult } from "../types";
+import {
+  ChannelContact,
+  ChannelInboundMessage,
+  ChannelIntegration,
+  ChannelSendMessageInput,
+  ChannelSendMessageResult
+} from "../types";
 
 type WhatsappWebhookPayload = {
   messages?: Array<{
@@ -16,18 +22,54 @@ type WhatsappWebhookPayload = {
 export class WhatsappProvider implements IChannelProvider {
   readonly channel = "whatsapp";
 
-  async sendMessage(input: ChannelSendMessageInput): Promise<ChannelSendMessageResult> {
+  async sendMessage(input: ChannelSendMessageInput, integration: ChannelIntegration): Promise<ChannelSendMessageResult> {
+    const apiUrl = integration.secrets.apiUrl;
+    const apiToken = integration.secrets.apiToken;
+
+    if (!apiUrl || !apiToken) {
+      throw new BadRequestException("Integração do WhatsApp sem apiUrl ou apiToken.");
+    }
+
+    const payload = {
+      to: input.to,
+      text: input.text,
+      template: input.template
+        ? {
+            name: input.template.name,
+            language: input.template.language,
+            parameters: input.template.parameters ?? []
+          }
+        : undefined,
+      metadata: input.metadata ?? undefined
+    };
+
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiToken}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw new BadRequestException(`Falha ao enviar WhatsApp: ${errorBody}`);
+    }
+
+    const responseBody = (await response.json()) as { id?: string };
+
     return {
-      providerMessageId: `wa_${Date.now()}`,
-      raw: {
-        to: input.to,
-        text: input.text,
-        metadata: input.metadata ?? {}
-      }
+      providerMessageId: responseBody.id ?? `wa_${Date.now()}`,
+      raw: responseBody
     };
   }
 
-  async receiveWebhook(payload: unknown, _headers: Record<string, string>): Promise<ChannelInboundMessage[]> {
+  async receiveWebhook(
+    payload: unknown,
+    _headers: Record<string, string>,
+    _integration: ChannelIntegration
+  ): Promise<ChannelInboundMessage[]> {
     const data = payload as WhatsappWebhookPayload;
     if (!data?.messages || !Array.isArray(data.messages)) {
       return [];
@@ -49,8 +91,17 @@ export class WhatsappProvider implements IChannelProvider {
       }));
   }
 
-  async verifyWebhook(_payload: unknown, _headers: Record<string, string>): Promise<boolean> {
-    return true;
+  async verifyWebhook(
+    _payload: unknown,
+    headers: Record<string, string>,
+    integration: ChannelIntegration
+  ): Promise<boolean> {
+    const expectedToken = integration.secrets.webhookToken;
+    if (!expectedToken) {
+      return true;
+    }
+    const headerToken = headers["x-whatsapp-token"] ?? headers["x-webhook-token"];
+    return headerToken === expectedToken;
   }
 
   mapInboundToContact(message: ChannelInboundMessage): ChannelContact {

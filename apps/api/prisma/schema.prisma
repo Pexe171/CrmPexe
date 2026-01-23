@@ -77,6 +77,10 @@ enum WebhookEvent {
   CONTACT_CREATED
 }
 
+enum IntegrationProvider {
+  WHATSAPP
+}
+
 enum OtpPurpose {
   LOGIN
   SIGNUP
@@ -127,6 +131,8 @@ model Workspace {
   notifications Notification[]
   activities   Activity[]
   webhookSubscriptions WebhookSubscription[]
+  integrations Integration[]
+  messageTemplates MessageTemplate[]
 }
 
 model User {
@@ -367,8 +373,54 @@ model Message {
 
   @@index([workspaceId])
   @@index([conversationId])
-  @@index([providerMessageId])
   @@index([workspaceId, sentAt])
+  @@unique([workspaceId, providerMessageId])
+}
+
+model Integration {
+  id          String   @id @default(uuid())
+  workspaceId String
+  provider    IntegrationProvider
+  name        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+  secrets   IntegrationSecret[]
+
+  @@unique([workspaceId, provider])
+  @@index([workspaceId])
+}
+
+model IntegrationSecret {
+  id            String   @id @default(uuid())
+  integrationId String
+  key           String
+  value         String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  integration Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  @@unique([integrationId, key])
+  @@index([integrationId])
+}
+
+model MessageTemplate {
+  id          String   @id @default(uuid())
+  workspaceId String
+  channel     String
+  name        String
+  language    String
+  content     String
+  externalId  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+
+  @@unique([workspaceId, channel, name, language])
+  @@index([workspaceId])
 }
 
 model Notification {
