@@ -325,6 +325,8 @@ model Conversation {
   assignedToUserId String?
   channel          String
   lastMessageAt    DateTime?
+  firstResponseTimeSeconds Int? @map("first_response_time_seconds")
+  resolutionTimeSeconds Int? @map("resolution_time_seconds")
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 

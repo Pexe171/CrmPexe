@@ -155,6 +155,8 @@ DELETE /api/tasks/:id
 GET /api/conversations
 GET /api/conversations/:id
 POST /api/conversations/:id/messages
+PATCH /api/conversations/:id/assign
+PATCH /api/conversations/:id/close
 ```
 
 ### Endpoints de tags

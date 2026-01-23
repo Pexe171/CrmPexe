@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { MessageDirection, Prisma } from "@prisma/client";
+import { ConversationStatus, MessageDirection, Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import { AssignConversationDto } from "./dto/assign-conversation.dto";
 import { CreateOutgoingMessageDto } from "./dto/create-outgoing-message.dto";
 
 @Injectable()
@@ -109,14 +110,145 @@ export class ConversationsService {
         }
       });
 
+      const firstResponseTimeSeconds =
+        conversation.firstResponseTimeSeconds ??
+        Math.max(0, Math.floor((sentAt.getTime() - conversation.createdAt.getTime()) / 1000));
+
       await tx.conversation.update({
         where: { id: conversation.id },
         data: {
-          lastMessageAt: sentAt
+          lastMessageAt: sentAt,
+          firstResponseTimeSeconds: conversation.firstResponseTimeSeconds ?? firstResponseTimeSeconds
         }
       });
 
       return message;
+    });
+  }
+
+  async assignConversation(
+    userId: string,
+    conversationId: string,
+    payload: AssignConversationDto,
+    workspaceId?: string
+  ) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+    const conversation = await this.prisma.conversation.findFirst({
+      where: { id: conversationId, workspaceId: resolvedWorkspaceId },
+      include: {
+        contact: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true
+          }
+        },
+        assignedToUser: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
+      }
+    });
+
+    if (!conversation) {
+      throw new NotFoundException("Conversa não encontrada.");
+    }
+
+    if (conversation.assignedToUserId) {
+      throw new BadRequestException("Conversa já atribuída.");
+    }
+
+    const requestedAssignee =
+      payload.assignedToUserId === undefined ? userId : payload.assignedToUserId;
+
+    if (requestedAssignee) {
+      await this.ensureWorkspaceMembership(requestedAssignee, resolvedWorkspaceId);
+    }
+
+    return this.prisma.conversation.update({
+      where: { id: conversation.id },
+      data: {
+        assignedToUserId: requestedAssignee ?? null
+      },
+      include: {
+        contact: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true
+          }
+        },
+        assignedToUser: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
+      }
+    });
+  }
+
+  async closeConversation(userId: string, conversationId: string, workspaceId?: string) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+    const conversation = await this.prisma.conversation.findFirst({
+      where: { id: conversationId, workspaceId: resolvedWorkspaceId },
+      include: {
+        contact: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true
+          }
+        },
+        assignedToUser: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
+      }
+    });
+
+    if (!conversation) {
+      throw new NotFoundException("Conversa não encontrada.");
+    }
+
+    const closedAt = new Date();
+    const resolutionTimeSeconds =
+      conversation.resolutionTimeSeconds ??
+      Math.max(0, Math.floor((closedAt.getTime() - conversation.createdAt.getTime()) / 1000));
+
+    return this.prisma.conversation.update({
+      where: { id: conversation.id },
+      data: {
+        status: ConversationStatus.CLOSED,
+        resolutionTimeSeconds: conversation.resolutionTimeSeconds ?? resolutionTimeSeconds
+      },
+      include: {
+        contact: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true
+          }
+        },
+        assignedToUser: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
+      }
     });
   }
 
