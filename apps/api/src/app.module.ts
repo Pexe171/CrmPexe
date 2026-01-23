@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { AuthModule } from "./auth/auth.module";
+import { AutomationsModule } from "./automations/automations.module";
 import { AuditLogsModule } from "./audit-logs/audit-logs.module";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
@@ -20,6 +21,7 @@ import { WorkspacesModule } from "./workspaces/workspaces.module";
   imports: [
     PrismaModule,
     AuthModule,
+    AutomationsModule,
     WorkspacesModule,
     AuditLogsModule,
     CompaniesModule,
