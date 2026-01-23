@@ -113,6 +113,9 @@ API disponível em `http://localhost:3001/api/health`.
 
 > **Workspace atual via header**
 > Para reduzir latência de leitura do workspace atual, você pode enviar o header `X-Workspace-Id` em requisições que operam dados do tenant (companies, tasks, tags, conversations, custom fields, audit logs). Caso o header não seja enviado, a API continua usando o `currentWorkspaceId` salvo no usuário.
+>
+> **SLA (opcional)**
+> Configure `SLA_RESPONSE_SECONDS` no `.env` da API para definir o tempo máximo de primeira resposta em segundos (padrão: 900).
 
 ### Endpoints de autenticação
 ```
@@ -157,6 +160,17 @@ GET /api/conversations/:id
 POST /api/conversations/:id/messages
 PATCH /api/conversations/:id/assign
 PATCH /api/conversations/:id/close
+```
+
+### Endpoints de notificações
+```
+GET /api/notifications
+PATCH /api/notifications/:id/read
+```
+
+### Endpoints de canais (webhooks)
+```
+POST /api/channels/:channel/webhook
 ```
 
 ### Endpoints de tags

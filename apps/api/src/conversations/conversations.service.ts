@@ -1,12 +1,18 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { ConversationStatus, MessageDirection, Prisma } from "@prisma/client";
+import { ConversationStatus, MessageDirection, NotificationType, Prisma } from "@prisma/client";
+import { NotificationsService } from "../notifications/notifications.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { AssignConversationDto } from "./dto/assign-conversation.dto";
 import { CreateOutgoingMessageDto } from "./dto/create-outgoing-message.dto";
 
 @Injectable()
 export class ConversationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly slaResponseSeconds = this.resolveSlaResponseSeconds();
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService
+  ) {}
 
   async listConversations(userId: string, workspaceId?: string) {
     const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
@@ -97,7 +103,7 @@ export class ConversationsService {
     const sentAt = payload.sentAt ? this.parseDate(payload.sentAt, "sentAt") : new Date();
     const meta = payload.meta ?? undefined;
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const message = await tx.message.create({
         data: {
           workspaceId: resolvedWorkspaceId,
@@ -110,9 +116,15 @@ export class ConversationsService {
         }
       });
 
-      const firstResponseTimeSeconds =
-        conversation.firstResponseTimeSeconds ??
-        Math.max(0, Math.floor((sentAt.getTime() - conversation.createdAt.getTime()) / 1000));
+      const isFirstResponse = conversation.firstResponseTimeSeconds === null ||
+        conversation.firstResponseTimeSeconds === undefined;
+      const computedFirstResponseTimeSeconds = Math.max(
+        0,
+        Math.floor((sentAt.getTime() - conversation.createdAt.getTime()) / 1000)
+      );
+      const firstResponseTimeSeconds = isFirstResponse
+        ? computedFirstResponseTimeSeconds
+        : conversation.firstResponseTimeSeconds;
 
       await tx.conversation.update({
         where: { id: conversation.id },
@@ -122,8 +134,14 @@ export class ConversationsService {
         }
       });
 
-      return message;
+      return { message, isFirstResponse, firstResponseTimeSeconds };
     });
+
+    if (result.isFirstResponse && result.firstResponseTimeSeconds > this.slaResponseSeconds) {
+      await this.notifySlaBreach(resolvedWorkspaceId, conversation.id, conversation.assignedToUserId);
+    }
+
+    return result.message;
   }
 
   async assignConversation(
@@ -169,7 +187,7 @@ export class ConversationsService {
       await this.ensureWorkspaceMembership(requestedAssignee, resolvedWorkspaceId);
     }
 
-    return this.prisma.conversation.update({
+    const updated = await this.prisma.conversation.update({
       where: { id: conversation.id },
       data: {
         assignedToUserId: requestedAssignee ?? null
@@ -192,6 +210,22 @@ export class ConversationsService {
         }
       }
     });
+
+    if (updated.assignedToUserId) {
+      await this.notificationsService.createNotification({
+        workspaceId: resolvedWorkspaceId,
+        userId: updated.assignedToUserId,
+        conversationId: updated.id,
+        type: NotificationType.CONVERSATION_ASSIGNED,
+        title: "Conversa atribuída",
+        body: updated.contact?.name
+          ? `Conversa com ${updated.contact.name} foi atribuída para você.`
+          : "Uma conversa foi atribuída para você.",
+        data: { conversationId: updated.id }
+      });
+    }
+
+    return updated;
   }
 
   async closeConversation(userId: string, conversationId: string, workspaceId?: string) {
@@ -298,5 +332,44 @@ export class ConversationsService {
     }
     const trimmed = value?.trim();
     return trimmed ? trimmed : null;
+  }
+
+  private resolveSlaResponseSeconds() {
+    const parsed = Number(process.env.SLA_RESPONSE_SECONDS ?? 900);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      return 900;
+    }
+    return parsed;
+  }
+
+  private async notifySlaBreach(
+    workspaceId: string,
+    conversationId: string,
+    assignedToUserId?: string | null
+  ) {
+    const title = "SLA estourado";
+    const body = "O tempo de primeira resposta ultrapassou o SLA configurado.";
+
+    if (assignedToUserId) {
+      await this.notificationsService.createNotification({
+        workspaceId,
+        userId: assignedToUserId,
+        conversationId,
+        type: NotificationType.SLA_BREACH,
+        title,
+        body,
+        data: { conversationId }
+      });
+      return;
+    }
+
+    await this.notificationsService.notifyWorkspaceMembers({
+      workspaceId,
+      conversationId,
+      type: NotificationType.SLA_BREACH,
+      title,
+      body,
+      data: { conversationId }
+    });
   }
 }
