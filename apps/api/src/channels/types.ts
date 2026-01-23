@@ -15,7 +15,7 @@ export interface ChannelInboundMessage {
 
 export interface ChannelIntegration {
   id: string;
-  provider: string;
+  type: string;
   secrets: Record<string, string>;
 }
 

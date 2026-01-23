@@ -7,6 +7,7 @@ import { CompaniesModule } from "./companies/companies.module";
 import { ConversationsModule } from "./conversations/conversations.module";
 import { CustomFieldDefinitionsModule } from "./custom-field-definitions/custom-field-definitions.module";
 import { ChannelsModule } from "./channels/channels.module";
+import { IntegrationAccountsModule } from "./integration-accounts/integration-accounts.module";
 import { MessageTemplatesModule } from "./message-templates/message-templates.module";
 import { NotificationsModule } from "./notifications/notifications.module";
 import { PrismaModule } from "./prisma/prisma.module";
@@ -24,6 +25,7 @@ import { WorkspacesModule } from "./workspaces/workspaces.module";
     CompaniesModule,
     ConversationsModule,
     ChannelsModule,
+    IntegrationAccountsModule,
     NotificationsModule,
     TasksModule,
     TagsModule,

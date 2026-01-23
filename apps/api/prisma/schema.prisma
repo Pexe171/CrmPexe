@@ -77,8 +77,13 @@ enum WebhookEvent {
   CONTACT_CREATED
 }
 
-enum IntegrationProvider {
+enum IntegrationAccountType {
   WHATSAPP
+}
+
+enum IntegrationAccountStatus {
+  ACTIVE
+  INACTIVE
 }
 
 enum OtpPurpose {
@@ -131,7 +136,7 @@ model Workspace {
   notifications Notification[]
   activities   Activity[]
   webhookSubscriptions WebhookSubscription[]
-  integrations Integration[]
+  integrationAccounts IntegrationAccount[]
   messageTemplates MessageTemplate[]
 }
 
@@ -377,33 +382,31 @@ model Message {
   @@unique([workspaceId, providerMessageId])
 }
 
-model Integration {
+model IntegrationAccount {
   id          String   @id @default(uuid())
   workspaceId String
-  provider    IntegrationProvider
-  name        String?
+  type        IntegrationAccountType
+  name        String
+  status      IntegrationAccountStatus
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   workspace Workspace @relation(fields: [workspaceId], references: [id])
-  secrets   IntegrationSecret[]
+  secret   IntegrationSecret?
 
-  @@unique([workspaceId, provider])
   @@index([workspaceId])
 }
 
 model IntegrationSecret {
-  id            String   @id @default(uuid())
-  integrationId String
-  key           String
-  value         String
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                   String   @id @default(uuid())
+  integrationAccountId String   @unique
+  encryptedPayload     String
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
-  integration Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  integrationAccount IntegrationAccount @relation(fields: [integrationAccountId], references: [id], onDelete: Cascade)
 
-  @@unique([integrationId, key])
-  @@index([integrationId])
+  @@index([integrationAccountId])
 }
 
 model MessageTemplate {

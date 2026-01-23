@@ -126,6 +126,15 @@ Frontend disponível em `http://localhost:3000`.
 > **SLA (opcional)**
 > Configure `SLA_RESPONSE_SECONDS` no `.env` da API para definir o tempo máximo de primeira resposta em segundos (padrão: 900).
 
+> **Criptografia de integrações**
+> Configure `INTEGRATION_ENCRYPTION_KEY` no `.env` da API com uma chave de 32 bytes (base64 ou hex). Exemplo:
+> ```bash
+> # base64
+> openssl rand -base64 32
+> # hex
+> openssl rand -hex 32
+> ```
+
 ### Endpoints de autenticação
 ```
 POST /api/auth/request-otp
@@ -191,10 +200,38 @@ POST /api/message-templates
 DELETE /api/message-templates/:id
 ```
 
-### Integrações WhatsApp (secrets)
-- Cadastre uma integração do provedor **WHATSAPP** por workspace na tabela `Integration`.
-- Armazene as credenciais em `IntegrationSecret` com as chaves `apiUrl`, `apiToken` e (opcional) `webhookToken`.
-- O envio em `/api/conversations/:id/send` usa essas credenciais para chamar o provedor.
+### Endpoints de integrações (admin)
+```
+GET /api/integration-accounts
+POST /api/integration-accounts
+PATCH /api/integration-accounts/:id
+DELETE /api/integration-accounts/:id
+PUT /api/integration-accounts/:id/secret
+POST /api/integration-accounts/:id/whatsapp/qr
+GET /api/integration-accounts/:id/whatsapp/status
+```
+
+### Integrações WhatsApp (segredos criptografados)
+- Cadastre uma conta do tipo **WHATSAPP** por workspace em `IntegrationAccount`.
+- Salve as credenciais via `PUT /api/integration-accounts/:id/secret` com `payload` contendo `apiUrl`, `apiToken` e (opcional) `webhookToken`.
+- O envio em `/api/conversations/:id/send` usa essas credenciais descriptografadas para chamar o provedor.
+
+### Conexão WhatsApp via QR code (gateway)
+Para conectar WhatsApp via QR code, use um gateway que exponha endpoints de QR/status (ex.: wppconnect, venon-bot, etc.) e configure os segredos:
+- `apiUrl`: URL base do gateway (ex.: `https://gateway.seudominio.com`).
+- `apiToken`: token Bearer para autenticação no gateway.
+- `qrEndpoint` (opcional): caminho do endpoint de QR code (padrão `/whatsapp/qr`).
+- `statusEndpoint` (opcional): caminho do endpoint de status (padrão `/whatsapp/status`).
+
+O backend chama o gateway com `Authorization: Bearer <apiToken>` e o header `X-Integration-Account-Id`. O gateway deve responder:
+```json
+{
+  "qr": "string-ou-null",
+  "status": "connecting | connected | disconnected"
+}
+```
+
+Na UI admin (`/admin/integrations`), clique em **Gerar QR code** para exibir e conectar o WhatsApp.
 
 ### Endpoints de tags
 ```

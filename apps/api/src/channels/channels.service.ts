@@ -1,7 +1,8 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
-import { IntegrationProvider, MessageDirection, NotificationType, Prisma } from "@prisma/client";
+import { IntegrationAccountType, IntegrationAccountStatus, MessageDirection, NotificationType, Prisma } from "@prisma/client";
 import { NotificationsService } from "../notifications/notifications.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { IntegrationCryptoService } from "../integration-accounts/integration-crypto.service";
 import { IChannelProvider } from "./interfaces/channel-provider.interface";
 import { WhatsappProvider } from "./providers/whatsapp.provider";
 import { ChannelInboundMessage, ChannelContact, ChannelIntegration, ChannelSendMessageInput } from "./types";
@@ -13,6 +14,7 @@ export class ChannelsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
+    private readonly integrationCryptoService: IntegrationCryptoService,
     whatsappProvider: WhatsappProvider
   ) {
     this.providers.set(whatsappProvider.channel, whatsappProvider);
@@ -237,30 +239,32 @@ export class ChannelsService {
 
   private async getIntegration(workspaceId: string, channel: string): Promise<ChannelIntegration> {
     const provider = this.resolveProvider(channel);
-    const integration = await this.prisma.integration.findFirst({
-      where: { workspaceId, provider },
-      include: { secrets: true }
+    const integration = await this.prisma.integrationAccount.findFirst({
+      where: { workspaceId, type: provider, status: IntegrationAccountStatus.ACTIVE },
+      orderBy: { createdAt: "desc" },
+      include: { secret: true }
     });
 
     if (!integration) {
       throw new BadRequestException("Integração do canal não configurada.");
     }
 
-    const secrets = integration.secrets.reduce<Record<string, string>>((acc, secret) => {
-      acc[secret.key] = secret.value;
-      return acc;
-    }, {});
+    if (!integration.secret) {
+      throw new BadRequestException("Segredos da integração não configurados.");
+    }
+
+    const secrets = this.integrationCryptoService.decrypt(integration.secret.encryptedPayload);
 
     return {
       id: integration.id,
-      provider: integration.provider,
+      type: integration.type,
       secrets
     };
   }
 
   private resolveProvider(channel: string) {
     if (channel === "whatsapp") {
-      return IntegrationProvider.WHATSAPP;
+      return IntegrationAccountType.WHATSAPP;
     }
     throw new BadRequestException("Canal não suportado.");
   }
