@@ -38,6 +38,12 @@ enum MessageDirection {
   SYSTEM
 }
 
+enum NotificationType {
+  CONVERSATION_ASSIGNED
+  INBOUND_MESSAGE
+  SLA_BREACH
+}
+
 enum CustomFieldEntity {
   COMPANY
   CONTACT
@@ -118,6 +124,7 @@ model Workspace {
   currentUsers User[] @relation("UserCurrentWorkspace")
   conversations Conversation[]
   messages     Message[]
+  notifications Notification[]
   activities   Activity[]
   webhookSubscriptions WebhookSubscription[]
 }
@@ -136,6 +143,7 @@ model User {
   auditLogs   AuditLog[]
   assignedTasks Task[] @relation("TaskAssignee")
   assignedConversations Conversation[] @relation("ConversationAssignee")
+  notifications Notification[]
   activities Activity[]
   currentWorkspace Workspace? @relation("UserCurrentWorkspace", fields: [currentWorkspaceId], references: [id])
 }
@@ -334,6 +342,7 @@ model Conversation {
   contact   Contact   @relation(fields: [contactId], references: [id])
   assignedToUser User? @relation("ConversationAssignee", fields: [assignedToUserId], references: [id])
   messages  Message[]
+  notifications Notification[]
 
   @@index([workspaceId])
   @@index([contactId])
@@ -360,6 +369,29 @@ model Message {
   @@index([conversationId])
   @@index([providerMessageId])
   @@index([workspaceId, sentAt])
+}
+
+model Notification {
+  id            String   @id @default(uuid())
+  workspaceId   String
+  userId        String
+  conversationId String?
+  type          NotificationType
+  title         String
+  body          String?
+  data          Json?
+  readAt        DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  workspace     Workspace    @relation(fields: [workspaceId], references: [id])
+  user          User         @relation(fields: [userId], references: [id])
+  conversation  Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId])
+  @@index([userId])
+  @@index([conversationId])
+  @@index([workspaceId, userId, readAt])
 }
 
 model Deal {
