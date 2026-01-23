@@ -5,9 +5,9 @@ import { SESSION_COOKIE, SESSION_MAX_AGE } from "@/lib/auth";
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
 
-  if (!body?.email || !body?.password) {
+  if (!body?.email || !body?.code) {
     return NextResponse.json(
-      { message: "E-mail e senha são obrigatórios." },
+      { message: "E-mail e código são obrigatórios." },
       { status: 400 }
     );
   }
@@ -24,10 +24,10 @@ export async function POST(request: Request) {
   let apiResponse: Response;
 
   try {
-    apiResponse = await fetch(new URL("/api/auth/login", apiBaseUrl), {
+    apiResponse = await fetch(new URL("/api/auth/verify-otp", apiBaseUrl), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: body.email, password: body.password }),
+      body: JSON.stringify({ email: body.email, code: body.code }),
       credentials: "include"
     });
   } catch (error) {
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
 
   if (!apiResponse.ok) {
     return NextResponse.json(
-      { message: apiPayload?.message ?? "Credenciais inválidas." },
+      { message: apiPayload?.message ?? "Código inválido." },
       { status: apiResponse.status }
     );
   }

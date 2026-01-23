@@ -1,23 +1,21 @@
 import { Body, Controller, Post, Req, Res } from "@nestjs/common";
 import { Request, Response } from "express";
 import { AuthService } from "./auth.service";
-import { LoginDto } from "./dto/login.dto";
-import { SignupDto } from "./dto/signup.dto";
+import { RequestOtpDto } from "./dto/request-otp.dto";
+import { VerifyOtpDto } from "./dto/verify-otp.dto";
 
 @Controller("auth")
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Post("signup")
-  async signup(@Body() body: SignupDto, @Res({ passthrough: true }) res: Response) {
-    const result = await this.authService.signup(body);
-    this.setAuthCookies(res, result.tokens.accessToken, result.tokens.refreshToken);
-    return result.user;
+  @Post("request-otp")
+  async requestOtp(@Body() body: RequestOtpDto) {
+    return this.authService.requestOtp(body);
   }
 
-  @Post("login")
-  async login(@Body() body: LoginDto, @Res({ passthrough: true }) res: Response) {
-    const result = await this.authService.login(body);
+  @Post("verify-otp")
+  async verifyOtp(@Body() body: VerifyOtpDto, @Res({ passthrough: true }) res: Response) {
+    const result = await this.authService.verifyOtp(body);
     this.setAuthCookies(res, result.tokens.accessToken, result.tokens.refreshToken);
     return result.user;
   }

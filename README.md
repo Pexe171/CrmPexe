@@ -8,7 +8,7 @@ Plataforma SaaS multi-tenant de CRM de atendimento + automações.
 - **DB**: PostgreSQL
 - **ORM**: Prisma
 - **Cache/filas**: Redis + BullMQ (base preparada)
-- **Auth**: JWT + Refresh + cookies httpOnly + RBAC (em evolução)
+- **Auth**: OTP por e-mail + JWT + Refresh + cookies httpOnly + RBAC (em evolução)
 - **Infra local**: docker-compose (postgres, redis, n8n opcional)
 
 ## Estrutura do repositório
@@ -104,16 +104,24 @@ pnpm dev
 
 API disponível em `http://localhost:3001/api/health`.
 
+> **OTP por e-mail (Gmail SMTP)**
+> Configure `SMTP_USER` e `SMTP_PASS` com uma senha de app do Gmail. Use `SMTP_FROM` para o remetente exibido.
+> Sem SMTP válido o fluxo de OTP não envia códigos.
+
 > **Workspace atual via header**
 > Para reduzir latência de leitura do workspace atual, você pode enviar o header `X-Workspace-Id` em requisições que operam dados do tenant (companies, tasks, tags, conversations, custom fields, audit logs). Caso o header não seja enviado, a API continua usando o `currentWorkspaceId` salvo no usuário.
 
 ### Endpoints de autenticação
 ```
-POST /api/auth/signup
-POST /api/auth/login
+POST /api/auth/request-otp
+POST /api/auth/verify-otp
 POST /api/auth/refresh
 POST /api/auth/logout
 ```
+
+**Fluxo OTP**
+- **Cadastro**: envie `name`, `contact`, `email` e `emailConfirmation` para `/api/auth/request-otp`. Confirme com `/api/auth/verify-otp`.
+- **Login**: envie apenas `email` para `/api/auth/request-otp` e confirme o código com `/api/auth/verify-otp`.
 
 ### Endpoints de workspaces
 ```
@@ -182,7 +190,8 @@ Inbox disponível em `http://localhost:3000/inbox`.
 > **Pré-requisitos**: PostgreSQL e Redis prontos, variáveis de ambiente preenchidas e dependências instaladas.
 
 ### 1) Variáveis de ambiente
-- `apps/api/.env` com `DATABASE_URL`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `JWT_ACCESS_EXPIRES_IN`, `JWT_REFRESH_EXPIRES_IN`.
+- `apps/api/.env` com `DATABASE_URL`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `JWT_ACCESS_EXPIRES_IN`, `JWT_REFRESH_EXPIRES_IN`,
+  `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, `OTP_TTL_MS`.
 - `apps/web/.env.local` com `NEXT_PUBLIC_API_URL` apontando para a API (ex: `https://api.seudominio.com`).
 
 ### 2) Build

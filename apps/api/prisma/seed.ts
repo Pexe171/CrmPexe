@@ -43,7 +43,7 @@ async function main() {
     data: {
       email: 'admin@crmpexe.local',
       name: 'Admin',
-      passwordHash: 'CHANGE_ME',
+      contact: 'Admin',
     },
   });
 
