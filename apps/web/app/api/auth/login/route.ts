@@ -21,12 +21,25 @@ export async function POST(request: Request) {
     );
   }
 
-  const apiResponse = await fetch(new URL("/api/auth/login", apiBaseUrl), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email: body.email, password: body.password }),
-    credentials: "include"
-  });
+  let apiResponse: Response;
+
+  try {
+    apiResponse = await fetch(new URL("/api/auth/login", apiBaseUrl), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: body.email, password: body.password }),
+      credentials: "include"
+    });
+  } catch (error) {
+    console.error("Erro ao conectar na API de autenticação:", error);
+    return NextResponse.json(
+      {
+        message:
+          "Não foi possível conectar à API. Verifique se o backend está rodando e se NEXT_PUBLIC_API_URL está correto."
+      },
+      { status: 502 }
+    );
+  }
 
   const apiPayload = await apiResponse.json().catch(() => null);
 
