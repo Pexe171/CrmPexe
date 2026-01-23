@@ -1,7 +1,8 @@
-import { Body, Controller, Get, Headers, Param, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Headers, Param, Patch, Post, UseGuards } from "@nestjs/common";
 import { AccessTokenGuard } from "../auth/access-token.guard";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { AuthUser } from "../auth/auth.types";
+import { AssignConversationDto } from "./dto/assign-conversation.dto";
 import { CreateOutgoingMessageDto } from "./dto/create-outgoing-message.dto";
 import { ConversationsService } from "./conversations.service";
 
@@ -32,5 +33,24 @@ export class ConversationsController {
     @Headers("x-workspace-id") workspaceId?: string
   ) {
     return this.conversationsService.postOutgoingMessage(user.id, conversationId, body, workspaceId);
+  }
+
+  @Patch(":id/assign")
+  async assignConversation(
+    @CurrentUser() user: AuthUser,
+    @Param("id") conversationId: string,
+    @Body() body: AssignConversationDto,
+    @Headers("x-workspace-id") workspaceId?: string
+  ) {
+    return this.conversationsService.assignConversation(user.id, conversationId, body, workspaceId);
+  }
+
+  @Patch(":id/close")
+  async closeConversation(
+    @CurrentUser() user: AuthUser,
+    @Param("id") conversationId: string,
+    @Headers("x-workspace-id") workspaceId?: string
+  ) {
+    return this.conversationsService.closeConversation(user.id, conversationId, workspaceId);
   }
 }
