@@ -229,6 +229,9 @@ POST /api/automation-templates/:id/install
 GET /api/automation-instances
 ```
 > O provisionamento atual usa conectores mock, retornando ações simuladas para preparar a integração real.
+>
+> **Compatibilidade com definições do n8n**
+> A montagem do payload de automações agora normaliza `definition`, `meta` e `settings` para objetos antes do spread. Isso evita erros de compilação quando o template possui valores não-objetos nesses campos.
 
 ### Motor interno de automações (pré-n8n)
 Enquanto o n8n não está integrado, existe um motor interno simples com dois gatilhos:
