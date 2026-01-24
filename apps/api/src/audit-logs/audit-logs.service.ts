@@ -105,18 +105,17 @@ export class AuditLogsService {
   async resolveWorkspaceId(userId: string, workspaceId?: string) {
     const normalized = workspaceId?.trim();
     if (normalized) {
-      const membership = await this.prisma.workspaceMember.findFirst({
-        where: { userId, workspaceId: normalized }
-      });
-
-      if (!membership) {
-        throw new BadRequestException("Workspace inválido.");
-      }
-
+      await this.ensureWorkspaceMembership(userId, normalized);
       return normalized;
     }
 
-    return this.getCurrentWorkspaceId(userId);
+    const currentWorkspaceId = await this.getCurrentWorkspaceId(userId);
+    if (!currentWorkspaceId) {
+      return null;
+    }
+
+    await this.ensureWorkspaceMembership(userId, currentWorkspaceId);
+    return currentWorkspaceId;
   }
 
   async getCurrentWorkspaceId(userId: string) {
@@ -126,5 +125,15 @@ export class AuditLogsService {
     });
 
     return user?.currentWorkspaceId ?? null;
+  }
+
+  private async ensureWorkspaceMembership(userId: string, workspaceId: string) {
+    const membership = await this.prisma.workspaceMember.findFirst({
+      where: { userId, workspaceId }
+    });
+
+    if (!membership) {
+      throw new BadRequestException("Workspace inválido.");
+    }
   }
 }

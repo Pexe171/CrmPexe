@@ -37,6 +37,7 @@ describe("AuthService", () => {
     process.env.SMTP_USER = "smtp-user";
     process.env.SMTP_PASS = "smtp-pass";
     process.env.SMTP_FROM = "no-reply@crmpexe.local";
+    process.env.JWT_REFRESH_SECRET = "test_refresh_secret";
 
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -117,6 +118,9 @@ describe("AuthService", () => {
     signAsyncMock
       .mockResolvedValueOnce("access-token")
       .mockResolvedValueOnce("refresh-token");
+    const expectedRefreshTokenHash = createHash("sha256")
+      .update(`refresh-token.${process.env.JWT_REFRESH_SECRET}`)
+      .digest("hex");
 
     const result = await authService.verifyOtp({
       email: "user@example.com",
@@ -136,7 +140,7 @@ describe("AuthService", () => {
     );
     expect(prismaMock.user.update).toHaveBeenCalledWith({
       where: { id: "user-1" },
-      data: { refreshTokenHash: expect.any(String) }
+      data: { refreshTokenHash: expectedRefreshTokenHash }
     });
   });
 

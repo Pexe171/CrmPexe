@@ -23,6 +23,7 @@ describe("AuditLogsService", () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    prismaMock.workspaceMember.findFirst.mockResolvedValue({ id: "member-1" });
 
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -65,6 +66,21 @@ describe("AuditLogsService", () => {
 
   it("rejects listing when current workspace is missing", async () => {
     prismaMock.user.findUnique.mockResolvedValue({ currentWorkspaceId: null });
+
+    await expect(
+      service.listAuditLogs(
+        { id: "user-1", email: "user@example.com", role: UserRole.USER },
+        1,
+        10
+      )
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it("bloqueia acesso quando o usuário não é membro do workspace atual", async () => {
+    prismaMock.user.findUnique.mockResolvedValue({
+      currentWorkspaceId: "ws-1"
+    });
+    prismaMock.workspaceMember.findFirst.mockResolvedValueOnce(null);
 
     await expect(
       service.listAuditLogs(

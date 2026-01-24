@@ -6,6 +6,20 @@ import { AppModule } from "./app.module";
 import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
 
 async function bootstrap() {
+  const isProduction = process.env.NODE_ENV === "production";
+  if (isProduction) {
+    const missingSecrets = [
+      !process.env.JWT_ACCESS_SECRET ? "JWT_ACCESS_SECRET" : null,
+      !process.env.JWT_REFRESH_SECRET ? "JWT_REFRESH_SECRET" : null
+    ].filter((value): value is string => Boolean(value));
+
+    if (missingSecrets.length > 0) {
+      throw new Error(
+        `Segredos JWT obrigatórios em produção: ${missingSecrets.join(", ")}.`
+      );
+    }
+  }
+
   const app = await NestFactory.create(AppModule);
   const corsOrigins = (process.env.CORS_ORIGIN || "http://localhost:3000")
     .split(",")

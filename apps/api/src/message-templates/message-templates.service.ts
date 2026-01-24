@@ -59,7 +59,9 @@ export class MessageTemplatesService {
       await this.ensureWorkspaceMembership(userId, normalized);
       return normalized;
     }
-    return this.getCurrentWorkspaceId(userId);
+    const currentWorkspaceId = await this.getCurrentWorkspaceId(userId);
+    await this.ensureWorkspaceMembership(userId, currentWorkspaceId);
+    return currentWorkspaceId;
   }
 
   private async getCurrentWorkspaceId(userId: string) {

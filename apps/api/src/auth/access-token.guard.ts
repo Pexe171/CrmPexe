@@ -5,6 +5,7 @@ import {
   UnauthorizedException
 } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
+import { UserRole } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { ACCESS_TOKEN_COOKIE } from "./auth.constants";
 import { AuthenticatedRequest } from "./auth.types";
@@ -31,21 +32,34 @@ export class AccessTokenGuard implements CanActivate {
       const payload = await this.jwtService.verifyAsync<{
         sub: string;
         email: string;
-        role?: string;
+        role: UserRole;
       }>(token, {
         secret: this.accessTokenSecret
       });
 
+      if (!payload.role) {
+        throw new UnauthorizedException("Role ausente no token.");
+      }
+
       const user = await this.prisma.user.findUnique({
         where: { id: payload.sub },
-        select: { id: true, email: true, role: true }
+        select: { id: true, email: true, role: true, currentWorkspaceId: true }
       });
 
       if (!user) {
         throw new UnauthorizedException("Usuário não encontrado.");
       }
 
-      request.user = { id: user.id, email: user.email, role: user.role };
+      if (user.role !== payload.role) {
+        throw new UnauthorizedException("Role do token não confere.");
+      }
+
+      request.user = {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        currentWorkspaceId: user.currentWorkspaceId
+      };
       return true;
     } catch {
       throw new UnauthorizedException("Token de acesso inválido.");

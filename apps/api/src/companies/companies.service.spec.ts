@@ -7,6 +7,9 @@ const prismaMock = {
   user: {
     findUnique: jest.fn()
   },
+  workspaceMember: {
+    findFirst: jest.fn()
+  },
   company: {
     findMany: jest.fn(),
     findFirst: jest.fn(),
@@ -20,6 +23,7 @@ describe("CompaniesService", () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    prismaMock.workspaceMember.findFirst.mockResolvedValue({ id: "member-1" });
 
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -81,5 +85,14 @@ describe("CompaniesService", () => {
     await expect(
       service.updateCompany("user-1", "comp-1", { name: "Nova", version: 1 })
     ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it("bloqueia acesso quando usuário não pertence ao workspace atual", async () => {
+    prismaMock.user.findUnique.mockResolvedValue({ currentWorkspaceId: "ws-1" });
+    prismaMock.workspaceMember.findFirst.mockResolvedValueOnce(null);
+
+    await expect(service.listCompanies("user-1")).rejects.toBeInstanceOf(
+      BadRequestException
+    );
   });
 });
