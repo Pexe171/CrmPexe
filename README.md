@@ -240,9 +240,13 @@ DELETE /api/message-templates/:id
 GET /api/automation-templates
 POST /api/automation-templates
 POST /api/automation-templates/:id/install
-GET /api/automation-instances
+GET /api/automation-instances?page=1&perPage=20
 ```
 > O provisionamento atual usa conectores mock, retornando ações simuladas para preparar a integração real.
+>
+> **Paginação de instâncias**
+> O endpoint `GET /api/automation-instances` agora aceita `page` e `perPage` (máximo de 100, padrão 20) e retorna:
+> `{ data: AutomationInstance[], meta: { page, perPage, total, totalPages } }`.
 >
 > **Compatibilidade com definições do n8n**
 > A montagem do payload de automações agora normaliza `definition`, `meta` e `settings` para objetos antes do spread. Isso evita erros de compilação quando o template possui valores não-objetos nesses campos.

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const INSTANCES_PER_PAGE = 20;
 
 type AutomationTemplate = {
   id: string;
@@ -25,12 +26,32 @@ type AutomationInstance = {
   template: AutomationTemplate;
 };
 
+type AutomationInstancesMeta = {
+  page: number;
+  perPage: number;
+  total: number;
+  totalPages: number;
+};
+
+type AutomationInstancesResponse = {
+  data: AutomationInstance[];
+  meta: AutomationInstancesMeta;
+};
+
 export default function AutomationsPage() {
   const [templates, setTemplates] = useState<AutomationTemplate[]>([]);
   const [instances, setInstances] = useState<AutomationInstance[]>([]);
   const [loading, setLoading] = useState(true);
+  const [instancesLoading, setInstancesLoading] = useState(false);
   const [installingId, setInstallingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [instancesPage, setInstancesPage] = useState(1);
+  const [instancesMeta, setInstancesMeta] = useState<AutomationInstancesMeta>({
+    page: 1,
+    perPage: INSTANCES_PER_PAGE,
+    total: 0,
+    totalPages: 0
+  });
 
   const fetchTemplates = useCallback(async () => {
     const response = await fetch(`${apiUrl}/api/automation-templates`, {
@@ -45,25 +66,58 @@ export default function AutomationsPage() {
     setTemplates(data);
   }, []);
 
-  const fetchInstances = useCallback(async () => {
-    const response = await fetch(`${apiUrl}/api/automation-instances`, {
-      credentials: "include"
-    });
+  const fetchInstances = useCallback(async (page: number) => {
+    const requestedPage = Math.max(page, 1);
 
-    if (!response.ok) {
-      throw new Error("Não foi possível carregar as automações instaladas.");
+    setInstancesLoading(true);
+    setError(null);
+
+    try {
+      const doFetch = async (pageToLoad: number) => {
+        const pageParams = new URLSearchParams({
+          page: String(pageToLoad),
+          perPage: String(INSTANCES_PER_PAGE)
+        });
+        const response = await fetch(`${apiUrl}/api/automation-instances?${pageParams.toString()}`, {
+          credentials: "include"
+        });
+
+        if (!response.ok) {
+          throw new Error("Não foi possível carregar as automações instaladas.");
+        }
+
+        return (await response.json()) as AutomationInstancesResponse;
+      };
+
+      const payload = await doFetch(requestedPage);
+
+      if (payload.meta.totalPages > 0 && requestedPage > payload.meta.totalPages) {
+        const adjustedPage = payload.meta.totalPages;
+        const adjustedPayload = await doFetch(adjustedPage);
+        setInstances(adjustedPayload.data);
+        setInstancesMeta(adjustedPayload.meta);
+        setInstancesPage(adjustedPage);
+        return;
+      }
+
+      setInstances(payload.data);
+      setInstancesMeta(payload.meta);
+      setInstancesPage(requestedPage);
+    } catch (fetchError) {
+      const message = fetchError instanceof Error ? fetchError.message : "Erro inesperado ao carregar automações.";
+      setError(message);
+      throw fetchError;
+    } finally {
+      setInstancesLoading(false);
     }
-
-    const data = (await response.json()) as AutomationInstance[];
-    setInstances(data);
   }, []);
 
-  const refreshData = useCallback(async () => {
+  const refreshData = useCallback(async (page: number) => {
     setLoading(true);
     setError(null);
 
     try {
-      await Promise.all([fetchTemplates(), fetchInstances()]);
+      await Promise.all([fetchTemplates(), fetchInstances(page)]);
     } catch (fetchError) {
       setError(fetchError instanceof Error ? fetchError.message : "Erro inesperado ao carregar automações.");
     } finally {
@@ -72,7 +126,7 @@ export default function AutomationsPage() {
   }, [fetchInstances, fetchTemplates]);
 
   useEffect(() => {
-    void refreshData();
+    void refreshData(1);
   }, [refreshData]);
 
   const handleInstall = async (templateId: string) => {
@@ -98,12 +152,25 @@ export default function AutomationsPage() {
         throw new Error("Não foi possível instalar a automação.");
       }
 
-      await fetchInstances();
+      await fetchInstances(instancesPage);
     } catch (installError) {
       setError(installError instanceof Error ? installError.message : "Erro inesperado ao instalar automação.");
     } finally {
       setInstallingId(null);
     }
+  };
+
+  const handleInstancesPageChange = (nextPage: number) => {
+    if (
+      nextPage < 1 ||
+      (instancesMeta.totalPages > 0 && nextPage > instancesMeta.totalPages) ||
+      nextPage === instancesPage
+    ) {
+      return;
+    }
+
+    setInstancesPage(nextPage);
+    void fetchInstances(nextPage);
   };
 
   return (
@@ -119,7 +186,7 @@ export default function AutomationsPage() {
             <Link href="/dashboard">
               <Button variant="outline">Voltar ao dashboard</Button>
             </Link>
-            <Button variant="outline" onClick={refreshData} disabled={loading}>
+            <Button variant="outline" onClick={() => void refreshData(instancesPage)} disabled={loading || instancesLoading}>
               Atualizar biblioteca
             </Button>
           </div>
@@ -188,7 +255,7 @@ export default function AutomationsPage() {
               {error}
             </div>
           ) : null}
-          {loading ? (
+          {loading || instancesLoading ? (
             <div className="rounded-xl border bg-white p-6 text-sm text-gray-500 shadow-sm">
               Carregando status...
             </div>
@@ -197,22 +264,56 @@ export default function AutomationsPage() {
               Nenhuma automação instalada ainda.
             </div>
           ) : (
-            <div className="space-y-3">
-              {instances.map((instance) => (
-                <div key={instance.id} className="rounded-xl border bg-white p-4 text-sm shadow-sm">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="font-medium text-gray-800">{instance.template.name}</p>
-                      <p className="text-xs text-gray-500">
-                        Instalada em {new Date(instance.createdAt).toLocaleString()}
-                      </p>
+            <div className="space-y-4">
+              <div className="space-y-3">
+                {instances.map((instance) => (
+                  <div key={instance.id} className="rounded-xl border bg-white p-4 text-sm shadow-sm">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="font-medium text-gray-800">{instance.template.name}</p>
+                        <p className="text-xs text-gray-500">
+                          Instalada em {new Date(instance.createdAt).toLocaleString()}
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
+                        {instance.status}
+                      </span>
                     </div>
-                    <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
-                      {instance.status}
-                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {instancesMeta.totalPages > 1 ? (
+                <div className="flex flex-col gap-3 rounded-xl border bg-white p-4 text-sm text-gray-600 shadow-sm">
+                  <p>
+                    Página {instancesMeta.page} de {instancesMeta.totalPages} · {instancesMeta.total} automações
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => handleInstancesPageChange(instancesMeta.page - 1)}
+                      disabled={instancesLoading || instancesMeta.page <= 1}
+                    >
+                      Anterior
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => handleInstancesPageChange(instancesMeta.page + 1)}
+                      disabled={
+                        instancesLoading ||
+                        instancesMeta.totalPages === 0 ||
+                        instancesMeta.page >= instancesMeta.totalPages
+                      }
+                    >
+                      Próxima
+                    </Button>
                   </div>
                 </div>
-              ))}
+              ) : (
+                <div className="text-xs text-gray-500">
+                  {instancesMeta.total} automações instaladas.
+                </div>
+              )}
             </div>
           )}
         </aside>
