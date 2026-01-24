@@ -35,4 +35,31 @@ export class AutomationsController {
   async listInstances(@CurrentUser() user: AuthUser, @Headers("x-workspace-id") workspaceId?: string) {
     return this.automationsService.listInstances(user.id, workspaceId);
   }
+
+  @Post("automations/:id/install")
+  async installInstance(
+    @CurrentUser() user: AuthUser,
+    @Param("id") instanceId: string,
+    @Headers("x-workspace-id") workspaceId?: string
+  ) {
+    return this.automationsService.installAutomationInstance(user.id, instanceId, workspaceId);
+  }
+
+  @Post("automations/:id/enable")
+  async enableInstance(
+    @CurrentUser() user: AuthUser,
+    @Param("id") instanceId: string,
+    @Headers("x-workspace-id") workspaceId?: string
+  ) {
+    return this.automationsService.enableAutomation(user.id, instanceId, workspaceId);
+  }
+
+  @Post("automations/:id/disable")
+  async disableInstance(
+    @CurrentUser() user: AuthUser,
+    @Param("id") instanceId: string,
+    @Headers("x-workspace-id") workspaceId?: string
+  ) {
+    return this.automationsService.disableAutomation(user.id, instanceId, workspaceId);
+  }
 }

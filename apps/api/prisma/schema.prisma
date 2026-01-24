@@ -669,6 +669,8 @@ model AutomationInstance {
   workspaceId     String
   templateId      String
   status          AutomationInstanceStatus  @default(PENDING)
+  externalWorkflowId String?
+  enabled         Boolean                   @default(false)
   configJson      Json
   createdByUserId String
   createdAt       DateTime @default(now())
@@ -681,4 +683,20 @@ model AutomationInstance {
   @@index([workspaceId])
   @@index([templateId])
   @@index([createdByUserId])
+}
+
+model WorkspaceVariable {
+  id             String   @id @default(uuid())
+  workspaceId    String
+  key            String
+  value          String?
+  isSensitive    Boolean  @default(false)
+  encryptedValue String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+
+  @@unique([workspaceId, key])
+  @@index([workspaceId])
 }

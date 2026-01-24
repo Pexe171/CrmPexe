@@ -1,15 +1,19 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { AutomationInstanceStatus, Prisma } from "@prisma/client";
+import { AutomationInstanceStatus, IntegrationAccountStatus, IntegrationAccountType, Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { AutomationConnectorsService } from "./connectors/automation-connectors.service";
 import { CreateAutomationTemplateDto } from "./dto/create-automation-template.dto";
 import { InstallAutomationTemplateDto } from "./dto/install-automation-template.dto";
+import { N8nClient } from "../n8n/n8n.client";
+import { WorkspaceVariablesService } from "../workspace-variables/workspace-variables.service";
 
 @Injectable()
 export class AutomationsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly connectors: AutomationConnectorsService
+    private readonly connectors: AutomationConnectorsService,
+    private readonly n8nClient: N8nClient,
+    private readonly workspaceVariablesService: WorkspaceVariablesService
   ) {}
 
   async listTemplates() {
@@ -91,9 +95,19 @@ export class AutomationsService {
       }
     });
 
+    if (status === AutomationInstanceStatus.FAILED) {
+      return {
+        instance: updatedInstance,
+        provisioning
+      };
+    }
+
+    const installation = await this.installAutomationInstance(userId, updatedInstance.id, resolvedWorkspaceId);
+
     return {
-      instance: updatedInstance,
-      provisioning
+      instance: installation.instance,
+      provisioning,
+      workflow: installation.workflow
     };
   }
 
@@ -105,6 +119,173 @@ export class AutomationsService {
       include: { template: true },
       orderBy: { createdAt: "desc" }
     });
+  }
+
+  async installAutomationInstance(userId: string, instanceId: string, workspaceId?: string) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+    const instance = await this.prisma.automationInstance.findFirst({
+      where: { id: instanceId, workspaceId: resolvedWorkspaceId },
+      include: { template: true }
+    });
+
+    if (!instance) {
+      throw new NotFoundException("Automação não encontrada.");
+    }
+
+    const integrationAccountId = await this.getN8nIntegrationAccountId(resolvedWorkspaceId);
+    const workspaceVariables = await this.workspaceVariablesService.getWorkspaceVariablesMap(resolvedWorkspaceId);
+    const workflowPayload = this.buildWorkflowPayload(instance, workspaceVariables);
+
+    const workflowResponse = instance.externalWorkflowId
+      ? await this.n8nClient.updateWorkflow(integrationAccountId, instance.externalWorkflowId, workflowPayload)
+      : await this.n8nClient.createWorkflow(integrationAccountId, workflowPayload);
+
+    const externalWorkflowId = this.normalizeWorkflowId(
+      workflowResponse,
+      instance.externalWorkflowId
+    );
+
+    const shouldActivate = this.shouldAutoActivate(instance.configJson as Record<string, unknown>);
+    if (shouldActivate) {
+      await this.n8nClient.activateWorkflow(integrationAccountId, externalWorkflowId);
+    }
+
+    const updatedInstance = await this.prisma.automationInstance.update({
+      where: { id: instance.id },
+      data: {
+        status: AutomationInstanceStatus.ACTIVE,
+        externalWorkflowId,
+        enabled: shouldActivate
+      },
+      include: { template: true }
+    });
+
+    return {
+      instance: updatedInstance,
+      workflow: workflowResponse
+    };
+  }
+
+  async enableAutomation(userId: string, instanceId: string, workspaceId?: string) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+    const instance = await this.prisma.automationInstance.findFirst({
+      where: { id: instanceId, workspaceId: resolvedWorkspaceId }
+    });
+
+    if (!instance?.externalWorkflowId) {
+      throw new BadRequestException("Workflow externo não configurado.");
+    }
+
+    const integrationAccountId = await this.getN8nIntegrationAccountId(resolvedWorkspaceId);
+    await this.n8nClient.activateWorkflow(integrationAccountId, instance.externalWorkflowId);
+
+    return this.prisma.automationInstance.update({
+      where: { id: instance.id },
+      data: {
+        enabled: true,
+        status: AutomationInstanceStatus.ACTIVE
+      }
+    });
+  }
+
+  async disableAutomation(userId: string, instanceId: string, workspaceId?: string) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+    const instance = await this.prisma.automationInstance.findFirst({
+      where: { id: instanceId, workspaceId: resolvedWorkspaceId }
+    });
+
+    if (!instance?.externalWorkflowId) {
+      throw new BadRequestException("Workflow externo não configurado.");
+    }
+
+    const integrationAccountId = await this.getN8nIntegrationAccountId(resolvedWorkspaceId);
+    await this.n8nClient.deactivateWorkflow(integrationAccountId, instance.externalWorkflowId);
+
+    return this.prisma.automationInstance.update({
+      where: { id: instance.id },
+      data: {
+        enabled: false
+      }
+    });
+  }
+
+  private buildWorkflowPayload(
+    instance: {
+      id: string;
+      workspaceId: string;
+      template: { name: string; definitionJson: Prisma.JsonValue };
+      configJson: Prisma.JsonValue;
+    },
+    workspaceVariables: Record<string, string>
+  ) {
+    const definition = this.cloneJson(instance.template.definitionJson);
+    const configJson = this.cloneJson(instance.configJson);
+
+    const workflowPayload = {
+      ...definition,
+      name: (definition as Record<string, unknown>)?.name ?? instance.template.name,
+      meta: {
+        ...(definition as Record<string, unknown>)?.meta,
+        automationInstanceId: instance.id,
+        workspaceId: instance.workspaceId
+      },
+      settings: {
+        ...(definition as Record<string, unknown>)?.settings,
+        variables: {
+          workspace: workspaceVariables,
+          config: configJson
+        }
+      }
+    };
+
+    return workflowPayload as Record<string, unknown>;
+  }
+
+  private shouldAutoActivate(configJson: Record<string, unknown>) {
+    if (Object.prototype.hasOwnProperty.call(configJson, "autoActivate")) {
+      return Boolean(configJson.autoActivate);
+    }
+    return true;
+  }
+
+  private async getN8nIntegrationAccountId(workspaceId: string) {
+    const integration = await this.prisma.integrationAccount.findFirst({
+      where: {
+        workspaceId,
+        type: IntegrationAccountType.N8N,
+        status: IntegrationAccountStatus.ACTIVE
+      },
+      orderBy: { createdAt: "desc" }
+    });
+
+    if (!integration) {
+      throw new BadRequestException("Integração n8n ativa não encontrada.");
+    }
+
+    return integration.id;
+  }
+
+  private normalizeWorkflowId(
+    workflowResponse: Record<string, unknown>,
+    fallbackWorkflowId?: string | null
+  ) {
+    if (typeof workflowResponse.id === "string" && workflowResponse.id.trim().length > 0) {
+      return workflowResponse.id.trim();
+    }
+
+    if (typeof workflowResponse.id === "number" && Number.isFinite(workflowResponse.id)) {
+      return String(workflowResponse.id);
+    }
+
+    if (fallbackWorkflowId) {
+      return fallbackWorkflowId;
+    }
+
+    throw new BadRequestException("ID do workflow não retornado pelo n8n.");
+  }
+
+  private cloneJson(value: Prisma.JsonValue) {
+    return value ? JSON.parse(JSON.stringify(value)) : {};
   }
 
   private async resolveWorkspaceId(userId: string, workspaceId?: string) {

@@ -430,6 +430,12 @@ export default function DashboardPage() {
           >
             Automações
           </Link>
+          <Link
+            href="/dashboard/variables"
+            className={buttonVariants({ variant: "outline", size: "sm" })}
+          >
+            Variáveis
+          </Link>
           <Button variant="outline" size="sm">
             Ajuda
           </Button>
