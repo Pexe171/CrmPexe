@@ -107,6 +107,10 @@ pnpm dev
 
 API disponível em `http://localhost:3001/api/health`.
 
+#### Observações sobre o Prisma
+- Sempre que alterar o `schema.prisma`, rode `pnpm prisma:generate` antes de subir a API.
+- Em caso de erro de validação relacional (ex.: `P1012`), rode `pnpm prisma format` e garanta que toda relação tenha o lado oposto definido.
+
 ### 4) Frontend (Web)
 ```bash
 cd apps/web
