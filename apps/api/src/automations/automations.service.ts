@@ -220,17 +220,20 @@ export class AutomationsService {
   ) {
     const definition = this.cloneJson(instance.template.definitionJson);
     const configJson = this.cloneJson(instance.configJson);
+    const definitionRecord = this.asRecord(definition);
+    const metaFromDefinition = this.asRecord(definitionRecord.meta);
+    const settingsFromDefinition = this.asRecord(definitionRecord.settings);
 
     const workflowPayload = {
-      ...definition,
-      name: (definition as Record<string, unknown>)?.name ?? instance.template.name,
+      ...definitionRecord,
+      name: definitionRecord.name ?? instance.template.name,
       meta: {
-        ...(definition as Record<string, unknown>)?.meta,
+        ...metaFromDefinition,
         automationInstanceId: instance.id,
         workspaceId: instance.workspaceId
       },
       settings: {
-        ...(definition as Record<string, unknown>)?.settings,
+        ...settingsFromDefinition,
         variables: {
           workspace: workspaceVariables,
           config: configJson
@@ -286,6 +289,13 @@ export class AutomationsService {
 
   private cloneJson(value: Prisma.JsonValue) {
     return value ? JSON.parse(JSON.stringify(value)) : {};
+  }
+
+  private asRecord(value: unknown): Record<string, unknown> {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return {};
+    }
+    return value as Record<string, unknown>;
   }
 
   private async resolveWorkspaceId(userId: string, workspaceId?: string) {
