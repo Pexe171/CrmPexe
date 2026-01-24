@@ -9,7 +9,7 @@ Plataforma SaaS multi-tenant de CRM de atendimento + automações.
 - **ORM**: Prisma
 - **Cache/filas**: Redis + BullMQ (base preparada)
 - **Auth**: OTP por e-mail + JWT + Refresh + cookies httpOnly + RBAC (em evolução)
-- **Infra local**: docker-compose (postgres, redis, n8n opcional)
+- **Infra local**: docker-compose (postgres, redis, n8n)
 
 ## Estrutura do repositório
 ```
@@ -86,6 +86,9 @@ brew install sqlite
 docker compose up -d
 ```
 > Se estiver usando PostgreSQL local instalado no seu computador, você pode pular o `docker compose` e apenas garantir que o serviço esteja rodando.
+
+### n8n (automação visual)
+Após subir o docker compose, o n8n estará disponível em `http://localhost:5678` com persistência em volume Docker (`n8n_data`). Use esse serviço apenas para testes locais por enquanto — a integração ainda não foi feita.
 
 ### 2) Dependências
 ```bash
@@ -171,6 +174,12 @@ PATCH /api/tasks/:id
 DELETE /api/tasks/:id
 ```
 
+### Endpoints de negócios (deals)
+```
+POST /api/deals
+PATCH /api/deals/:id/stage
+```
+
 ### Endpoints de conversas e mensagens
 ```
 GET /api/conversations
@@ -208,6 +217,13 @@ POST /api/automation-templates/:id/install
 GET /api/automation-instances
 ```
 > O provisionamento atual usa conectores mock, retornando ações simuladas para preparar a integração real.
+
+### Motor interno de automações (pré-n8n)
+Enquanto o n8n não está integrado, existe um motor interno simples com dois gatilhos:
+- `message.inbound.created`: ao receber mensagem inbound, cria uma task e adiciona tag no contato.
+- `deal.stage.changed`: ao trocar a etapa de um negócio, cria uma task e adiciona tag no negócio.
+
+Essas ações são disparadas automaticamente pelos endpoints de mensagens inbound e atualização de etapa de negócio.
 
 ### Endpoints de integrações (admin)
 ```

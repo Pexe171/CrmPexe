@@ -12,6 +12,7 @@ import { IntegrationAccountsModule } from "./integration-accounts/integration-ac
 import { MessageTemplatesModule } from "./message-templates/message-templates.module";
 import { NotificationsModule } from "./notifications/notifications.module";
 import { PrismaModule } from "./prisma/prisma.module";
+import { DealsModule } from "./deals/deals.module";
 import { TagsModule } from "./tags/tags.module";
 import { TasksModule } from "./tasks/tasks.module";
 import { WebhooksModule } from "./webhooks/webhooks.module";
@@ -31,6 +32,7 @@ import { WorkspacesModule } from "./workspaces/workspaces.module";
     NotificationsModule,
     TasksModule,
     TagsModule,
+    DealsModule,
     CustomFieldDefinitionsModule,
     MessageTemplatesModule,
     WebhooksModule

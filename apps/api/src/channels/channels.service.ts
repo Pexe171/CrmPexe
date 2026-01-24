@@ -3,6 +3,7 @@ import { IntegrationAccountType, IntegrationAccountStatus, MessageDirection, Not
 import { NotificationsService } from "../notifications/notifications.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { IntegrationCryptoService } from "../integration-accounts/integration-crypto.service";
+import { AutomationEngineService } from "../automation-engine/automation-engine.service";
 import { IChannelProvider } from "./interfaces/channel-provider.interface";
 import { WhatsappProvider } from "./providers/whatsapp.provider";
 import { ChannelInboundMessage, ChannelContact, ChannelIntegration, ChannelSendMessageInput } from "./types";
@@ -15,6 +16,7 @@ export class ChannelsService {
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
     private readonly integrationCryptoService: IntegrationCryptoService,
+    private readonly automationEngineService: AutomationEngineService,
     whatsappProvider: WhatsappProvider
   ) {
     this.providers.set(whatsappProvider.channel, whatsappProvider);
@@ -154,6 +156,13 @@ export class ChannelsService {
         contact.name,
         result.conversation.assignedToUserId
       );
+
+      await this.automationEngineService.dispatch("message.inbound.created", {
+        workspaceId,
+        conversationId: result.conversation.id,
+        messageId: result.message.id,
+        contactId: result.conversation.contactId
+      });
     }
 
     return { conversationId: result.conversation.id, messageId: result.message.id, isDuplicate: result.isDuplicate };

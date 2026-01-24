@@ -21,18 +21,17 @@ services:
     volumes:
       - redis_data:/data
 
-  # Opcional: n8n para automações
-  # n8n:
-  #   image: n8nio/n8n:latest
-  #   container_name: crmpexe-n8n
-  #   ports:
-  #     - "5678:5678"
-  #   environment:
-  #     N8N_BASIC_AUTH_ACTIVE: "false"
-  #   volumes:
-  #     - n8n_data:/home/node/.n8n
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: crmpexe-n8n
+    ports:
+      - "5678:5678"
+    environment:
+      N8N_BASIC_AUTH_ACTIVE: "false"
+    volumes:
+      - n8n_data:/home/node/.n8n
 
 volumes:
   postgres_data:
   redis_data:
-  # n8n_data:
+  n8n_data:
