@@ -3,8 +3,10 @@ import { AccessTokenGuard } from "../auth/access-token.guard";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { AuthUser } from "../auth/auth.types";
 import { CreateIntegrationAccountDto } from "./dto/create-integration-account.dto";
+import { RequestWhatsappSmsDto } from "./dto/request-whatsapp-sms.dto";
 import { UpdateIntegrationAccountDto } from "./dto/update-integration-account.dto";
 import { UpsertIntegrationSecretDto } from "./dto/upsert-integration-secret.dto";
+import { VerifyWhatsappSmsDto } from "./dto/verify-whatsapp-sms.dto";
 import { IntegrationAccountsService } from "./integration-accounts.service";
 
 @Controller("integration-accounts")
@@ -74,5 +76,31 @@ export class IntegrationAccountsController {
     @Headers("x-workspace-id") workspaceId?: string
   ) {
     return this.integrationAccountsService.getWhatsappStatus(user.id, accountId, workspaceId);
+  }
+
+  @Post(":id/whatsapp/sms/request")
+  async requestWhatsappSms(
+    @CurrentUser() user: AuthUser,
+    @Param("id") accountId: string,
+    @Body() body: RequestWhatsappSmsDto,
+    @Headers("x-workspace-id") workspaceId?: string
+  ) {
+    return this.integrationAccountsService.requestWhatsappSmsCode(user.id, accountId, body.phone, workspaceId);
+  }
+
+  @Post(":id/whatsapp/sms/verify")
+  async verifyWhatsappSms(
+    @CurrentUser() user: AuthUser,
+    @Param("id") accountId: string,
+    @Body() body: VerifyWhatsappSmsDto,
+    @Headers("x-workspace-id") workspaceId?: string
+  ) {
+    return this.integrationAccountsService.verifyWhatsappSmsCode(
+      user.id,
+      accountId,
+      body.phone,
+      body.code,
+      workspaceId
+    );
   }
 }

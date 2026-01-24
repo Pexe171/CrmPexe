@@ -140,6 +140,49 @@ export class IntegrationAccountsService {
     return this.callWhatsappGateway(account.id, secrets, "statusEndpoint", "/whatsapp/status");
   }
 
+  async requestWhatsappSmsCode(userId: string, accountId: string, phone: string, workspaceId?: string) {
+    const { account, secrets } = await this.getAccountWithSecrets(userId, accountId, workspaceId);
+
+    if (account.type !== IntegrationAccountType.WHATSAPP) {
+      throw new BadRequestException("Integração não é do tipo WhatsApp.");
+    }
+
+    const normalizedPhone = this.normalizeRequiredString(phone, "phone");
+
+    return this.callWhatsappGatewayPost(
+      account.id,
+      secrets,
+      "smsRequestEndpoint",
+      "/whatsapp/sms/request",
+      { phone: normalizedPhone, method: "sms" }
+    );
+  }
+
+  async verifyWhatsappSmsCode(
+    userId: string,
+    accountId: string,
+    phone: string,
+    code: string,
+    workspaceId?: string
+  ) {
+    const { account, secrets } = await this.getAccountWithSecrets(userId, accountId, workspaceId);
+
+    if (account.type !== IntegrationAccountType.WHATSAPP) {
+      throw new BadRequestException("Integração não é do tipo WhatsApp.");
+    }
+
+    const normalizedPhone = this.normalizeRequiredString(phone, "phone");
+    const normalizedCode = this.normalizeRequiredString(code, "code");
+
+    return this.callWhatsappGatewayPost(
+      account.id,
+      secrets,
+      "smsVerifyEndpoint",
+      "/whatsapp/sms/verify",
+      { phone: normalizedPhone, code: normalizedCode }
+    );
+  }
+
   private async getAccountWithSecrets(userId: string, accountId: string, workspaceId?: string) {
     const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
 
@@ -198,6 +241,40 @@ export class IntegrationAccountsService {
       qr: data.qr ?? null,
       status: data.status ?? "connecting"
     };
+  }
+
+  private async callWhatsappGatewayPost(
+    integrationAccountId: string,
+    secrets: Record<string, string>,
+    endpointKey: "smsRequestEndpoint" | "smsVerifyEndpoint",
+    fallbackPath: string,
+    payload: Record<string, string>
+  ) {
+    const apiUrl = this.getRequiredSecret(secrets, "apiUrl");
+    const apiToken = this.getRequiredSecret(secrets, "apiToken");
+    const endpoint = secrets[endpointKey] || fallbackPath;
+    const url = new URL(endpoint, apiUrl).toString();
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiToken}`,
+        "X-Integration-Account-Id": integrationAccountId
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw new BadRequestException(`Falha ao consultar gateway do WhatsApp: ${errorBody}`);
+    }
+
+    try {
+      return (await response.json()) as Record<string, unknown>;
+    } catch (error) {
+      return { success: true };
+    }
   }
 
   private normalizePayload(payload: Record<string, string>) {
