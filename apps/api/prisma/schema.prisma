@@ -146,6 +146,7 @@ model Workspace {
   integrationAccounts IntegrationAccount[]
   messageTemplates MessageTemplate[]
   automationInstances AutomationInstance[]
+  variables WorkspaceVariable[]
 }
 
 model User {
