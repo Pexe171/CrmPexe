@@ -18,6 +18,7 @@ import { TagsModule } from "./tags/tags.module";
 import { TasksModule } from "./tasks/tasks.module";
 import { WebhooksModule } from "./webhooks/webhooks.module";
 import { WorkspacesModule } from "./workspaces/workspaces.module";
+import { WorkspaceVariablesModule } from "./workspace-variables/workspace-variables.module";
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { WorkspacesModule } from "./workspaces/workspaces.module";
     AuthModule,
     AutomationsModule,
     WorkspacesModule,
+    WorkspaceVariablesModule,
     AuditLogsModule,
     CompaniesModule,
     ConversationsModule,
