@@ -32,6 +32,8 @@ type SecretFormState = {
   webhookToken: string;
   qrEndpoint: string;
   statusEndpoint: string;
+  smsRequestEndpoint: string;
+  smsVerifyEndpoint: string;
 };
 
 const emptyForm: IntegrationAccountFormState = {
@@ -45,7 +47,9 @@ const emptySecretForm: SecretFormState = {
   apiToken: "",
   webhookToken: "",
   qrEndpoint: "",
-  statusEndpoint: ""
+  statusEndpoint: "",
+  smsRequestEndpoint: "",
+  smsVerifyEndpoint: ""
 };
 
 const typeOptions = [{ value: "WHATSAPP", label: "WhatsApp" }];
@@ -66,6 +70,11 @@ export default function IntegrationsAdminPage() {
   const [qrStatus, setQrStatus] = useState<string | null>(null);
   const [qrImageUrl, setQrImageUrl] = useState<string | null>(null);
   const [qrLoading, setQrLoading] = useState(false);
+  const [smsPhone, setSmsPhone] = useState("");
+  const [smsCode, setSmsCode] = useState("");
+  const [smsStatus, setSmsStatus] = useState<string | null>(null);
+  const [smsRequestLoading, setSmsRequestLoading] = useState(false);
+  const [smsVerifyLoading, setSmsVerifyLoading] = useState(false);
 
   const fetchAccounts = useCallback(async () => {
     setLoading(true);
@@ -260,10 +269,88 @@ export default function IntegrationsAdminPage() {
     }
   }, [applyQrStatus, selectedAccountId]);
 
+  const handleRequestSms = useCallback(async () => {
+    if (!selectedAccountId) {
+      return;
+    }
+
+    const trimmedPhone = smsPhone.trim();
+    if (!trimmedPhone) {
+      setError("Informe o número para receber o SMS.");
+      return;
+    }
+
+    setSmsRequestLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`${apiUrl}/api/integration-accounts/${selectedAccountId}/whatsapp/sms/request`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        credentials: "include",
+        body: JSON.stringify({ phone: trimmedPhone })
+      });
+
+      if (!response.ok) {
+        throw new Error("Não foi possível solicitar o SMS do WhatsApp.");
+      }
+
+      const data = (await response.json()) as { status?: string | null };
+      setSmsStatus(data.status ?? "codigo_enviado");
+    } catch (smsError) {
+      setError(smsError instanceof Error ? smsError.message : "Erro ao solicitar SMS.");
+    } finally {
+      setSmsRequestLoading(false);
+    }
+  }, [selectedAccountId, smsPhone]);
+
+  const handleVerifySms = useCallback(async () => {
+    if (!selectedAccountId) {
+      return;
+    }
+
+    const trimmedPhone = smsPhone.trim();
+    const trimmedCode = smsCode.trim();
+
+    if (!trimmedPhone || !trimmedCode) {
+      setError("Informe o número e o código recebido por SMS.");
+      return;
+    }
+
+    setSmsVerifyLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`${apiUrl}/api/integration-accounts/${selectedAccountId}/whatsapp/sms/verify`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        credentials: "include",
+        body: JSON.stringify({ phone: trimmedPhone, code: trimmedCode })
+      });
+
+      if (!response.ok) {
+        throw new Error("Não foi possível validar o SMS do WhatsApp.");
+      }
+
+      const data = (await response.json()) as { status?: string | null };
+      setSmsStatus(data.status ?? "verificado");
+      void fetchWhatsappStatus(selectedAccountId);
+    } catch (smsError) {
+      setError(smsError instanceof Error ? smsError.message : "Erro ao validar SMS.");
+    } finally {
+      setSmsVerifyLoading(false);
+    }
+  }, [fetchWhatsappStatus, selectedAccountId, smsCode, smsPhone]);
+
   useEffect(() => {
     if (!activeAccount) {
       setQrStatus(null);
       setQrImageUrl(null);
+      setSmsStatus(null);
       return;
     }
 
@@ -379,6 +466,9 @@ export default function IntegrationsAdminPage() {
                         setSecretForm(emptySecretForm);
                         setQrStatus(null);
                         setQrImageUrl(null);
+                        setSmsPhone("");
+                        setSmsCode("");
+                        setSmsStatus(null);
                       }}
                     >
                       Conectar
@@ -465,6 +555,9 @@ export default function IntegrationsAdminPage() {
                 ? `Conecte credenciais para ${activeAccount.name}.`
                 : "Selecione uma integração para conectar."}
             </p>
+            <div className="mt-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-700">
+              Para WhatsApp API via token, basta preencher API URL e API Token.
+            </div>
             <form onSubmit={handleSaveSecrets} className="mt-4 space-y-4">
               <div>
                 <label className="text-sm font-medium text-gray-700">API URL</label>
@@ -516,6 +609,26 @@ export default function IntegrationsAdminPage() {
                   disabled={!activeAccount}
                 />
               </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Endpoint SMS (solicitar) (opcional)</label>
+                <input
+                  className="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+                  placeholder="/whatsapp/sms/request"
+                  value={secretForm.smsRequestEndpoint}
+                  onChange={handleSecretChange("smsRequestEndpoint")}
+                  disabled={!activeAccount}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Endpoint SMS (validar) (opcional)</label>
+                <input
+                  className="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+                  placeholder="/whatsapp/sms/verify"
+                  value={secretForm.smsVerifyEndpoint}
+                  onChange={handleSecretChange("smsVerifyEndpoint")}
+                  disabled={!activeAccount}
+                />
+              </div>
               <Button disabled={!activeAccount || submitting} type="submit">
                 Salvar credenciais
               </Button>
@@ -545,6 +658,48 @@ export default function IntegrationsAdminPage() {
               )}
               <Button disabled={!activeAccount || qrLoading} onClick={handleRequestQr}>
                 {qrLoading ? "Gerando QR..." : "Gerar QR code"}
+              </Button>
+            </div>
+          </section>
+
+          <section className="rounded-xl border bg-white p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-gray-900">Conexão via SMS</h2>
+            <p className="text-sm text-gray-500">
+              {activeAccount
+                ? "Digite o número, solicite o SMS e valide o código como no WhatsApp Web."
+                : "Selecione uma integração para solicitar o SMS."}
+            </p>
+            <div className="mt-4 space-y-4">
+              <div className="text-sm text-gray-600">
+                Status: {smsStatus ? smsStatus.replaceAll("_", " ") : "aguardando solicitação"}
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Número com DDI</label>
+                <input
+                  className="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+                  placeholder="+55 11 99999-9999"
+                  value={smsPhone}
+                  onChange={(event) => setSmsPhone(event.target.value)}
+                  disabled={!activeAccount}
+                />
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button disabled={!activeAccount || smsRequestLoading} onClick={handleRequestSms}>
+                  {smsRequestLoading ? "Enviando SMS..." : "Solicitar SMS"}
+                </Button>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Código recebido</label>
+                <input
+                  className="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+                  placeholder="123456"
+                  value={smsCode}
+                  onChange={(event) => setSmsCode(event.target.value)}
+                  disabled={!activeAccount}
+                />
+              </div>
+              <Button disabled={!activeAccount || smsVerifyLoading} onClick={handleVerifySms}>
+                {smsVerifyLoading ? "Validando..." : "Validar código"}
               </Button>
             </div>
           </section>
