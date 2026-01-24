@@ -2,6 +2,16 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import {
+  Bar,
+  BarChart,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis
+} from "recharts";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { LogoutButton } from "./logout-button";
 import { TaskOverview } from "./task-overview";
@@ -81,6 +91,16 @@ const formatDayLabel = (date: Date) => {
     .format(date)
     .replace(".", "")
     .replace(/^./, (value) => value.toUpperCase());
+};
+
+const formatDuration = (seconds: number) => {
+  if (!Number.isFinite(seconds)) return "-";
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 1) return "<1 min";
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const remainder = minutes % 60;
+  return `${hours}h ${remainder}m`;
 };
 
 export default function DashboardPage() {
@@ -260,7 +280,97 @@ export default function DashboardPage() {
     return days;
   }, [auditLogs]);
 
-  const maxChartValue = chartData.reduce((max, item) => Math.max(max, item.count), 0) || 1;
+  const slaSeconds = Number(process.env.NEXT_PUBLIC_SLA_RESPONSE_SECONDS ?? 900);
+
+  const conversationResponseMetrics = useMemo(() => {
+    const responseTimes = conversations
+      .map((conversation) => {
+        if (!conversation.lastMessageAt) return null;
+        const created = new Date(conversation.createdAt).getTime();
+        const lastMessage = new Date(conversation.lastMessageAt).getTime();
+        if (Number.isNaN(created) || Number.isNaN(lastMessage) || lastMessage < created) return null;
+        return (lastMessage - created) / 1000;
+      })
+      .filter((value): value is number => value !== null);
+
+    const averageResponseSeconds =
+      responseTimes.reduce((total, current) => total + current, 0) /
+      (responseTimes.length || 1);
+
+    const slaCompliance =
+      responseTimes.length === 0
+        ? 0
+        : (responseTimes.filter((value) => value <= slaSeconds).length / responseTimes.length) * 100;
+
+    const closedConversations = conversations.filter(
+      (conversation) => conversation.status === "CLOSED"
+    ).length;
+
+    const conversionRate =
+      conversations.length === 0 ? 0 : (closedConversations / conversations.length) * 100;
+
+    return {
+      averageResponseSeconds,
+      slaCompliance,
+      conversionRate,
+      responseTimes
+    };
+  }, [conversations, slaSeconds]);
+
+  const kpiCards = [
+    {
+      label: "TMR (Tempo médio de resposta)",
+      value: formatDuration(conversationResponseMetrics.averageResponseSeconds),
+      helper: "Baseado no tempo entre abertura e última mensagem",
+      accent: "bg-blue-100 text-blue-700"
+    },
+    {
+      label: "SLA (primeira resposta)",
+      value: `${conversationResponseMetrics.slaCompliance.toFixed(0)}%`,
+      helper: `Meta: responder em até ${Math.round(slaSeconds / 60)} min`,
+      accent: "bg-emerald-100 text-emerald-700"
+    },
+    {
+      label: "Conversão (conversas fechadas)",
+      value: `${conversationResponseMetrics.conversionRate.toFixed(0)}%`,
+      helper: "Conversas concluídas sobre o total",
+      accent: "bg-purple-100 text-purple-700"
+    }
+  ];
+
+  const activityChartData = useMemo(() => {
+    const today = new Date();
+    const days: { label: string; count: number; avgResponse: number }[] = [];
+
+    for (let i = 6; i >= 0; i -= 1) {
+      const date = new Date(today);
+      date.setDate(today.getDate() - i);
+      const dayLabel = formatDayLabel(date);
+      const dailyConversations = conversations.filter((conversation) => {
+        const created = new Date(conversation.createdAt);
+        return (
+          created.getFullYear() === date.getFullYear() &&
+          created.getMonth() === date.getMonth() &&
+          created.getDate() === date.getDate()
+        );
+      });
+
+      const avgResponse =
+        dailyConversations.reduce((total, conversation) => {
+          if (!conversation.lastMessageAt) return total;
+          const created = new Date(conversation.createdAt).getTime();
+          const lastMessage = new Date(conversation.lastMessageAt).getTime();
+          if (Number.isNaN(created) || Number.isNaN(lastMessage) || lastMessage < created) {
+            return total;
+          }
+          return total + (lastMessage - created) / 1000;
+        }, 0) / (dailyConversations.length || 1);
+
+      days.push({ label: dayLabel, count: dailyConversations.length, avgResponse });
+    }
+
+    return days;
+  }, [conversations]);
 
   const recentActivity = useMemo(() => {
     return auditLogs.slice(0, 6).map((log) => {
@@ -376,6 +486,39 @@ export default function DashboardPage() {
 
           <TaskOverview />
 
+          <section className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-medium text-gray-900">
+                  BI de Atendimento & Comercial
+                </h3>
+                <p className="text-sm text-gray-500">
+                  KPIs críticos para acompanhar a saúde do funil.
+                </p>
+              </div>
+              <Button variant="outline" size="sm">
+                Exportar relatório
+              </Button>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              {kpiCards.map((kpi) => (
+                <div key={kpi.label} className="rounded-xl border bg-white p-6 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-500">{kpi.label}</span>
+                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${kpi.accent}`}>
+                      KPI
+                    </span>
+                  </div>
+                  <div className="mt-3 text-2xl font-bold text-gray-900">
+                    {loading ? "-" : kpi.value}
+                  </div>
+                  <p className="mt-2 text-xs text-gray-500">{kpi.helper}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
           <div className="grid gap-4 md:grid-cols-7">
             <div className="col-span-4 rounded-xl border bg-white shadow-sm">
               <div className="p-6">
@@ -386,18 +529,18 @@ export default function DashboardPage() {
                 {loading ? (
                   <div className="mt-6 text-sm text-gray-500">Carregando dados...</div>
                 ) : (
-                  <div className="mt-6 flex h-[300px] items-end justify-between gap-2 px-2">
-                    {chartData.map((item, i) => (
-                      <div key={i} className="group relative w-full">
-                        <div
-                          className="w-full rounded-t-md bg-blue-500 transition-all hover:bg-blue-600"
-                          style={{ height: `${(item.count / maxChartValue) * 100}%` }}
-                        ></div>
-                        <div className="absolute -bottom-6 left-0 right-0 text-center text-xs text-gray-400">
-                          {item.label}
-                        </div>
-                      </div>
-                    ))}
+                  <div className="mt-6 h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={chartData}>
+                        <XAxis dataKey="label" stroke="#9CA3AF" fontSize={12} />
+                        <YAxis stroke="#E5E7EB" fontSize={12} />
+                        <Tooltip
+                          formatter={(value) => [`${value}`, "Eventos"]}
+                          cursor={{ fill: "rgba(59, 130, 246, 0.1)" }}
+                        />
+                        <Bar dataKey="count" fill="#3B82F6" radius={[6, 6, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
                   </div>
                 )}
               </div>
@@ -452,6 +595,51 @@ export default function DashboardPage() {
                   Ver todo o histórico
                 </Button>
               </div>
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="rounded-xl border bg-white p-6 shadow-sm">
+              <h3 className="text-lg font-medium text-gray-900">
+                Volume de conversas
+              </h3>
+              <p className="text-sm text-gray-500">Última semana</p>
+              {loading ? (
+                <div className="mt-6 text-sm text-gray-500">Carregando dados...</div>
+              ) : (
+                <div className="mt-6 h-[260px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={activityChartData}>
+                      <XAxis dataKey="label" stroke="#9CA3AF" fontSize={12} />
+                      <YAxis stroke="#E5E7EB" fontSize={12} allowDecimals={false} />
+                      <Tooltip formatter={(value) => [`${value}`, "Conversas"]} />
+                      <Line type="monotone" dataKey="count" stroke="#2563EB" strokeWidth={3} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
+            <div className="rounded-xl border bg-white p-6 shadow-sm">
+              <h3 className="text-lg font-medium text-gray-900">
+                TMR diário
+              </h3>
+              <p className="text-sm text-gray-500">Tempo médio de resposta por dia</p>
+              {loading ? (
+                <div className="mt-6 text-sm text-gray-500">Carregando dados...</div>
+              ) : (
+                <div className="mt-6 h-[260px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={activityChartData}>
+                      <XAxis dataKey="label" stroke="#9CA3AF" fontSize={12} />
+                      <YAxis stroke="#E5E7EB" fontSize={12} />
+                      <Tooltip
+                        formatter={(value) => [formatDuration(Number(value)), "TMR"]}
+                      />
+                      <Line type="monotone" dataKey="avgResponse" stroke="#10B981" strokeWidth={3} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
             </div>
           </div>
         </div>
