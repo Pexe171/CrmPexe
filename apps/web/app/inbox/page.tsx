@@ -6,66 +6,6 @@ import { Button } from "@/components/ui/button";
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const pollIntervalMs = 5000;
 
-const fallbackConversations = [
-  {
-    id: "conv-demo-1",
-    status: "OPEN",
-    lastMessageAt: new Date().toISOString(),
-    createdAt: new Date().toISOString(),
-    contact: {
-      id: "contact-1",
-      name: "Ana Paula",
-      email: "ana@empresa.com",
-      phone: "+55 11 99999-0001"
-    },
-    assignedToUser: {
-      id: "user-1",
-      name: "Lucas Martins",
-      email: "lucas@crmpexe.com"
-    },
-    _count: {
-      messages: 5
-    }
-  },
-  {
-    id: "conv-demo-2",
-    status: "PENDING",
-    lastMessageAt: new Date(Date.now() - 1000 * 60 * 20).toISOString(),
-    createdAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-    contact: {
-      id: "contact-2",
-      name: "Rodrigo Souza",
-      email: "rodrigo@contato.com",
-      phone: "+55 21 98888-2222"
-    },
-    assignedToUser: null,
-    _count: {
-      messages: 2
-    }
-  }
-];
-
-const fallbackMessages = [
-  {
-    id: "msg-demo-1",
-    direction: "IN",
-    text: "Oi! Preciso de ajuda com a minha última fatura.",
-    sentAt: new Date(Date.now() - 1000 * 60 * 30).toISOString()
-  },
-  {
-    id: "msg-demo-2",
-    direction: "OUT",
-    text: "Claro! Vou verificar para você agora mesmo.",
-    sentAt: new Date(Date.now() - 1000 * 60 * 25).toISOString()
-  },
-  {
-    id: "msg-demo-3",
-    direction: "IN",
-    text: "Obrigada!",
-    sentAt: new Date(Date.now() - 1000 * 60 * 20).toISOString()
-  }
-];
-
 type Conversation = {
   id: string;
   status?: string | null;
@@ -119,9 +59,9 @@ const formatDate = (value?: string | null) => {
 };
 
 export default function InboxPage() {
-  const [conversations, setConversations] = useState<Conversation[]>(fallbackConversations);
-  const [activeConversationId, setActiveConversationId] = useState<string | null>(fallbackConversations[0]?.id ?? null);
-  const [messages, setMessages] = useState<Message[]>(fallbackMessages);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -145,9 +85,10 @@ export default function InboxPage() {
       }
 
       const data = (await response.json()) as Conversation[];
-      if (data.length > 0) {
-        setConversations(data);
-        setActiveConversationId((prev) => prev ?? data[0].id);
+      setConversations(data);
+      setActiveConversationId((prev) => (data.length > 0 ? prev ?? data[0].id : null));
+      if (data.length === 0) {
+        setMessages([]);
       }
       setError(null);
     } catch (fetchError) {
@@ -155,6 +96,9 @@ export default function InboxPage() {
         return;
       }
       setError(fetchError instanceof Error ? fetchError.message : "Erro inesperado ao buscar conversas.");
+      setConversations([]);
+      setActiveConversationId(null);
+      setMessages([]);
     } finally {
       setLoading(false);
     }
@@ -181,6 +125,7 @@ export default function InboxPage() {
         return;
       }
       setError(fetchError instanceof Error ? fetchError.message : "Erro inesperado ao buscar mensagens.");
+      setMessages([]);
     }
   }, []);
 
@@ -195,6 +140,7 @@ export default function InboxPage() {
 
   useEffect(() => {
     if (!activeConversationId) {
+      setMessages([]);
       return;
     }
     const controller = new AbortController();
@@ -331,7 +277,9 @@ export default function InboxPage() {
               );
             })}
             {filteredConversations.length === 0 && (
-              <div className="px-4 py-6 text-sm text-gray-500">Nenhuma conversa encontrada.</div>
+              <div className="px-4 py-6 text-sm text-gray-500">
+                {loading ? "Carregando conversas..." : "Nenhuma conversa encontrada."}
+              </div>
             )}
           </div>
         </aside>
@@ -365,7 +313,7 @@ export default function InboxPage() {
             <div className="flex flex-col gap-4">
               {messages.length === 0 && (
                 <div className="rounded-lg border border-dashed border-gray-200 bg-white px-4 py-6 text-center text-sm text-gray-500">
-                  Ainda não há mensagens nessa conversa.
+                  {activeConversationId ? "Ainda não há mensagens nessa conversa." : "Selecione uma conversa para começar."}
                 </div>
               )}
               {messages.map((message) => {
@@ -401,8 +349,9 @@ export default function InboxPage() {
                 placeholder="Digite sua mensagem..."
                 value={messageDraft}
                 onChange={(event) => setMessageDraft(event.target.value)}
+                disabled={!activeConversationId}
               />
-              <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+              <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={!activeConversationId}>
                 Enviar
               </Button>
             </div>

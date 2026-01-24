@@ -113,7 +113,7 @@ export default function AutomationsPage() {
           <p className="text-sm font-medium text-blue-600">Admin</p>
           <h1 className="text-2xl font-semibold text-gray-900">Biblioteca de automações</h1>
           <p className="text-sm text-gray-500">
-            Instale templates prontos e simule o provisionamento com conectores mock.
+            Instale templates prontos e acompanhe o provisionamento com conectores reais.
           </p>
           <div className="mt-3 flex gap-3">
             <Link href="/dashboard">
