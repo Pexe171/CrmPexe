@@ -130,6 +130,8 @@ Frontend disponível em `http://localhost:3000`.
 > **Workspace atual via header**
 > Para reduzir latência de leitura do workspace atual, você pode enviar o header `X-Workspace-Id` em requisições que operam dados do tenant (companies, tasks, tags, conversations, custom fields, audit logs). Caso o header não seja enviado, a API continua usando o `currentWorkspaceId` salvo no usuário.
 >
+> Independente do header, o backend valida a associação `userId ↔ workspaceId` a cada requisição. Ou seja: alterar o `X-Workspace-Id` no tráfego não dá acesso a outro tenant sem membership válido.
+>
 > **SLA (opcional)**
 > Configure `SLA_RESPONSE_SECONDS` no `.env` da API para definir o tempo máximo de primeira resposta em segundos (padrão: 900).
 >
@@ -175,6 +177,13 @@ POST /api/auth/logout
 - O grupo `/admin` no Next.js possui um `layout.tsx` que bloqueia acesso para usuários sem `role=ADMIN`.
 
 > Após atualizar o Prisma, rode `pnpm prisma:migrate` e `pnpm prisma:generate` em `apps/api`.
+
+## Segurança backend (roles, JWT e tenants)
+- A API valida o papel (`role`) exclusivamente no backend. O `role` vem assinado no JWT e também é revalidado com o valor persistido no banco em cada requisição autenticada.
+- Em produção, `JWT_ACCESS_SECRET` e `JWT_REFRESH_SECRET` são obrigatórios e a aplicação falha ao iniciar se estiverem ausentes.
+- Toda resolução de `workspaceId` (via header ou via `currentWorkspaceId`) valida a membership do usuário antes de ler ou alterar dados do tenant.
+- O refresh token não é salvo em texto puro: o backend persiste apenas um hash derivado do token.
+- Campos sensíveis como `refreshTokenHash` e `encryptedPayload` são tratados apenas no backend e não fazem parte das respostas comuns de leitura.
 
 ### Endpoints de workspaces
 ```

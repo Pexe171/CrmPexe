@@ -5,6 +5,7 @@ export type AuthUser = {
   id: string;
   email: string;
   role: UserRole;
+  currentWorkspaceId?: string | null;
 };
 
 export type AuthenticatedRequest = Request & {

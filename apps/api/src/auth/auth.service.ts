@@ -164,14 +164,22 @@ export class AuthService {
 
     const payload = await this.verifyRefreshToken(refreshToken);
     const user = await this.prisma.user.findUnique({
-      where: { id: payload.sub }
+      where: { id: payload.sub },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        refreshTokenHash: true
+      }
     });
 
     if (!user || !user.refreshTokenHash) {
       throw new UnauthorizedException("Refresh token inválido.");
     }
 
-    const tokenMatches = refreshToken === user.refreshTokenHash;
+    const tokenMatches =
+      this.hashRefreshToken(refreshToken) === user.refreshTokenHash;
 
     if (!tokenMatches) {
       throw new UnauthorizedException("Refresh token inválido.");
@@ -232,7 +240,7 @@ export class AuthService {
       return await this.jwtService.verifyAsync<{
         sub: string;
         email: string;
-        role?: UserRole;
+        role: UserRole;
       }>(token, {
         secret: this.accessTokenSecret
       });
@@ -246,7 +254,7 @@ export class AuthService {
       return await this.jwtService.verifyAsync<{
         sub: string;
         email: string;
-        role?: UserRole;
+        role: UserRole;
       }>(token, {
         secret: this.refreshTokenSecret
       });
@@ -256,7 +264,7 @@ export class AuthService {
   }
 
   private async persistRefreshToken(userId: string, refreshToken: string) {
-    const refreshTokenHash = refreshToken;
+    const refreshTokenHash = this.hashRefreshToken(refreshToken);
 
     await this.prisma.user.update({
       where: { id: userId },
@@ -292,6 +300,12 @@ export class AuthService {
 
   private hashOtpCode(code: string) {
     return createHash("sha256").update(code).digest("hex");
+  }
+
+  private hashRefreshToken(refreshToken: string) {
+    return createHash("sha256")
+      .update(`${refreshToken}.${this.refreshTokenSecret}`)
+      .digest("hex");
   }
 
   private async sendOtpEmail(email: string, code: string, purpose: OtpPurpose) {
