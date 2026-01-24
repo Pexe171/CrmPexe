@@ -1,6 +1,7 @@
 import { ConflictException, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { Test } from "@nestjs/testing";
+import { UserRole } from "@prisma/client";
 import { createHash } from "crypto";
 import { AuthService } from "./auth.service";
 import { PrismaService } from "../prisma/prisma.service";
@@ -8,12 +9,9 @@ import { PrismaService } from "../prisma/prisma.service";
 const sendMailMock = jest.fn().mockResolvedValue({});
 
 jest.mock("nodemailer", () => ({
-  __esModule: true,
-  default: {
-    createTransport: jest.fn(() => ({
-      sendMail: sendMailMock
-    }))
-  }
+  createTransport: jest.fn(() => ({
+    sendMail: sendMailMock
+  }))
 }));
 
 const prismaMock = {
@@ -111,11 +109,12 @@ describe("AuthService", () => {
       id: "user-1",
       email: "user@example.com",
       name: "User",
-      contact: "WhatsApp"
+      contact: "WhatsApp",
+      role: UserRole.USER
     });
     prismaMock.user.update.mockResolvedValue({ id: "user-1" });
-    jest
-      .spyOn(jwtService, "signAsync")
+    const signAsyncMock = jwtService.signAsync as jest.Mock;
+    signAsyncMock
       .mockResolvedValueOnce("access-token")
       .mockResolvedValueOnce("refresh-token");
 
@@ -125,10 +124,60 @@ describe("AuthService", () => {
     });
 
     expect(result.user.email).toEqual("user@example.com");
+    expect(result.user.role).toEqual(UserRole.USER);
+    expect(signAsyncMock).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        sub: "user-1",
+        email: "user@example.com",
+        role: UserRole.USER
+      }),
+      expect.any(Object)
+    );
     expect(prismaMock.user.update).toHaveBeenCalledWith({
       where: { id: "user-1" },
       data: { refreshTokenHash: expect.any(String) }
     });
+  });
+
+  it("cria novo usuário com role USER no fluxo de signup", async () => {
+    const code = "123456";
+    const codeHash = createHash("sha256").update(code).digest("hex");
+
+    prismaMock.otpCode.findFirst.mockResolvedValue({
+      id: "otp-2",
+      email: "new-user@example.com",
+      codeHash,
+      purpose: "SIGNUP",
+      name: "Novo Usuário",
+      contact: "Contato"
+    });
+    prismaMock.otpCode.update.mockResolvedValue({ id: "otp-2" });
+    prismaMock.user.findUnique.mockResolvedValue(null);
+    prismaMock.user.create.mockResolvedValue({
+      id: "user-2",
+      email: "new-user@example.com",
+      name: "Novo Usuário",
+      contact: "Contato",
+      role: UserRole.USER
+    });
+    prismaMock.user.update.mockResolvedValue({ id: "user-2" });
+    const signAsyncMock = jwtService.signAsync as jest.Mock;
+    signAsyncMock
+      .mockResolvedValueOnce("access-token")
+      .mockResolvedValueOnce("refresh-token");
+
+    const result = await authService.verifyOtp({
+      email: "new-user@example.com",
+      code
+    });
+
+    expect(prismaMock.user.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ role: UserRole.USER })
+      })
+    );
+    expect(result.user.role).toEqual(UserRole.USER);
   });
 
   it("rejects login without OTP", async () => {

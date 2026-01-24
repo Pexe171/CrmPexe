@@ -1,13 +1,23 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from "@nestjs/common";
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  UnauthorizedException
+} from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
+import { PrismaService } from "../prisma/prisma.service";
 import { ACCESS_TOKEN_COOKIE } from "./auth.constants";
 import { AuthenticatedRequest } from "./auth.types";
 
 @Injectable()
 export class AccessTokenGuard implements CanActivate {
-  private readonly accessTokenSecret = process.env.JWT_ACCESS_SECRET || "dev_access_secret";
+  private readonly accessTokenSecret =
+    process.env.JWT_ACCESS_SECRET || "dev_access_secret";
 
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly prisma: PrismaService
+  ) {}
 
   async canActivate(context: ExecutionContext) {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
@@ -18,11 +28,24 @@ export class AccessTokenGuard implements CanActivate {
     }
 
     try {
-      const payload = await this.jwtService.verifyAsync<{ sub: string; email: string }>(token, {
+      const payload = await this.jwtService.verifyAsync<{
+        sub: string;
+        email: string;
+        role?: string;
+      }>(token, {
         secret: this.accessTokenSecret
       });
 
-      request.user = { id: payload.sub, email: payload.email };
+      const user = await this.prisma.user.findUnique({
+        where: { id: payload.sub },
+        select: { id: true, email: true, role: true }
+      });
+
+      if (!user) {
+        throw new UnauthorizedException("Usuário não encontrado.");
+      }
+
+      request.user = { id: user.id, email: user.email, role: user.role };
       return true;
     } catch {
       throw new UnauthorizedException("Token de acesso inválido.");

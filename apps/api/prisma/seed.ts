@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, UserRole } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -44,6 +44,7 @@ async function main() {
       email: 'admin@crmpexe.local',
       name: 'Admin',
       contact: 'Admin',
+      role: UserRole.ADMIN,
     },
   });
 

@@ -8,7 +8,8 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: "bg-slate-100 text-slate-900 hover:bg-slate-200",
-        outline: "border border-slate-600 text-slate-100 hover:bg-slate-800"
+        outline: "border border-slate-600 text-slate-100 hover:bg-slate-800",
+        destructive: "bg-red-600 text-white hover:bg-red-500"
       },
       size: {
         default: "h-10 px-4 py-2",
@@ -24,7 +25,8 @@ const buttonVariants = cva(
 );
 
 export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+  extends
+    React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {}
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(

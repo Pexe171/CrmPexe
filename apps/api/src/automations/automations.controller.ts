@@ -1,7 +1,18 @@
-import { Body, Controller, Get, Headers, Param, Post, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  Param,
+  Post,
+  UseGuards
+} from "@nestjs/common";
+import { UserRole } from "@prisma/client";
 import { AccessTokenGuard } from "../auth/access-token.guard";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { AuthUser } from "../auth/auth.types";
+import { Roles } from "../auth/roles.decorator";
+import { RolesGuard } from "../auth/roles.guard";
 import { AutomationsService } from "./automations.service";
 import { CreateAutomationTemplateDto } from "./dto/create-automation-template.dto";
 import { InstallAutomationTemplateDto } from "./dto/install-automation-template.dto";
@@ -17,7 +28,12 @@ export class AutomationsController {
   }
 
   @Post("automation-templates")
-  async createTemplate(@CurrentUser() user: AuthUser, @Body() body: CreateAutomationTemplateDto) {
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  async createTemplate(
+    @CurrentUser() user: AuthUser,
+    @Body() body: CreateAutomationTemplateDto
+  ) {
     return this.automationsService.createTemplate(user.id, body);
   }
 
@@ -28,11 +44,19 @@ export class AutomationsController {
     @Body() body: InstallAutomationTemplateDto,
     @Headers("x-workspace-id") workspaceId?: string
   ) {
-    return this.automationsService.installTemplate(user.id, templateId, body, workspaceId);
+    return this.automationsService.installTemplate(
+      user.id,
+      templateId,
+      body,
+      workspaceId
+    );
   }
 
   @Get("automation-instances")
-  async listInstances(@CurrentUser() user: AuthUser, @Headers("x-workspace-id") workspaceId?: string) {
+  async listInstances(
+    @CurrentUser() user: AuthUser,
+    @Headers("x-workspace-id") workspaceId?: string
+  ) {
     return this.automationsService.listInstances(user.id, workspaceId);
   }
 
@@ -42,7 +66,11 @@ export class AutomationsController {
     @Param("id") instanceId: string,
     @Headers("x-workspace-id") workspaceId?: string
   ) {
-    return this.automationsService.installAutomationInstance(user.id, instanceId, workspaceId);
+    return this.automationsService.installAutomationInstance(
+      user.id,
+      instanceId,
+      workspaceId
+    );
   }
 
   @Post("automations/:id/enable")
@@ -51,7 +79,11 @@ export class AutomationsController {
     @Param("id") instanceId: string,
     @Headers("x-workspace-id") workspaceId?: string
   ) {
-    return this.automationsService.enableAutomation(user.id, instanceId, workspaceId);
+    return this.automationsService.enableAutomation(
+      user.id,
+      instanceId,
+      workspaceId
+    );
   }
 
   @Post("automations/:id/disable")
@@ -60,6 +92,10 @@ export class AutomationsController {
     @Param("id") instanceId: string,
     @Headers("x-workspace-id") workspaceId?: string
   ) {
-    return this.automationsService.disableAutomation(user.id, instanceId, workspaceId);
+    return this.automationsService.disableAutomation(
+      user.id,
+      instanceId,
+      workspaceId
+    );
   }
 }
