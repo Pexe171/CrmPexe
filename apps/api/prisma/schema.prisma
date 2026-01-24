@@ -85,6 +85,7 @@ enum WebhookEvent {
 
 enum IntegrationAccountType {
   WHATSAPP
+  N8N
 }
 
 enum IntegrationAccountStatus {

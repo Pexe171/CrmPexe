@@ -11,6 +11,7 @@ import { ChannelsModule } from "./channels/channels.module";
 import { IntegrationAccountsModule } from "./integration-accounts/integration-accounts.module";
 import { MessageTemplatesModule } from "./message-templates/message-templates.module";
 import { NotificationsModule } from "./notifications/notifications.module";
+import { N8nModule } from "./n8n/n8n.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { DealsModule } from "./deals/deals.module";
 import { TagsModule } from "./tags/tags.module";
@@ -29,6 +30,7 @@ import { WorkspacesModule } from "./workspaces/workspaces.module";
     ConversationsModule,
     ChannelsModule,
     IntegrationAccountsModule,
+    N8nModule,
     NotificationsModule,
     TasksModule,
     TagsModule,
