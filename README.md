@@ -138,6 +138,11 @@ Frontend disponível em `http://localhost:3000`.
 > openssl rand -hex 32
 > ```
 
+> **Integração n8n (API)**
+> Para consumir o n8n via backend, crie uma conta de integração do tipo `N8N` e salve os segredos via `PUT /api/integration-accounts/:id/secret` com as chaves:
+> - `baseUrl`: URL base do n8n (ex: `http://localhost:5678`)
+> - `apiKey`: API key gerada no n8n
+
 ### Endpoints de autenticação
 ```
 POST /api/auth/request-otp
