@@ -40,6 +40,18 @@ type AutomationInstance = {
   createdAt: string;
 };
 
+type AutomationInstancesMeta = {
+  page: number;
+  perPage: number;
+  total: number;
+  totalPages: number;
+};
+
+type AutomationInstancesResponse = {
+  data: AutomationInstance[];
+  meta: AutomationInstancesMeta;
+};
+
 type Workspace = {
   id: string;
   name: string;
@@ -111,7 +123,7 @@ const formatDuration = (seconds: number) => {
 export default function DashboardClient({ role }: DashboardClientProps) {
   const isAdmin = role === "ADMIN";
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [instances, setInstances] = useState<AutomationInstance[]>([]);
+  const [instancesCount, setInstancesCount] = useState(0);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -126,7 +138,7 @@ export default function DashboardClient({ role }: DashboardClientProps) {
         const auditScopeQuery = isAdmin ? "&scope=global" : "";
         const [conversationsResponse, instancesResponse, workspacesResponse, auditResponse] = await Promise.all([
           fetch(`${apiUrl}/api/conversations`, { credentials: "include" }),
-          fetch(`${apiUrl}/api/automation-instances`, { credentials: "include" }),
+          fetch(`${apiUrl}/api/automation-instances?page=1&perPage=1`, { credentials: "include" }),
           fetch(`${apiUrl}/api/workspaces`, { credentials: "include" }),
           fetch(`${apiUrl}/api/audit-logs?perPage=20${auditScopeQuery}`, {
             credentials: "include"
@@ -148,13 +160,13 @@ export default function DashboardClient({ role }: DashboardClientProps) {
 
         const [conversationsData, instancesData, workspacesData, auditData] = await Promise.all([
           (conversationsResponse.json() as Promise<Conversation[]>),
-          (instancesResponse.json() as Promise<AutomationInstance[]>),
+          (instancesResponse.json() as Promise<AutomationInstancesResponse>),
           (workspacesResponse.json() as Promise<WorkspaceResponse>),
           (auditResponse.json() as Promise<{ data: AuditLog[] }>),
         ]);
 
         setConversations(conversationsData);
-        setInstances(instancesData);
+        setInstancesCount(instancesData.meta.total);
         setWorkspaces(workspacesData.workspaces);
         setAuditLogs(auditData.data ?? []);
       } catch (fetchError) {
@@ -245,7 +257,7 @@ export default function DashboardClient({ role }: DashboardClientProps) {
       },
       {
         label: "Automações instaladas",
-        value: instances.length,
+        value: instancesCount,
         icon: (
           <svg
             className="h-6 w-6 text-yellow-600"
@@ -264,7 +276,7 @@ export default function DashboardClient({ role }: DashboardClientProps) {
         )
       }
     ];
-  }, [conversations, instances]);
+  }, [conversations, instancesCount]);
 
   const chartData = useMemo(() => {
     const today = new Date();

@@ -5,6 +5,7 @@ import {
   Headers,
   Param,
   Post,
+  Query,
   UseGuards
 } from "@nestjs/common";
 import { UserRole } from "@prisma/client";
@@ -55,9 +56,19 @@ export class AutomationsController {
   @Get("automation-instances")
   async listInstances(
     @CurrentUser() user: AuthUser,
-    @Headers("x-workspace-id") workspaceId?: string
+    @Headers("x-workspace-id") workspaceId?: string,
+    @Query("page") page?: string,
+    @Query("perPage") perPage?: string
   ) {
-    return this.automationsService.listInstances(user.id, workspaceId);
+    const parsedPage = Number(page);
+    const parsedPerPage = Number(perPage);
+
+    return this.automationsService.listInstances(
+      user.id,
+      workspaceId,
+      Number.isFinite(parsedPage) ? parsedPage : undefined,
+      Number.isFinite(parsedPerPage) ? parsedPerPage : undefined
+    );
   }
 
   @Post("automations/:id/install")
