@@ -128,6 +128,9 @@ Frontend disponível em `http://localhost:3000`.
 >
 > **SLA (opcional)**
 > Configure `SLA_RESPONSE_SECONDS` no `.env` da API para definir o tempo máximo de primeira resposta em segundos (padrão: 900).
+>
+> **KPIs no dashboard (Frontend)**
+> Para ajustar a meta de SLA exibida nos gráficos de BI, defina `NEXT_PUBLIC_SLA_RESPONSE_SECONDS` no `.env.local` do frontend (padrão: 900).
 
 > **Criptografia de integrações**
 > Configure `INTEGRATION_ENCRYPTION_KEY` no `.env` da API com uma chave de 32 bytes (base64 ou hex). Exemplo:
