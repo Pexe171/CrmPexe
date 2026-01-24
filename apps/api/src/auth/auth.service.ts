@@ -1,22 +1,39 @@
-import { BadRequestException, ConflictException, Injectable, UnauthorizedException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  UnauthorizedException
+} from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
-import { OtpPurpose } from "@prisma/client";
+import { OtpPurpose, UserRole } from "@prisma/client";
 import { createHash, randomInt } from "crypto";
 import * as nodemailer from "nodemailer";
 import { PrismaService } from "../prisma/prisma.service";
-import { ACCESS_TOKEN_COOKIE, ACCESS_TOKEN_TTL_MS, REFRESH_TOKEN_COOKIE, REFRESH_TOKEN_TTL_MS } from "./auth.constants";
+import {
+  ACCESS_TOKEN_COOKIE,
+  ACCESS_TOKEN_TTL_MS,
+  REFRESH_TOKEN_COOKIE,
+  REFRESH_TOKEN_TTL_MS
+} from "./auth.constants";
 import { RequestOtpDto } from "./dto/request-otp.dto";
 import { VerifyOtpDto } from "./dto/verify-otp.dto";
 
 @Injectable()
 export class AuthService {
-  private readonly accessTokenSecret = process.env.JWT_ACCESS_SECRET || "dev_access_secret";
-  private readonly refreshTokenSecret = process.env.JWT_REFRESH_SECRET || "dev_refresh_secret";
-  private readonly accessTokenExpiresIn = process.env.JWT_ACCESS_EXPIRES_IN || "15m";
-  private readonly refreshTokenExpiresIn = process.env.JWT_REFRESH_EXPIRES_IN || "7d";
+  private readonly accessTokenSecret =
+    process.env.JWT_ACCESS_SECRET || "dev_access_secret";
+  private readonly refreshTokenSecret =
+    process.env.JWT_REFRESH_SECRET || "dev_refresh_secret";
+  private readonly accessTokenExpiresIn =
+    process.env.JWT_ACCESS_EXPIRES_IN || "15m";
+  private readonly refreshTokenExpiresIn =
+    process.env.JWT_REFRESH_EXPIRES_IN || "7d";
   private readonly otpTtlMs = Number(process.env.OTP_TTL_MS || 10 * 60 * 1000);
 
-  constructor(private readonly prisma: PrismaService, private readonly jwtService: JwtService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly jwtService: JwtService
+  ) {}
 
   get accessTokenCookieName() {
     return ACCESS_TOKEN_COOKIE;
@@ -36,7 +53,9 @@ export class AuthService {
 
   async requestOtp(payload: RequestOtpDto) {
     const email = payload.email.toLowerCase();
-    const isSignupPayload = Boolean(payload.name || payload.contact || payload.emailConfirmation);
+    const isSignupPayload = Boolean(
+      payload.name || payload.contact || payload.emailConfirmation
+    );
 
     if (isSignupPayload) {
       this.ensureSignupPayload(payload);
@@ -109,7 +128,8 @@ export class AuthService {
         data: {
           email,
           name: otp.name.trim(),
-          contact: otp.contact.trim()
+          contact: otp.contact.trim(),
+          role: UserRole.USER
         }
       });
     }
@@ -118,11 +138,21 @@ export class AuthService {
       throw new UnauthorizedException("Usuário não encontrado.");
     }
 
-    const tokens = await this.issueTokens(user.id, user.email);
+    const tokens = await this.issueTokens({
+      id: user.id,
+      email: user.email,
+      role: user.role
+    });
     await this.persistRefreshToken(user.id, tokens.refreshToken);
 
     return {
-      user: { id: user.id, email: user.email, name: user.name, contact: user.contact },
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        contact: user.contact,
+        role: user.role
+      },
       tokens
     };
   }
@@ -147,11 +177,20 @@ export class AuthService {
       throw new UnauthorizedException("Refresh token inválido.");
     }
 
-    const tokens = await this.issueTokens(user.id, user.email);
+    const tokens = await this.issueTokens({
+      id: user.id,
+      email: user.email,
+      role: user.role
+    });
     await this.persistRefreshToken(user.id, tokens.refreshToken);
 
     return {
-      user: { id: user.id, email: user.email, name: user.name },
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role
+      },
       tokens
     };
   }
@@ -172,8 +211,8 @@ export class AuthService {
     }
   }
 
-  async issueTokens(userId: string, email: string) {
-    const payload = { sub: userId, email };
+  async issueTokens(user: { id: string; email: string; role: UserRole }) {
+    const payload = { sub: user.id, email: user.email, role: user.role };
 
     const accessToken = await this.jwtService.signAsync(payload, {
       secret: this.accessTokenSecret,
@@ -190,7 +229,11 @@ export class AuthService {
 
   async verifyAccessToken(token: string) {
     try {
-      return await this.jwtService.verifyAsync<{ sub: string; email: string }>(token, {
+      return await this.jwtService.verifyAsync<{
+        sub: string;
+        email: string;
+        role?: UserRole;
+      }>(token, {
         secret: this.accessTokenSecret
       });
     } catch {
@@ -200,7 +243,11 @@ export class AuthService {
 
   private async verifyRefreshToken(token: string) {
     try {
-      return await this.jwtService.verifyAsync<{ sub: string; email: string }>(token, {
+      return await this.jwtService.verifyAsync<{
+        sub: string;
+        email: string;
+        role?: UserRole;
+      }>(token, {
         secret: this.refreshTokenSecret
       });
     } catch {
@@ -217,12 +264,24 @@ export class AuthService {
     });
   }
 
-  private ensureSignupPayload(payload: { email: string; name?: string; contact?: string; emailConfirmation?: string }) {
-    if (!payload.email || !payload.name || !payload.contact || !payload.emailConfirmation) {
+  private ensureSignupPayload(payload: {
+    email: string;
+    name?: string;
+    contact?: string;
+    emailConfirmation?: string;
+  }) {
+    if (
+      !payload.email ||
+      !payload.name ||
+      !payload.contact ||
+      !payload.emailConfirmation
+    ) {
       throw new BadRequestException("Dados de cadastro inválidos.");
     }
 
-    if (payload.email.toLowerCase() !== payload.emailConfirmation.toLowerCase()) {
+    if (
+      payload.email.toLowerCase() !== payload.emailConfirmation.toLowerCase()
+    ) {
       throw new BadRequestException("Os e-mails informados não conferem.");
     }
   }
@@ -256,7 +315,8 @@ export class AuthService {
       }
     });
 
-    const actionLabel = purpose === OtpPurpose.SIGNUP ? "criar sua conta" : "entrar no CRM";
+    const actionLabel =
+      purpose === OtpPurpose.SIGNUP ? "criar sua conta" : "entrar no CRM";
 
     await transport.sendMail({
       from,

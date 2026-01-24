@@ -14,16 +14,18 @@ export class AuditLogsController {
     @CurrentUser() user: AuthUser,
     @Headers("x-workspace-id") workspaceId?: string,
     @Query("page") page?: string,
-    @Query("perPage") perPage?: string
+    @Query("perPage") perPage?: string,
+    @Query("scope") scope?: "workspace" | "global"
   ) {
     const parsedPage = Number(page);
     const parsedPerPage = Number(perPage);
 
     return this.auditLogsService.listAuditLogs(
-      user.id,
+      user,
       Number.isFinite(parsedPage) ? parsedPage : undefined,
       Number.isFinite(parsedPerPage) ? parsedPerPage : undefined,
-      workspaceId
+      workspaceId,
+      scope
     );
   }
 }

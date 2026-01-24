@@ -1,37 +1,71 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
-import { Prisma } from "@prisma/client";
+import { Prisma, UserRole } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import { AuthUser } from "../auth/auth.types";
 import { AuditLogAction } from "./audit-log.types";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_PER_PAGE = 20;
 const MAX_PER_PAGE = 100;
+type AuditScope = "workspace" | "global";
 
 @Injectable()
 export class AuditLogsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async listAuditLogs(userId: string, page?: number, perPage?: number, workspaceId?: string) {
-    const currentWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
-
-    if (!currentWorkspaceId) {
-      throw new BadRequestException("Workspace atual não definido.");
-    }
-
-    const safePage = Number.isFinite(page) ? Math.max(page as number, 1) : DEFAULT_PAGE;
+  async listAuditLogs(
+    user: AuthUser,
+    page?: number,
+    perPage?: number,
+    workspaceId?: string,
+    scope?: AuditScope
+  ) {
+    const safePage = Number.isFinite(page)
+      ? Math.max(page as number, 1)
+      : DEFAULT_PAGE;
     const safePerPage = Number.isFinite(perPage)
       ? Math.min(Math.max(perPage as number, 1), MAX_PER_PAGE)
       : DEFAULT_PER_PAGE;
     const skip = (safePage - 1) * safePerPage;
 
+    const globalScopeRequested = scope === "global";
+    const canReadGlobalScope =
+      user.role === UserRole.ADMIN && globalScopeRequested;
+
+    if (globalScopeRequested && user.role !== UserRole.ADMIN) {
+      throw new BadRequestException(
+        "Escopo global disponível apenas para administradores."
+      );
+    }
+
+    const normalizedWorkspaceId = workspaceId?.trim();
+    let where: Prisma.AuditLogWhereInput;
+
+    if (canReadGlobalScope) {
+      where = normalizedWorkspaceId
+        ? { workspaceId: normalizedWorkspaceId }
+        : {};
+    } else {
+      const currentWorkspaceId = await this.resolveWorkspaceId(
+        user.id,
+        normalizedWorkspaceId
+      );
+
+      if (!currentWorkspaceId) {
+        throw new BadRequestException("Workspace atual não definido.");
+      }
+
+      where = { workspaceId: currentWorkspaceId };
+    }
+
     const [items, total] = await Promise.all([
       this.prisma.auditLog.findMany({
-        where: { workspaceId: currentWorkspaceId },
+        where,
         orderBy: { createdAt: "desc" },
         skip,
         take: safePerPage
       }),
-      this.prisma.auditLog.count({ where: { workspaceId: currentWorkspaceId } })
+      this.prisma.auditLog.count({ where })
     ]);
 
     return {
@@ -40,7 +74,8 @@ export class AuditLogsService {
         page: safePage,
         perPage: safePerPage,
         total,
-        totalPages: total === 0 ? 0 : Math.ceil(total / safePerPage)
+        totalPages: total === 0 ? 0 : Math.ceil(total / safePerPage),
+        scope: canReadGlobalScope ? "global" : "workspace"
       }
     };
   }

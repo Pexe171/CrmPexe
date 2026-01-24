@@ -6,6 +6,7 @@ import type { ChangeEvent, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
+import { getDefaultDashboardPath, normalizeUserRole } from "@/lib/rbac";
 
 const initialState = {
   name: "",
@@ -13,6 +14,12 @@ const initialState = {
   email: "",
   emailConfirmation: "",
   code: ""
+};
+
+type AuthVerifyResponse = {
+  user?: {
+    role?: string | null;
+  };
 };
 
 export function RegisterForm() {
@@ -75,8 +82,15 @@ export function RegisterForm() {
       return;
     }
 
+    const payload = (await response
+      .json()
+      .catch(() => null)) as AuthVerifyResponse | null;
+    const targetPath = getDefaultDashboardPath(
+      normalizeUserRole(payload?.user?.role)
+    );
+
     startTransition(() => {
-      router.replace("/dashboard");
+      router.replace(targetPath);
       router.refresh();
     });
   };
@@ -148,7 +162,10 @@ export function RegisterForm() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm text-slate-200" htmlFor="emailConfirmation">
+            <label
+              className="text-sm text-slate-200"
+              htmlFor="emailConfirmation"
+            >
               Confirme o e-mail
             </label>
             <input
@@ -223,7 +240,10 @@ export function RegisterForm() {
 
         <footer className="text-xs text-slate-400">
           Já tem conta?{" "}
-          <Link className="text-emerald-300 hover:text-emerald-200" href="/login">
+          <Link
+            className="text-emerald-300 hover:text-emerald-200"
+            href="/login"
+          >
             Entrar com OTP
           </Link>
           .

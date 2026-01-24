@@ -98,6 +98,11 @@ enum OtpPurpose {
   SIGNUP
 }
 
+enum UserRole {
+  ADMIN
+  USER
+}
+
 enum CustomerType {
   PERSON
   COMPANY
@@ -154,6 +159,7 @@ model User {
   email        String   @unique
   name         String
   contact      String   @default("")
+  role         UserRole @default(USER)
   refreshTokenHash String?
   currentWorkspaceId String?
   createdAt    DateTime @default(now())

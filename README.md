@@ -162,6 +162,20 @@ POST /api/auth/logout
 - **Cadastro**: envie `name`, `contact`, `email` e `emailConfirmation` para `/api/auth/request-otp`. Confirme com `/api/auth/verify-otp`.
 - **Login**: envie apenas `email` para `/api/auth/request-otp` e confirme o código com `/api/auth/verify-otp`.
 
+### RBAC do marketplace (ADMIN vs USER)
+- O papel global do usuário agora é armazenado em `User.role` com o enum `UserRole` (`ADMIN` | `USER`).
+- Novos cadastros via `/api/auth/request-otp` recebem por padrão o papel `USER`.
+- O backend inclui o `role` no payload JWT e na resposta de `/api/auth/verify-otp` e `/api/auth/refresh`.
+- O frontend grava o papel em cookie httpOnly (`crmpexe_role`) e redireciona:
+  - `ADMIN` → `/admin/automations`
+  - `USER` → `/dashboard`
+- Privilégios de `ADMIN`:
+  - Criar `AutomationTemplates` (`POST /api/automation-templates`).
+  - Visualizar auditoria global usando `GET /api/audit-logs?scope=global`.
+- O grupo `/admin` no Next.js possui um `layout.tsx` que bloqueia acesso para usuários sem `role=ADMIN`.
+
+> Após atualizar o Prisma, rode `pnpm prisma:migrate` e `pnpm prisma:generate` em `apps/api`.
+
 ### Endpoints de workspaces
 ```
 POST /api/workspaces

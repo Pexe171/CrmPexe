@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 
 import { SESSION_COOKIE, SESSION_MAX_AGE } from "@/lib/auth";
+import {
+  ROLE_COOKIE,
+  ROLE_COOKIE_MAX_AGE,
+  normalizeUserRole
+} from "@/lib/rbac";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
@@ -65,11 +70,20 @@ export async function POST(request: Request) {
     response.headers.append("set-cookie", cookie);
   });
 
+  const role = normalizeUserRole(apiPayload?.role) ?? "USER";
+
   response.cookies.set(SESSION_COOKIE, crypto.randomUUID(), {
     httpOnly: true,
     sameSite: "lax",
     path: "/",
     maxAge: SESSION_MAX_AGE
+  });
+
+  response.cookies.set(ROLE_COOKIE, role, {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+    maxAge: ROLE_COOKIE_MAX_AGE
   });
 
   return response;
