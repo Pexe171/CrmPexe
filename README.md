@@ -218,6 +218,8 @@ DELETE /api/integration-accounts/:id
 PUT /api/integration-accounts/:id/secret
 POST /api/integration-accounts/:id/whatsapp/qr
 GET /api/integration-accounts/:id/whatsapp/status
+POST /api/integration-accounts/:id/whatsapp/sms/request
+POST /api/integration-accounts/:id/whatsapp/sms/verify
 ```
 
 ### Integrações WhatsApp (segredos criptografados)
@@ -231,6 +233,8 @@ Para conectar WhatsApp via QR code, use um gateway que exponha endpoints de QR/s
 - `apiToken`: token Bearer para autenticação no gateway.
 - `qrEndpoint` (opcional): caminho do endpoint de QR code (padrão `/whatsapp/qr`).
 - `statusEndpoint` (opcional): caminho do endpoint de status (padrão `/whatsapp/status`).
+- `smsRequestEndpoint` (opcional): caminho do endpoint para solicitar SMS (padrão `/whatsapp/sms/request`).
+- `smsVerifyEndpoint` (opcional): caminho do endpoint para validar o SMS (padrão `/whatsapp/sms/verify`).
 
 O backend chama o gateway com `Authorization: Bearer <apiToken>` e o header `X-Integration-Account-Id`. O gateway deve responder:
 ```json
@@ -241,6 +245,14 @@ O backend chama o gateway com `Authorization: Bearer <apiToken>` e o header `X-I
 ```
 
 Na UI admin (`/admin/integrations`), clique em **Gerar QR code** para exibir e conectar o WhatsApp.
+
+### Conexão WhatsApp via SMS (gateway)
+Para autenticar como no WhatsApp Web via SMS, use os endpoints do gateway com os segredos acima.
+Fluxo sugerido:
+1. `POST /api/integration-accounts/:id/whatsapp/sms/request` com `{ "phone": "+55..." }`.
+2. `POST /api/integration-accounts/:id/whatsapp/sms/verify` com `{ "phone": "+55...", "code": "123456" }`.
+
+Na UI admin (`/admin/integrations`), use a seção **Conexão via SMS** para solicitar e validar o código.
 
 ### Endpoints de tags
 ```
