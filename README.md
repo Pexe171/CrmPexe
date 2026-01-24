@@ -331,6 +331,7 @@ pnpm typecheck
 
 ## Troubleshooting rápido
 - **Erro `User.contact` não existe no banco**: rode as migrations da API (`cd apps/api && pnpm prisma:migrate`). Se estiver com banco antigo, considere `pnpm prisma migrate reset` (isso apaga os dados locais).
+- **Erro `PrismaClientInitializationError: Can't reach database server`**: confirme se o PostgreSQL está rodando em `localhost:5432` e se o `DATABASE_URL` do `apps/api/.env` está correto. Se mudou o schema, rode `cd apps/api && pnpm prisma:generate` antes de iniciar a API.
 - **CORS ao chamar a API**: confira se `CORS_ORIGIN` aponta para a URL do frontend (ex: `http://localhost:3000`).
 
 ## Mapa macro de módulos (visão de produto)
