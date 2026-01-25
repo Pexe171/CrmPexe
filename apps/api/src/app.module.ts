@@ -20,6 +20,7 @@ import { TasksModule } from "./tasks/tasks.module";
 import { WebhooksModule } from "./webhooks/webhooks.module";
 import { WorkspacesModule } from "./workspaces/workspaces.module";
 import { WorkspaceVariablesModule } from "./workspace-variables/workspace-variables.module";
+import { BillingModule } from "./billing/billing.module";
 
 @Module({
   imports: [
@@ -41,7 +42,8 @@ import { WorkspaceVariablesModule } from "./workspace-variables/workspace-variab
     DealsModule,
     CustomFieldDefinitionsModule,
     MessageTemplatesModule,
-    WebhooksModule
+    WebhooksModule,
+    BillingModule
   ],
   controllers: [AppController],
   providers: [AppService]
