@@ -152,6 +152,7 @@ model Workspace {
   messageTemplates MessageTemplate[]
   automationInstances AutomationInstance[]
   variables WorkspaceVariable[]
+  metricEvents MetricEvent[]
 }
 
 model User {
@@ -706,4 +707,18 @@ model WorkspaceVariable {
 
   @@unique([workspaceId, key])
   @@index([workspaceId])
+}
+
+model MetricEvent {
+  id          String   @id @default(uuid())
+  workspaceId String
+  type        String
+  payload     Json?
+  createdAt   DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+
+  @@index([workspaceId])
+  @@index([type])
+  @@index([createdAt])
 }

@@ -1,6 +1,8 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { AutomationEngineService } from "../automation-engine/automation-engine.service";
+import { MetricsService } from "../metrics/metrics.service";
+import { MetricEventType } from "../metrics/metric-event.types";
 import { CreateDealDto } from "./dto/create-deal.dto";
 import { UpdateDealStageDto } from "./dto/update-deal-stage.dto";
 
@@ -8,7 +10,8 @@ import { UpdateDealStageDto } from "./dto/update-deal-stage.dto";
 export class DealsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly automationEngineService: AutomationEngineService
+    private readonly automationEngineService: AutomationEngineService,
+    private readonly metricsService: MetricsService
   ) {}
 
   async createDeal(userId: string, payload: CreateDealDto, workspaceId?: string) {
@@ -45,6 +48,16 @@ export class DealsService {
     const updated = await this.prisma.deal.update({
       where: { id: deal.id },
       data: { stage }
+    });
+
+    await this.metricsService.recordEvent({
+      workspaceId: resolvedWorkspaceId,
+      type: MetricEventType.DealStageChanged,
+      payload: {
+        dealId: updated.id,
+        stage: updated.stage ?? stage,
+        previousStage: deal.stage
+      }
     });
 
     await this.automationEngineService.dispatch("deal.stage.changed", {

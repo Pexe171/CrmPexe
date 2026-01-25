@@ -4,6 +4,8 @@ import { NotificationsService } from "../notifications/notifications.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { IntegrationCryptoService } from "../integration-accounts/integration-crypto.service";
 import { AutomationEngineService } from "../automation-engine/automation-engine.service";
+import { MetricsService } from "../metrics/metrics.service";
+import { MetricEventType } from "../metrics/metric-event.types";
 import { IChannelProvider } from "./interfaces/channel-provider.interface";
 import { WhatsappProvider } from "./providers/whatsapp.provider";
 import { ChannelInboundMessage, ChannelContact, ChannelIntegration, ChannelSendMessageInput } from "./types";
@@ -17,6 +19,7 @@ export class ChannelsService {
     private readonly notificationsService: NotificationsService,
     private readonly integrationCryptoService: IntegrationCryptoService,
     private readonly automationEngineService: AutomationEngineService,
+    private readonly metricsService: MetricsService,
     whatsappProvider: WhatsappProvider
   ) {
     this.providers.set(whatsappProvider.channel, whatsappProvider);
@@ -117,6 +120,7 @@ export class ChannelsService {
         },
         orderBy: { createdAt: "desc" }
       });
+      let conversationCreated = false;
 
       if (!conversation) {
         conversation = await tx.conversation.create({
@@ -127,6 +131,7 @@ export class ChannelsService {
             lastMessageAt: inboundMessage.timestamp
           }
         });
+        conversationCreated = true;
       }
 
       const message = await tx.message.create({
@@ -146,10 +151,33 @@ export class ChannelsService {
         data: { lastMessageAt: inboundMessage.timestamp }
       });
 
-      return { conversation, message, isDuplicate: false };
+      return { conversation, message, isDuplicate: false, conversationCreated };
     });
 
     if (!result.isDuplicate) {
+      if (result.conversationCreated) {
+        await this.metricsService.recordEvent({
+          workspaceId,
+          type: MetricEventType.ConversationOpened,
+          payload: {
+            conversationId: result.conversation.id,
+            contactId: result.conversation.contactId,
+            channel
+          }
+        });
+      }
+
+      await this.metricsService.recordEvent({
+        workspaceId,
+        type: MetricEventType.MessageInbound,
+        payload: {
+          conversationId: result.conversation.id,
+          messageId: result.message.id,
+          contactId: result.conversation.contactId,
+          channel
+        }
+      });
+
       await this.notifyInboundMessage(
         workspaceId,
         result.conversation.id,
