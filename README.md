@@ -215,6 +215,34 @@ POST /api/deals
 PATCH /api/deals/:id/stage
 ```
 
+### Endpoints de dashboard (vendas e automações)
+```
+GET /api/dashboard/sales
+GET /api/dashboard/automation
+```
+
+**Parâmetros opcionais (query string)**
+- `startDate`: ISO 8601 (ex: `2024-01-01T00:00:00.000Z`).
+- `endDate`: ISO 8601 (ex: `2024-01-31T23:59:59.999Z`).
+- `interval`: `day`, `week` ou `month` (padrão: `day`).
+- `responsaveisLimit`: limite do ranking de responsáveis em vendas (padrão: 5).
+- `templatesLimit`: limite de templates mais usados (padrão: 5).
+- `errosLimit`: limite de erros top (padrão: 5).
+
+**Retorno de `/api/dashboard/sales`**
+- `dealsPorEtapa`: quantidade e valor total agrupados pela etapa atual.
+- `conversaoEntreEtapas`: transições de etapa baseadas no histórico de auditoria.
+  - A etapa de origem inicial é retornada como `Entrada`.
+  - `taxaConversao` é percentual (0-100) dentro da etapa de origem.
+- `valorPorPeriodo`: somatório de valores por período (dia/semana/mês).
+- `rankingResponsaveis`: ranking por usuário baseado na criação de negócios.
+
+**Retorno de `/api/dashboard/automation`**
+- `execucoesPorPeriodo`: execuções agrupadas por período.
+- `taxaFalha`: total de execuções, falhas e percentual (0-100).
+- `templatesMaisUsados`: ranking de templates mais utilizados.
+- `errosTop`: ranking de falhas por template (percentual sobre o total de falhas).
+
 ### Endpoints de conversas e mensagens
 ```
 GET /api/conversations
