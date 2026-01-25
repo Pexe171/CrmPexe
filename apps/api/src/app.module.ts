@@ -9,6 +9,7 @@ import { ConversationsModule } from "./conversations/conversations.module";
 import { CustomFieldDefinitionsModule } from "./custom-field-definitions/custom-field-definitions.module";
 import { ChannelsModule } from "./channels/channels.module";
 import { IntegrationAccountsModule } from "./integration-accounts/integration-accounts.module";
+import { DashboardModule } from "./dashboard/dashboard.module";
 import { MessageTemplatesModule } from "./message-templates/message-templates.module";
 import { NotificationsModule } from "./notifications/notifications.module";
 import { N8nModule } from "./n8n/n8n.module";
@@ -32,6 +33,7 @@ import { WorkspaceVariablesModule } from "./workspace-variables/workspace-variab
     ConversationsModule,
     ChannelsModule,
     IntegrationAccountsModule,
+    DashboardModule,
     N8nModule,
     NotificationsModule,
     TasksModule,
