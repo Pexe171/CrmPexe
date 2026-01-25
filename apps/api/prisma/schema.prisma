@@ -115,6 +115,14 @@ enum CustomerStatus {
   CHURNED
 }
 
+enum SubscriptionStatus {
+  ACTIVE
+  PENDING
+  IN_PROCESS
+  REJECTED
+  CANCELED
+}
+
 model HealthCheck {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
@@ -152,6 +160,7 @@ model Workspace {
   messageTemplates MessageTemplate[]
   automationInstances AutomationInstance[]
   variables WorkspaceVariable[]
+  subscriptions Subscription[]
 }
 
 model User {
@@ -189,6 +198,20 @@ model OtpCode {
 
   @@index([email])
   @@index([expiresAt])
+}
+
+model Subscription {
+  id        String             @id @default(uuid())
+  workspaceId String?
+  provider  String
+  externalId String           @unique
+  status    SubscriptionStatus @default(PENDING)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  workspace Workspace? @relation(fields: [workspaceId], references: [id])
+
+  @@index([workspaceId])
 }
 
 model WorkspaceMember {

@@ -178,6 +178,19 @@ POST /api/auth/logout
 
 > Após atualizar o Prisma, rode `pnpm prisma:migrate` e `pnpm prisma:generate` em `apps/api`.
 
+## Billing (Mercado Pago)
+- Interface de provedor criada para centralizar criação de cliente, processamento de pagamento e tratamento de notificações.
+- Endpoint de webhook: `POST /api/billing/webhooks/mercadopago`.
+- Tipos aceitos: `payment` e `subscription_authorized`.
+- Mapeamento de status do Mercado Pago para a assinatura interna (Prisma):
+  - `approved` → `ACTIVE`
+  - `pending` → `PENDING`
+  - `in_process` → `IN_PROCESS`
+  - `rejected` → `REJECTED`
+  - `cancelled` → `CANCELED`
+- As chamadas de criação de checkout retornam URLs de Sandbox enquanto a integração real não está ativa.
+- A validação da assinatura `x-signature` foi preparada para implementação quando as chaves estiverem configuradas.
+
 ## Segurança backend (roles, JWT e tenants)
 - A API valida o papel (`role`) exclusivamente no backend. O `role` vem assinado no JWT e também é revalidado com o valor persistido no banco em cada requisição autenticada.
 - Em produção, `JWT_ACCESS_SECRET` e `JWT_REFRESH_SECRET` são obrigatórios e a aplicação falha ao iniciar se estiverem ausentes.
