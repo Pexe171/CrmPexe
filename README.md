@@ -120,6 +120,7 @@ pnpm dev
 
 ## Notas de desenvolvimento
 - Em arquivos TypeScript, prefira aspas normais (`"texto"`) e evite escapar aspas sem necessidade para não gerar erros como `TS1127`/`TS1002`.
+- Ao usar `AccessTokenGuard` em módulos da API, importe o `AuthModule` para garantir que o `JwtService` esteja disponível no contexto do módulo (ex: `DashboardModule`).
 
 Frontend disponível em `http://localhost:3000`.
 
