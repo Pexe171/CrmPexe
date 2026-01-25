@@ -123,6 +123,18 @@ enum SubscriptionStatus {
   CANCELED
 }
 
+enum AiUsageAction {
+  SUMMARIZE_CONVERSATION
+  CLASSIFY_LEAD
+  SUGGEST_REPLY
+  EXTRACT_FIELDS
+}
+
+enum AiUsageStatus {
+  SUCCESS
+  ERROR
+}
+
 model HealthCheck {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
@@ -161,6 +173,7 @@ model Workspace {
   automationInstances AutomationInstance[]
   variables WorkspaceVariable[]
   subscriptions Subscription[]
+  aiUsageLogs AiUsageLog[]
 }
 
 model User {
@@ -729,4 +742,22 @@ model WorkspaceVariable {
 
   @@unique([workspaceId, key])
   @@index([workspaceId])
+}
+
+model AiUsageLog {
+  id           String        @id @default(uuid())
+  workspaceId  String
+  provider     String
+  action       AiUsageAction
+  status       AiUsageStatus @default(SUCCESS)
+  input        Json
+  output       Json?
+  errorMessage String?
+  createdAt    DateTime      @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+
+  @@index([workspaceId])
+  @@index([workspaceId, action])
+  @@index([workspaceId, createdAt])
 }
