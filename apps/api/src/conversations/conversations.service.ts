@@ -3,6 +3,8 @@ import { ConversationStatus, MessageDirection, NotificationType, Prisma } from "
 import { ChannelsService } from "../channels/channels.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { MetricsService } from "../metrics/metrics.service";
+import { MetricEventType } from "../metrics/metric-event.types";
 import { AssignConversationDto } from "./dto/assign-conversation.dto";
 import { CreateOutgoingMessageDto } from "./dto/create-outgoing-message.dto";
 import { SendConversationMessageDto } from "./dto/send-conversation-message.dto";
@@ -14,7 +16,8 @@ export class ConversationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
-    private readonly channelsService: ChannelsService
+    private readonly channelsService: ChannelsService,
+    private readonly metricsService: MetricsService
   ) {}
 
   async listConversations(userId: string, workspaceId?: string) {
@@ -329,7 +332,7 @@ export class ConversationsService {
       conversation.resolutionTimeSeconds ??
       Math.max(0, Math.floor((closedAt.getTime() - conversation.createdAt.getTime()) / 1000));
 
-    return this.prisma.conversation.update({
+    const updatedConversation = await this.prisma.conversation.update({
       where: { id: conversation.id },
       data: {
         status: ConversationStatus.CLOSED,
@@ -353,6 +356,17 @@ export class ConversationsService {
         }
       }
     });
+
+    await this.metricsService.recordEvent({
+      workspaceId: resolvedWorkspaceId,
+      type: MetricEventType.ConversationClosed,
+      payload: {
+        conversationId: conversation.id,
+        closedAt: closedAt.toISOString()
+      }
+    });
+
+    return updatedConversation;
   }
 
   private async storeOutgoingMessage({
@@ -370,7 +384,7 @@ export class ConversationsService {
     sentAt: Date;
     meta?: Record<string, unknown> | null;
   }) {
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const message = await tx.message.create({
         data: {
           workspaceId,
@@ -403,6 +417,17 @@ export class ConversationsService {
 
       return { message, isFirstResponse, firstResponseTimeSeconds };
     });
+
+    await this.metricsService.recordEvent({
+      workspaceId,
+      type: MetricEventType.MessageOutbound,
+      payload: {
+        conversationId: conversation.id,
+        messageId: result.message.id
+      }
+    });
+
+    return result;
   }
 
   private async resolveWorkspaceId(userId: string, workspaceId?: string) {

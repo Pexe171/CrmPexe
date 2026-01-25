@@ -138,6 +138,16 @@ Frontend disponível em `http://localhost:3000`.
 > **KPIs no dashboard (Frontend)**
 > Para ajustar a meta de SLA exibida nos gráficos de BI, defina `NEXT_PUBLIC_SLA_RESPONSE_SECONDS` no `.env.local` do frontend (padrão: 900).
 
+> **Eventos de métricas**
+> A API registra eventos em `MetricEvent` para análises e relatórios. Os tipos atuais incluem:
+> - `message.inbound` (mensagem recebida)
+> - `message.outbound` (mensagem enviada)
+> - `conversation.opened` (conversa aberta)
+> - `conversation.closed` (conversa encerrada)
+> - `automation.success` (automação executada com sucesso)
+> - `automation.failure` (automação falhou)
+> - `deal.stage.changed` (etapa do negócio alterada)
+
 > **Criptografia de integrações**
 > Configure `INTEGRATION_ENCRYPTION_KEY` no `.env` da API com uma chave de 32 bytes (base64 ou hex). Exemplo:
 > ```bash

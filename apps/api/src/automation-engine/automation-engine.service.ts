@@ -1,5 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+import { MetricsService } from "../metrics/metrics.service";
+import { MetricEventType } from "../metrics/metric-event.types";
 import {
   AutomationPayloadMap,
   AutomationTrigger,
@@ -11,18 +13,51 @@ import {
 export class AutomationEngineService {
   private readonly logger = new Logger(AutomationEngineService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly metricsService: MetricsService
+  ) {}
 
   async dispatch<TTrigger extends AutomationTrigger>(trigger: TTrigger, payload: AutomationPayloadMap[TTrigger]) {
-    switch (trigger) {
-      case "message.inbound.created":
-        await this.handleMessageInbound(payload as MessageInboundCreatedPayload);
-        break;
-      case "deal.stage.changed":
-        await this.handleDealStageChanged(payload as DealStageChangedPayload);
-        break;
-      default:
-        this.logger.warn(`Trigger não suportado: ${trigger}`);
+    const workspaceId = (payload as { workspaceId?: string }).workspaceId;
+    let handled = false;
+
+    try {
+      switch (trigger) {
+        case "message.inbound.created":
+          await this.handleMessageInbound(payload as MessageInboundCreatedPayload);
+          handled = true;
+          break;
+        case "deal.stage.changed":
+          await this.handleDealStageChanged(payload as DealStageChangedPayload);
+          handled = true;
+          break;
+        default:
+          this.logger.warn(`Trigger não suportado: ${trigger}`);
+      }
+
+      if (handled && workspaceId) {
+        await this.metricsService.recordEvent({
+          workspaceId,
+          type: MetricEventType.AutomationSuccess,
+          payload: {
+            trigger
+          }
+        });
+      }
+    } catch (error) {
+      if (workspaceId) {
+        await this.metricsService.recordEvent({
+          workspaceId,
+          type: MetricEventType.AutomationFailure,
+          payload: {
+            trigger,
+            error: error instanceof Error ? error.message : "Erro desconhecido"
+          }
+        });
+      }
+
+      throw error;
     }
   }
 
