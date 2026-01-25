@@ -181,6 +181,9 @@ POST /api/auth/logout
 ## Billing (Mercado Pago)
 - Interface de provedor criada para centralizar criação de cliente, processamento de pagamento e tratamento de notificações.
 - Endpoint de webhook: `POST /api/billing/webhooks/mercadopago`.
+- Endpoint interno para status do workspace: `GET /api/billing/workspace-summary`.
+- Admin do workspace pode acompanhar plano, status e faturas em `/admin/billing` (UI preparada).
+- Workspaces inadimplentes entram em modo somente leitura para envio de mensagens e automações.
 - Tipos aceitos: `payment` e `subscription_authorized`.
 - Mapeamento de status do Mercado Pago para a assinatura interna (Prisma):
   - `approved` → `ACTIVE`
