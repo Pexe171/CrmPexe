@@ -453,6 +453,12 @@ export default function DashboardClient({ role }: DashboardClientProps) {
               >
                 Templates
               </Link>
+              <Link
+                href="/admin/billing"
+                className={buttonVariants({ variant: "outline", size: "sm" })}
+              >
+                Cobrança
+              </Link>
             </>
           ) : null}
           <Link

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { fetchWorkspaceBillingSummary, type BillingSummary } from "@/lib/billing";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const INSTANCES_PER_PAGE = 20;
@@ -52,6 +53,8 @@ export default function AutomationsPage() {
     total: 0,
     totalPages: 0
   });
+  const [billingSummary, setBillingSummary] = useState<BillingSummary | null>(null);
+  const [billingLoading, setBillingLoading] = useState(true);
 
   const fetchTemplates = useCallback(async () => {
     const response = await fetch(`${apiUrl}/api/automation-templates`, {
@@ -129,7 +132,32 @@ export default function AutomationsPage() {
     void refreshData(1);
   }, [refreshData]);
 
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const loadBillingSummary = async () => {
+      setBillingLoading(true);
+      try {
+        const data = await fetchWorkspaceBillingSummary(controller.signal);
+        setBillingSummary(data);
+      } catch {
+        setBillingSummary(null);
+      } finally {
+        setBillingLoading(false);
+      }
+    };
+
+    void loadBillingSummary();
+
+    return () => controller.abort();
+  }, []);
+
   const handleInstall = async (templateId: string) => {
+    if (billingSummary?.isDelinquent) {
+      setError("Workspace inadimplente. O envio de automações está bloqueado.");
+      return;
+    }
+
     setInstallingId(templateId);
     setError(null);
 
@@ -173,6 +201,8 @@ export default function AutomationsPage() {
     void fetchInstances(nextPage);
   };
 
+  const isReadOnly = billingSummary?.isDelinquent ?? false;
+
   return (
     <div className="min-h-screen bg-gray-50/50">
       <header className="border-b bg-white px-6 py-6 shadow-sm">
@@ -192,6 +222,14 @@ export default function AutomationsPage() {
           </div>
         </div>
       </header>
+
+      {isReadOnly ? (
+        <div className="mx-auto w-full max-w-6xl px-6 pt-6">
+          <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            Workspace inadimplente. O envio de automações está bloqueado até o pagamento ser regularizado.
+          </div>
+        </div>
+      ) : null}
 
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-10 lg:flex-row">
         <section className="flex-1 space-y-4">
@@ -237,9 +275,9 @@ export default function AutomationsPage() {
                     </div>
                     <Button
                       onClick={() => handleInstall(template.id)}
-                      disabled={installingId === template.id}
+                      disabled={installingId === template.id || isReadOnly || billingLoading}
                     >
-                      {installingId === template.id ? "Instalando..." : "Instalar"}
+                      {isReadOnly ? "Bloqueado" : installingId === template.id ? "Instalando..." : "Instalar"}
                     </Button>
                   </div>
                 </div>

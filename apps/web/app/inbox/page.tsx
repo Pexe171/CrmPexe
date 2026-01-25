@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
+import { fetchWorkspaceBillingSummary, type BillingSummary } from "@/lib/billing";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const pollIntervalMs = 5000;
@@ -67,6 +68,8 @@ export default function InboxPage() {
   const [error, setError] = useState<string | null>(null);
   const [messageDraft, setMessageDraft] = useState("");
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const [billingSummary, setBillingSummary] = useState<BillingSummary | null>(null);
+  const [billingLoading, setBillingLoading] = useState(true);
 
   const scrollToBottom = () => {
     if (!messagesEndRef.current) return;
@@ -139,6 +142,26 @@ export default function InboxPage() {
   }, [fetchConversations]);
 
   useEffect(() => {
+    const controller = new AbortController();
+
+    const loadBillingSummary = async () => {
+      setBillingLoading(true);
+      try {
+        const data = await fetchWorkspaceBillingSummary(controller.signal);
+        setBillingSummary(data);
+      } catch {
+        setBillingSummary(null);
+      } finally {
+        setBillingLoading(false);
+      }
+    };
+
+    void loadBillingSummary();
+
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
     if (!activeConversationId) {
       setMessages([]);
       return;
@@ -181,6 +204,11 @@ export default function InboxPage() {
 
   const handleSendMessage = async (event: FormEvent) => {
     event.preventDefault();
+
+    if (billingSummary?.isDelinquent) {
+      setError("Workspace inadimplente. O envio de mensagens está bloqueado até o pagamento ser regularizado.");
+      return;
+    }
 
     if (!activeConversationId || !messageDraft.trim()) {
       return;
@@ -227,6 +255,8 @@ export default function InboxPage() {
     }
   };
 
+  const isReadOnly = billingSummary?.isDelinquent ?? false;
+
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
       <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-white px-6 shadow-sm">
@@ -239,6 +269,11 @@ export default function InboxPage() {
           {loading ? "Sincronizando..." : "Conectado"}
         </div>
       </header>
+      {isReadOnly ? (
+        <div className="border-b border-red-200 bg-red-50 px-6 py-2 text-xs text-red-700">
+          Workspace inadimplente. O envio de mensagens está bloqueado e o atendimento está em modo somente leitura.
+        </div>
+      ) : null}
 
       <main className="flex flex-1 gap-0 overflow-hidden">
         <aside className="flex w-full max-w-sm flex-col border-r bg-white">
@@ -346,12 +381,16 @@ export default function InboxPage() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <input
                 className="flex-1 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-800 focus:border-blue-500 focus:outline-none"
-                placeholder="Digite sua mensagem..."
+                placeholder={isReadOnly ? "Envio bloqueado por inadimplência." : "Digite sua mensagem..."}
                 value={messageDraft}
                 onChange={(event) => setMessageDraft(event.target.value)}
-                disabled={!activeConversationId}
+                disabled={!activeConversationId || isReadOnly || billingLoading}
               />
-              <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={!activeConversationId}>
+              <Button
+                type="submit"
+                className="bg-blue-600 hover:bg-blue-700"
+                disabled={!activeConversationId || isReadOnly || billingLoading}
+              >
                 Enviar
               </Button>
             </div>
