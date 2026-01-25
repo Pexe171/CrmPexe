@@ -116,7 +116,7 @@ API disponível em `http://localhost:3001/api/health`.
   pnpm prisma:migrate
   pnpm prisma:generate
   ```
-- Se ocorrer `P3006` com a mensagem `The underlying table for model "AutomationInstance" does not exist`, atualize a branch e reaplique as migrações para garantir que as tabelas de automações e variáveis de workspace sejam criadas:
+- Se ocorrer `P3006` com a mensagem `The underlying table for model "AutomationInstance" does not exist` (ex.: erro em `20260125050449_`), atualize a branch e reaplique as migrações para garantir que a base inicial de automações exista antes das demais migrações:
   ```bash
   cd apps/api
   pnpm prisma:migrate
