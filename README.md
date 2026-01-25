@@ -198,6 +198,7 @@ POST /api/auth/logout
 - Interface de provedor criada para centralizar criação de cliente, processamento de pagamento e tratamento de notificações.
 - Endpoint de webhook: `POST /api/billing/webhooks/mercadopago`.
 - Endpoint interno para status do workspace: `GET /api/billing/workspace-summary`.
+
 - Admin do workspace pode acompanhar plano, status e faturas em `/admin/billing` (UI preparada).
 - Workspaces inadimplentes entram em modo somente leitura para envio de mensagens e automações.
 - Tipos aceitos: `payment` e `subscription_authorized`.
@@ -209,6 +210,11 @@ POST /api/auth/logout
   - `cancelled` → `CANCELED`
 - As chamadas de criação de checkout retornam URLs de Sandbox enquanto a integração real não está ativa.
 - A validação da assinatura `x-signature` foi preparada para implementação quando as chaves estiverem configuradas.
+
+## IA (provedores e logs)
+- Interface `AiProvider` com operações: `summarizeConversation`, `classifyLead`, `suggestReply` e `extractFields`.
+- Provider inicial `mock` para resposta determinística em desenvolvimento.
+- Logs de uso são gravados por workspace na tabela `AiUsageLog` (ação, provider, payload e status).
 
 ## Segurança backend (roles, JWT e tenants)
 - A API valida o papel (`role`) exclusivamente no backend. O `role` vem assinado no JWT e também é revalidado com o valor persistido no banco em cada requisição autenticada.

@@ -21,6 +21,7 @@ import { WebhooksModule } from "./webhooks/webhooks.module";
 import { WorkspacesModule } from "./workspaces/workspaces.module";
 import { WorkspaceVariablesModule } from "./workspace-variables/workspace-variables.module";
 import { BillingModule } from "./billing/billing.module";
+import { AiModule } from "./ai/ai.module";
 
 @Module({
   imports: [
@@ -43,7 +44,8 @@ import { BillingModule } from "./billing/billing.module";
     CustomFieldDefinitionsModule,
     MessageTemplatesModule,
     WebhooksModule,
-    BillingModule
+    BillingModule,
+    AiModule
   ],
   controllers: [AppController],
   providers: [AppService]
