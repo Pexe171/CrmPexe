@@ -392,7 +392,7 @@ export class DashboardService {
 
     return templateIds.map((templateId) => ({
       templateId,
-      nome: nameById.get(templateId) ?? \"Template removido\",
+      nome: nameById.get(templateId) ?? "Template removido",
       quantidade: counts.get(templateId) ?? 0
     }));
   }

@@ -118,6 +118,9 @@ cp .env.example .env # opcional (padrão http://localhost:3001)
 pnpm dev
 ```
 
+## Notas de desenvolvimento
+- Em arquivos TypeScript, prefira aspas normais (`"texto"`) e evite escapar aspas sem necessidade para não gerar erros como `TS1127`/`TS1002`.
+
 Frontend disponível em `http://localhost:3000`.
 
 > **OTP por e-mail (Gmail SMTP)**
