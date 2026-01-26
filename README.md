@@ -177,6 +177,12 @@ POST /api/auth/refresh
 POST /api/auth/logout
 ```
 
+### Endpoints de IA
+```
+POST /api/ai/conversations/:id/summary
+```
+- **Resumo de conversas**: gera o resumo via IA e salva no banco em `ConversationSummary` (texto, bullets e data de criação).
+
 **Fluxo OTP**
 - **Cadastro**: envie `name`, `contact`, `email` e `emailConfirmation` para `/api/auth/request-otp`. Confirme com `/api/auth/verify-otp`.
 - **Login**: envie apenas `email` para `/api/auth/request-otp` e confirme o código com `/api/auth/verify-otp`.

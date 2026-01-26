@@ -39,6 +39,14 @@ type ConversationDetails = Conversation & {
   messages?: Message[];
 };
 
+type ConversationSummary = {
+  id: string;
+  conversationId: string;
+  text: string;
+  bullets: string[];
+  createdAt: string;
+};
+
 const formatTime = (value?: string | null) => {
   if (!value) return "";
   const date = new Date(value);
@@ -59,6 +67,18 @@ const formatDate = (value?: string | null) => {
   });
 };
 
+const formatDateTime = (value?: string | null) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+};
+
 export default function InboxPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
@@ -70,6 +90,8 @@ export default function InboxPage() {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const [billingSummary, setBillingSummary] = useState<BillingSummary | null>(null);
   const [billingLoading, setBillingLoading] = useState(true);
+  const [conversationSummary, setConversationSummary] = useState<ConversationSummary | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
 
   const scrollToBottom = () => {
     if (!messagesEndRef.current) return;
@@ -164,8 +186,10 @@ export default function InboxPage() {
   useEffect(() => {
     if (!activeConversationId) {
       setMessages([]);
+      setConversationSummary(null);
       return;
     }
+    setConversationSummary(null);
     const controller = new AbortController();
     void fetchConversationDetails(activeConversationId, controller.signal);
 
@@ -255,6 +279,33 @@ export default function InboxPage() {
     }
   };
 
+  const handleGenerateSummary = async () => {
+    if (!activeConversationId) {
+      return;
+    }
+
+    setSummaryLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`${apiUrl}/api/ai/conversations/${activeConversationId}/summary`, {
+        method: "POST",
+        credentials: "include"
+      });
+
+      if (!response.ok) {
+        throw new Error("Não foi possível gerar o resumo.");
+      }
+
+      const data = (await response.json()) as ConversationSummary;
+      setConversationSummary(data);
+    } catch (summaryError) {
+      setError(summaryError instanceof Error ? summaryError.message : "Erro inesperado ao gerar resumo.");
+    } finally {
+      setSummaryLoading(false);
+    }
+  };
+
   const isReadOnly = billingSummary?.isDelinquent ?? false;
 
   return (
@@ -335,11 +386,35 @@ export default function InboxPage() {
                 <p className="text-sm font-medium text-gray-700">
                   {activeConversation?.assignedToUser?.name ?? "Fila sem responsável"}
                 </p>
+                <Button
+                  type="button"
+                  className="mt-3 w-full bg-gray-900 text-xs text-white hover:bg-gray-800"
+                  onClick={handleGenerateSummary}
+                  disabled={!activeConversationId || summaryLoading}
+                >
+                  {summaryLoading ? "Gerando resumo..." : "Gerar resumo"}
+                </Button>
               </div>
             </div>
             {error && (
               <div className="mt-3 rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs text-red-600">
                 {error}
+              </div>
+            )}
+            {conversationSummary && (
+              <div className="mt-4 rounded-lg border border-gray-100 bg-gray-50 px-4 py-4 text-sm text-gray-700">
+                <div className="flex items-center justify-between text-xs text-gray-500">
+                  <span className="font-medium text-gray-700">Resumo da conversa</span>
+                  <span>Gerado em {formatDateTime(conversationSummary.createdAt)}</span>
+                </div>
+                <p className="mt-2 text-sm text-gray-700">{conversationSummary.text}</p>
+                {conversationSummary.bullets.length > 0 && (
+                  <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-gray-600">
+                    {conversationSummary.bullets.map((bullet) => (
+                      <li key={bullet}>{bullet}</li>
+                    ))}
+                  </ul>
+                )}
               </div>
             )}
           </div>
