@@ -15,13 +15,26 @@ export class DealsService {
     const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
     const title = this.normalizeRequiredString(payload.title, "title");
     const stage = this.normalizeOptionalString(payload.stage);
+    const contactId = this.normalizeOptionalString(payload.contactId);
+
+    if (contactId) {
+      const contactExists = await this.prisma.contact.findFirst({
+        where: { id: contactId, workspaceId: resolvedWorkspaceId },
+        select: { id: true }
+      });
+
+      if (!contactExists) {
+        throw new BadRequestException("Contato informado não encontrado.");
+      }
+    }
 
     return this.prisma.deal.create({
       data: {
         workspaceId: resolvedWorkspaceId,
         title,
         amount: payload.amount,
-        stage: stage ?? undefined
+        stage: stage ?? undefined,
+        contactId: contactId ?? undefined
       }
     });
   }

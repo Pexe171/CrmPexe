@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { AutomationEngineModule } from "../automation-engine/automation-engine.module";
+import { AiModule } from "../ai/ai.module";
 import { IntegrationAccountsModule } from "../integration-accounts/integration-accounts.module";
 import { NotificationsModule } from "../notifications/notifications.module";
 import { PrismaModule } from "../prisma/prisma.module";
@@ -8,7 +9,7 @@ import { ChannelsService } from "./channels.service";
 import { WhatsappProvider } from "./providers/whatsapp.provider";
 
 @Module({
-  imports: [PrismaModule, NotificationsModule, IntegrationAccountsModule, AutomationEngineModule],
+  imports: [PrismaModule, NotificationsModule, IntegrationAccountsModule, AutomationEngineModule, AiModule],
   controllers: [ChannelsController],
   providers: [ChannelsService, WhatsappProvider],
   exports: [ChannelsService]

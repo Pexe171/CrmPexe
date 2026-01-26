@@ -205,6 +205,9 @@ POST /api/ai/conversations/:id/summary
 - Interface de provedor criada para centralizar criação de cliente, processamento de pagamento e tratamento de notificações.
 - Endpoint de webhook: `POST /api/billing/webhooks/mercadopago`.
 - Endpoint interno para status do workspace: `GET /api/billing/workspace-summary`.
+- Configure as credenciais do Mercado Pago no `.env` da API:
+  - `MERCADOPAGO_ACCESS_TOKEN`
+  - `MERCADOPAGO_PUBLIC_KEY`
 
 - Admin do workspace pode acompanhar plano, status e faturas em `/admin/billing` (UI preparada).
 - Workspaces inadimplentes entram em modo somente leitura para envio de mensagens e automações.
@@ -422,7 +425,8 @@ Inbox disponível em `http://localhost:3000/inbox`.
 
 ### 1) Variáveis de ambiente
 - `apps/api/.env` com `DATABASE_URL`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `JWT_ACCESS_EXPIRES_IN`, `JWT_REFRESH_EXPIRES_IN`,
-  `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, `OTP_TTL_MS`.
+  `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, `OTP_TTL_MS`,
+  `MERCADOPAGO_ACCESS_TOKEN`, `MERCADOPAGO_PUBLIC_KEY`.
 - `apps/web/.env.local` com `NEXT_PUBLIC_API_URL` apontando para a API (ex: `https://api.seudominio.com`).
 
 ### 2) Build
@@ -517,6 +521,7 @@ pnpm typecheck
 - **Classificação de lead**.
 - **Sugestão de resposta**.
 - **Extração para campos**: preencher CRM automaticamente.
+- **Lead score no inbound**: ao receber mensagem inbound, o backend executa classificação assíncrona e grava o `leadScore` no contato e nos negócios vinculados.
 
 ### Admin (interno)
 - **Super Admin**: ver todos tenants.

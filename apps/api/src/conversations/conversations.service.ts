@@ -29,7 +29,9 @@ export class ConversationsService {
             id: true,
             name: true,
             email: true,
-            phone: true
+            phone: true,
+            leadScore: true,
+            leadScoreLabel: true
           }
         },
         assignedToUser: {
@@ -59,7 +61,9 @@ export class ConversationsService {
             id: true,
             name: true,
             email: true,
-            phone: true
+            phone: true,
+            leadScore: true,
+            leadScoreLabel: true
           }
         },
         assignedToUser: {

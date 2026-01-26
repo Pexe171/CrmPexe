@@ -17,6 +17,8 @@ type Conversation = {
     name?: string | null;
     email?: string | null;
     phone?: string | null;
+    leadScore?: number | null;
+    leadScoreLabel?: string | null;
   } | null;
   assignedToUser?: {
     id: string;
@@ -77,6 +79,31 @@ const formatDateTime = (value?: string | null) => {
     hour: "2-digit",
     minute: "2-digit"
   });
+};
+
+const resolveLeadBadge = (contact?: Conversation["contact"] | null) => {
+  if (!contact) return null;
+  const score = contact.leadScore ?? null;
+  const label = contact.leadScoreLabel?.toLowerCase() ?? null;
+
+  if (!label && score === null) return null;
+
+  const resolvedLabel =
+    label ?? (score !== null ? (score >= 70 ? "quente" : score >= 40 ? "morno" : "frio") : "frio");
+
+  const palette: Record<string, { text: string; className: string }> = {
+    frio: { text: "Lead frio", className: "bg-slate-100 text-slate-700" },
+    morno: { text: "Lead morno", className: "bg-amber-100 text-amber-800" },
+    quente: { text: "Lead quente", className: "bg-emerald-100 text-emerald-800" }
+  };
+
+  const config = palette[resolvedLabel] ?? palette.frio;
+  const scoreText = score !== null ? ` • ${score}` : "";
+
+  return {
+    text: `${config.text}${scoreText}`,
+    className: config.className
+  };
 };
 
 export default function InboxPage() {
@@ -225,6 +252,7 @@ export default function InboxPage() {
   }, [conversations, search]);
 
   const activeConversation = conversations.find((conversation) => conversation.id === activeConversationId) ?? null;
+  const activeLeadBadge = resolveLeadBadge(activeConversation?.contact);
 
   const handleSendMessage = async (event: FormEvent) => {
     event.preventDefault();
@@ -341,6 +369,7 @@ export default function InboxPage() {
             {filteredConversations.map((conversation) => {
               const isActive = conversation.id === activeConversationId;
               const contactName = conversation.contact?.name ?? "Contato sem nome";
+              const leadBadge = resolveLeadBadge(conversation.contact);
               return (
                 <button
                   key={conversation.id}
@@ -350,7 +379,14 @@ export default function InboxPage() {
                   onClick={() => setActiveConversationId(conversation.id)}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-gray-900">{contactName}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-gray-900">{contactName}</span>
+                      {leadBadge && (
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${leadBadge.className}`}>
+                          {leadBadge.text}
+                        </span>
+                      )}
+                    </div>
                     <span className="text-xs text-gray-400">{formatDate(conversation.lastMessageAt)}</span>
                   </div>
                   <div className="flex items-center justify-between text-xs text-gray-500">
@@ -374,9 +410,18 @@ export default function InboxPage() {
           <div className="border-b bg-white px-6 py-4">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">
-                  {activeConversation?.contact?.name ?? "Selecione uma conversa"}
-                </h2>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    {activeConversation?.contact?.name ?? "Selecione uma conversa"}
+                  </h2>
+                  {activeLeadBadge && (
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${activeLeadBadge.className}`}
+                    >
+                      {activeLeadBadge.text}
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-gray-500">
                   {activeConversation?.contact?.email ?? activeConversation?.contact?.phone ?? "Sem detalhes do contato"}
                 </p>
