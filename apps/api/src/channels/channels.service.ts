@@ -4,6 +4,7 @@ import { NotificationsService } from "../notifications/notifications.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { IntegrationCryptoService } from "../integration-accounts/integration-crypto.service";
 import { AutomationEngineService } from "../automation-engine/automation-engine.service";
+import { LeadScoringService } from "../ai/lead-scoring.service";
 import { IChannelProvider } from "./interfaces/channel-provider.interface";
 import { WhatsappProvider } from "./providers/whatsapp.provider";
 import { ChannelInboundMessage, ChannelContact, ChannelIntegration, ChannelSendMessageInput } from "./types";
@@ -17,6 +18,7 @@ export class ChannelsService {
     private readonly notificationsService: NotificationsService,
     private readonly integrationCryptoService: IntegrationCryptoService,
     private readonly automationEngineService: AutomationEngineService,
+    private readonly leadScoringService: LeadScoringService,
     whatsappProvider: WhatsappProvider
   ) {
     this.providers.set(whatsappProvider.channel, whatsappProvider);
@@ -162,6 +164,16 @@ export class ChannelsService {
         conversationId: result.conversation.id,
         messageId: result.message.id,
         contactId: result.conversation.contactId
+      });
+
+      setImmediate(() => {
+        void this.leadScoringService.classifyInboundLead({
+          workspaceId,
+          contactId: result.conversation.contactId,
+          leadName: contact.name,
+          lastMessage: inboundMessage.text,
+          source: channel
+        });
       });
     }
 

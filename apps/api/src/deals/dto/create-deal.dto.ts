@@ -11,4 +11,8 @@ export class CreateDealDto {
   @IsOptional()
   @IsString()
   stage?: string;
+
+  @IsOptional()
+  @IsString()
+  contactId?: string;
 }

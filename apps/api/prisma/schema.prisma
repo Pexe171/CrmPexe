@@ -374,6 +374,8 @@ model Contact {
   email       String?
   phone       String?
   companyId   String?
+  leadScore   Int?
+  leadScoreLabel String?
   customFields Json?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -384,6 +386,7 @@ model Contact {
   company   Company?  @relation(fields: [companyId], references: [id])
   tags      TagOnContact[]
   conversations Conversation[]
+  deals     Deal[]
 
   @@index([workspaceId])
   @@index([companyId])
@@ -525,6 +528,9 @@ model Deal {
   title       String
   amount      Float?
   stage       String?
+  contactId   String?
+  leadScore   Int?
+  leadScoreLabel String?
   customFields Json?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -532,10 +538,12 @@ model Deal {
   version     Int      @default(1)
 
   workspace Workspace @relation(fields: [workspaceId], references: [id])
+  contact   Contact?  @relation(fields: [contactId], references: [id], onDelete: SetNull)
   tags      TagOnDeal[]
 
   @@index([workspaceId])
   @@index([workspaceId, title])
+  @@index([contactId])
 }
 
 model Tag {
