@@ -43,10 +43,10 @@ export class AiService {
     return this.execute(AiUsageAction.EXTRACT_FIELDS, workspaceId, input, () => this.provider.extractFields(input));
   }
 
-  private async execute<TOutput>(
+  private async execute<TInput, TOutput>(
     action: AiAction,
     workspaceId: string,
-    input: Record<string, unknown>,
+    input: TInput,
     handler: () => Promise<TOutput>
   ) {
     try {
@@ -74,7 +74,7 @@ export class AiService {
   private async logUsage(input: {
     workspaceId: string;
     action: AiAction;
-    input: Record<string, unknown>;
+    input: unknown;
     output?: unknown;
     status: AiUsageStatus;
     errorMessage?: string;

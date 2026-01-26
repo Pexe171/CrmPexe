@@ -133,6 +133,7 @@ pnpm dev
 ## Notas de desenvolvimento
 - Em arquivos TypeScript, prefira aspas normais (`"texto"`) e evite escapar aspas sem necessidade para não gerar erros como `TS1127`/`TS1002`.
 - Ao usar `AccessTokenGuard` em módulos da API, importe o `AuthModule` para garantir que o `JwtService` esteja disponível no contexto do módulo (ex: `DashboardModule`, `BillingModule`).
+- Para logs de uso de IA, garanta que os inputs sejam serializáveis em JSON (objetos simples), pois eles são persistidos no Prisma como JSON.
 
 Frontend disponível em `http://localhost:3000`.
 
