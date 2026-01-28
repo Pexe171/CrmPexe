@@ -5,7 +5,9 @@ import { Button } from "@/components/ui/button";
 import { fetchWorkspaceBillingSummary, type BillingSummary } from "@/lib/billing";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-const pollIntervalMs = 5000;
+const basePollIntervalMs = 5000;
+const maxPollIntervalMs = 15000;
+const pollBackoffStepMs = 5000;
 const conversationsPageSize = 20;
 
 type Conversation = {
@@ -107,6 +109,26 @@ const resolveLeadBadge = (contact?: Conversation["contact"] | null) => {
   };
 };
 
+const resolveNextPollInterval = ({
+  currentInterval,
+  hasUpdate,
+  isHidden
+}: {
+  currentInterval: number;
+  hasUpdate: boolean;
+  isHidden: boolean;
+}) => {
+  if (isHidden) {
+    return maxPollIntervalMs;
+  }
+
+  if (hasUpdate) {
+    return basePollIntervalMs;
+  }
+
+  return Math.min(currentInterval + pollBackoffStepMs, maxPollIntervalMs);
+};
+
 export default function InboxPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
@@ -123,6 +145,11 @@ export default function InboxPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMoreConversations, setHasMoreConversations] = useState(true);
   const [loadingMoreConversations, setLoadingMoreConversations] = useState(false);
+  const [pollingIntervalMs, setPollingIntervalMs] = useState(basePollIntervalMs);
+  const lastMessageSignatureRef = useRef<string>("");
+  const pollingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pollingIntervalRef = useRef(basePollIntervalMs);
+  const isTabHiddenRef = useRef(false);
 
   const scrollToBottom = () => {
     if (!messagesEndRef.current) return;
@@ -236,12 +263,14 @@ export default function InboxPage() {
       const data = (await response.json()) as ConversationDetails;
       setMessages(data.messages ?? []);
       setError(null);
+      return data;
     } catch (fetchError) {
       if (fetchError instanceof DOMException && fetchError.name === "AbortError") {
-        return;
+        return null;
       }
       setError(fetchError instanceof Error ? fetchError.message : "Erro inesperado ao buscar mensagens.");
       setMessages([]);
+      return null;
     }
   }, []);
 
@@ -292,12 +321,80 @@ export default function InboxPage() {
   useEffect(() => {
     if (!activeConversationId) return;
 
-    const interval = setInterval(() => {
-      void fetchConversations({ page: 1, append: false });
-      void fetchConversationDetails(activeConversationId);
-    }, pollIntervalMs);
+    let isCancelled = false;
+    lastMessageSignatureRef.current = "";
+    pollingIntervalRef.current = basePollIntervalMs;
+    setPollingIntervalMs(basePollIntervalMs);
 
-    return () => clearInterval(interval);
+    const scheduleNextPoll = (delay: number) => {
+      if (pollingTimeoutRef.current) {
+        clearTimeout(pollingTimeoutRef.current);
+      }
+      pollingTimeoutRef.current = setTimeout(() => {
+        void poll();
+      }, delay);
+    };
+
+    const poll = async () => {
+      if (isCancelled) return;
+
+      await fetchConversations({ page: 1, append: false });
+      const details = await fetchConversationDetails(activeConversationId);
+
+      const messagesList = details?.messages ?? [];
+      const lastMessage = messagesList[messagesList.length - 1];
+      const signature = `${messagesList.length}-${lastMessage?.id ?? ""}-${lastMessage?.sentAt ?? ""}`;
+      const hasUpdate = signature !== lastMessageSignatureRef.current;
+
+      if (hasUpdate) {
+        lastMessageSignatureRef.current = signature;
+      }
+
+      const nextInterval = resolveNextPollInterval({
+        currentInterval: pollingIntervalRef.current,
+        hasUpdate,
+        isHidden: isTabHiddenRef.current
+      });
+
+      pollingIntervalRef.current = nextInterval;
+      setPollingIntervalMs(nextInterval);
+      scheduleNextPoll(nextInterval);
+    };
+
+    scheduleNextPoll(0);
+
+    return () => {
+      isCancelled = true;
+      if (pollingTimeoutRef.current) {
+        clearTimeout(pollingTimeoutRef.current);
+      }
+    };
+  }, [activeConversationId, fetchConversations, fetchConversationDetails]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      isTabHiddenRef.current = document.hidden;
+
+      if (!document.hidden) {
+        pollingIntervalRef.current = basePollIntervalMs;
+        setPollingIntervalMs(basePollIntervalMs);
+        if (pollingTimeoutRef.current) {
+          clearTimeout(pollingTimeoutRef.current);
+        }
+        pollingTimeoutRef.current = setTimeout(() => {
+          if (activeConversationId) {
+            void fetchConversations({ page: 1, append: false });
+            void fetchConversationDetails(activeConversationId);
+          }
+        }, 0);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [activeConversationId, fetchConversations, fetchConversationDetails]);
 
   useEffect(() => {
@@ -405,7 +502,9 @@ export default function InboxPage() {
       <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-white px-6 shadow-sm">
         <div>
           <h1 className="text-xl font-semibold text-gray-800">Inbox</h1>
-          <p className="text-xs text-gray-500">Atualização automática a cada {pollIntervalMs / 1000}s (polling).</p>
+          <p className="text-xs text-gray-500">
+            Atualização automática a cada {pollingIntervalMs / 1000}s (polling adaptativo).
+          </p>
         </div>
         <div className="flex items-center gap-2 text-xs text-gray-500">
           <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
