@@ -3,55 +3,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { fetchWorkspaceBillingSummary, type BillingSummary } from "@/lib/billing";
-
-const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+import {
+  conversationsPageSize,
+  fetchConversationDetails as fetchConversationDetailsApi,
+  fetchConversationSummary as fetchConversationSummaryApi,
+  fetchConversations as fetchConversationsApi,
+  sendConversationMessage,
+  type Conversation,
+  type ConversationSummary,
+  type Message
+} from "@/lib/api/conversations";
 const basePollIntervalMs = 5000;
 const maxPollIntervalMs = 15000;
 const pollBackoffStepMs = 5000;
-const conversationsPageSize = 20;
-
-type Conversation = {
-  id: string;
-  status?: string | null;
-  lastMessageAt?: string | null;
-  createdAt: string;
-  contact?: {
-    id: string;
-    name?: string | null;
-    email?: string | null;
-    phone?: string | null;
-    leadScore?: number | null;
-    leadScoreLabel?: string | null;
-  } | null;
-  assignedToUser?: {
-    id: string;
-    name?: string | null;
-    email?: string | null;
-  } | null;
-  _count?: {
-    messages?: number | null;
-  } | null;
-};
-
-type Message = {
-  id: string;
-  direction?: "IN" | "OUT" | string | null;
-  text?: string | null;
-  sentAt?: string | null;
-};
-
-type ConversationDetails = Conversation & {
-  messages?: Message[];
-};
-
-type ConversationSummary = {
-  id: string;
-  conversationId: string;
-  text: string;
-  bullets: string[];
-  createdAt: string;
-};
-
 const formatTime = (value?: string | null) => {
   if (!value) return "";
   const date = new Date(value);
@@ -197,16 +161,7 @@ export default function InboxPage() {
       if (!append) {
         setLoading(true);
       }
-      const response = await fetch(`${apiUrl}/api/conversations?page=${page}&limit=${conversationsPageSize}`, {
-        credentials: "include",
-        signal
-      });
-
-      if (!response.ok) {
-        throw new Error("Não foi possível carregar conversas.");
-      }
-
-      const data = (await response.json()) as Conversation[];
+      const data = await fetchConversationsApi({ page, limit: conversationsPageSize, signal });
       setHasMoreConversations(data.length === conversationsPageSize);
       setConversations((prev) => (append ? mergeConversations(prev, data) : mergeConversations([], data)));
       if (!append) {
@@ -249,18 +204,7 @@ export default function InboxPage() {
 
   const fetchConversationDetails = useCallback(async (conversationId: string, signal?: AbortSignal) => {
     try {
-      const response = await fetch(`${apiUrl}/api/conversations/${conversationId}`,
-        {
-          credentials: "include",
-          signal
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Não foi possível carregar mensagens.");
-      }
-
-      const data = (await response.json()) as ConversationDetails;
+      const data = await fetchConversationDetailsApi(conversationId, signal);
       setMessages(data.messages ?? []);
       setError(null);
       return data;
@@ -446,20 +390,7 @@ export default function InboxPage() {
     );
 
     try {
-      const response = await fetch(`${apiUrl}/api/conversations/${activeConversationId}/send`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          credentials: "include",
-          body: JSON.stringify({ text: newMessage.text })
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Não foi possível enviar a mensagem.");
-      }
+      await sendConversationMessage({ conversationId: activeConversationId, text: newMessage.text ?? "" });
 
       await fetchConversationDetails(activeConversationId);
       await fetchConversations({ page: 1, append: false });
@@ -477,16 +408,7 @@ export default function InboxPage() {
     setError(null);
 
     try {
-      const response = await fetch(`${apiUrl}/api/ai/conversations/${activeConversationId}/summary`, {
-        method: "POST",
-        credentials: "include"
-      });
-
-      if (!response.ok) {
-        throw new Error("Não foi possível gerar o resumo.");
-      }
-
-      const data = (await response.json()) as ConversationSummary;
+      const data = await fetchConversationSummaryApi(activeConversationId);
       setConversationSummary(data);
     } catch (summaryError) {
       setError(summaryError instanceof Error ? summaryError.message : "Erro inesperado ao gerar resumo.");
