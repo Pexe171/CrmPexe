@@ -110,6 +110,7 @@ API disponível em `http://localhost:3001/api/health`.
 #### Observações sobre o Prisma
 - Sempre que alterar o `schema.prisma`, rode `pnpm prisma:generate` antes de subir a API.
 - Em caso de erro de validação relacional (ex.: `P1012`), rode `pnpm prisma format` e garanta que toda relação tenha o lado oposto definido.
+- Para evitar contatos duplicados em concorrência de mensagens, mantenha a constraint única `@@unique([workspaceId, phone])` no model `Contact`.
 - Se surgir o erro `The column "User.role" does not exist in the current database`, aplique as migrações pendentes da API:
   ```bash
   cd apps/api

@@ -226,13 +226,30 @@ export class ChannelsService {
       throw new BadRequestException("Contato precisa ter telefone ou e-mail.");
     }
 
+    const name = contactInfo.name?.trim() || phone || email || "Contato";
+
+    if (phone) {
+      return this.prisma.contact.upsert({
+        where: {
+          workspaceId_phone: {
+            workspaceId,
+            phone
+          }
+        },
+        update: {},
+        create: {
+          workspaceId,
+          name,
+          phone,
+          email: email ?? undefined
+        }
+      });
+    }
+
     const contact = await this.prisma.contact.findFirst({
       where: {
         workspaceId,
-        OR: [
-          phone ? { phone } : undefined,
-          email ? { email } : undefined
-        ].filter(Boolean) as Prisma.ContactWhereInput[]
+        email
       }
     });
 
@@ -240,13 +257,10 @@ export class ChannelsService {
       return contact;
     }
 
-    const name = contactInfo.name?.trim() || phone || email || "Contato";
-
     return this.prisma.contact.create({
       data: {
         workspaceId,
         name,
-        phone: phone ?? undefined,
         email: email ?? undefined
       }
     });

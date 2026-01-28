@@ -390,6 +390,7 @@ model Contact {
 
   @@index([workspaceId])
   @@index([companyId])
+  @@unique([workspaceId, phone])
 }
 
 model Conversation {
