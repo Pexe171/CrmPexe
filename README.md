@@ -182,6 +182,11 @@ POST /api/auth/logout
 POST /api/ai/conversations/:id/summary
 ```
 - **Resumo de conversas**: gera o resumo via IA e salva no banco em `ConversationSummary` (texto, bullets e data de criação).
+- **Limite de contexto**: o resumo considera apenas as últimas 30 mensagens úteis (exclui mensagens de sistema) para reduzir custo e respeitar limites de tokens.
+
+### Inbox (performance)
+- **Paginação de conversas**: o endpoint `GET /api/conversations` aceita `page` e `limit` (ex.: `?page=1&limit=20`) para carregar o inbox em blocos.
+- **Frontend**: a tela de Inbox carrega 20 conversas inicialmente e permite buscar mais com o botão "Carregar mais".
 
 **Fluxo OTP**
 - **Cadastro**: envie `name`, `contact`, `email` e `emailConfirmation` para `/api/auth/request-otp`. Confirme com `/api/auth/verify-otp`.
