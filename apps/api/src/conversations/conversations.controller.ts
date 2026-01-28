@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, Param, Patch, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Headers, Param, Patch, Post, Query, UseGuards } from "@nestjs/common";
 import { AccessTokenGuard } from "../auth/access-token.guard";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { AuthUser } from "../auth/auth.types";
@@ -13,8 +13,13 @@ export class ConversationsController {
   constructor(private readonly conversationsService: ConversationsService) {}
 
   @Get()
-  async listConversations(@CurrentUser() user: AuthUser, @Headers("x-workspace-id") workspaceId?: string) {
-    return this.conversationsService.listConversations(user.id, workspaceId);
+  async listConversations(
+    @CurrentUser() user: AuthUser,
+    @Headers("x-workspace-id") workspaceId?: string,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string
+  ) {
+    return this.conversationsService.listConversations(user.id, { page, limit }, workspaceId);
   }
 
   @Get(":id")

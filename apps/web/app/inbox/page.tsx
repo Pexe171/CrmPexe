@@ -6,6 +6,7 @@ import { fetchWorkspaceBillingSummary, type BillingSummary } from "@/lib/billing
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const pollIntervalMs = 5000;
+const conversationsPageSize = 20;
 
 type Conversation = {
   id: string;
@@ -119,15 +120,57 @@ export default function InboxPage() {
   const [billingLoading, setBillingLoading] = useState(true);
   const [conversationSummary, setConversationSummary] = useState<ConversationSummary | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMoreConversations, setHasMoreConversations] = useState(true);
+  const [loadingMoreConversations, setLoadingMoreConversations] = useState(false);
 
   const scrollToBottom = () => {
     if (!messagesEndRef.current) return;
     messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
   };
 
-  const fetchConversations = useCallback(async (signal?: AbortSignal) => {
+  const sortConversations = useCallback((items: Conversation[]) => {
+    return [...items].sort((first, second) => {
+      const firstDate = first.lastMessageAt ?? first.createdAt;
+      const secondDate = second.lastMessageAt ?? second.createdAt;
+      const firstTime = firstDate ? new Date(firstDate).getTime() : 0;
+      const secondTime = secondDate ? new Date(secondDate).getTime() : 0;
+      if (firstTime !== secondTime) {
+        return secondTime - firstTime;
+      }
+      return new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime();
+    });
+  }, []);
+
+  const mergeConversations = useCallback(
+    (current: Conversation[], incoming: Conversation[]) => {
+      const merged = new Map<string, Conversation>();
+      incoming.forEach((conversation) => merged.set(conversation.id, conversation));
+      current.forEach((conversation) => {
+        if (!merged.has(conversation.id)) {
+          merged.set(conversation.id, conversation);
+        }
+      });
+      return sortConversations(Array.from(merged.values()));
+    },
+    [sortConversations]
+  );
+
+  const fetchConversations = useCallback(
+    async ({
+      page = 1,
+      append = false,
+      signal
+    }: {
+      page?: number;
+      append?: boolean;
+      signal?: AbortSignal;
+    }) => {
     try {
-      const response = await fetch(`${apiUrl}/api/conversations`, {
+      if (!append) {
+        setLoading(true);
+      }
+      const response = await fetch(`${apiUrl}/api/conversations?page=${page}&limit=${conversationsPageSize}`, {
         credentials: "include",
         signal
       });
@@ -137,9 +180,13 @@ export default function InboxPage() {
       }
 
       const data = (await response.json()) as Conversation[];
-      setConversations(data);
+      setHasMoreConversations(data.length === conversationsPageSize);
+      setConversations((prev) => (append ? mergeConversations(prev, data) : mergeConversations([], data)));
+      if (!append) {
+        setCurrentPage(page);
+      }
       setActiveConversationId((prev) => (data.length > 0 ? prev ?? data[0].id : null));
-      if (data.length === 0) {
+      if (!append && data.length === 0) {
         setMessages([]);
       }
       setError(null);
@@ -148,13 +195,30 @@ export default function InboxPage() {
         return;
       }
       setError(fetchError instanceof Error ? fetchError.message : "Erro inesperado ao buscar conversas.");
-      setConversations([]);
-      setActiveConversationId(null);
-      setMessages([]);
+      if (!append) {
+        setConversations([]);
+        setActiveConversationId(null);
+        setMessages([]);
+      }
     } finally {
-      setLoading(false);
+      if (!append) {
+        setLoading(false);
+      }
+      setLoadingMoreConversations(false);
     }
-  }, []);
+  },
+    [mergeConversations]
+  );
+
+  const handleLoadMoreConversations = async () => {
+    if (loadingMoreConversations || !hasMoreConversations) {
+      return;
+    }
+    const nextPage = currentPage + 1;
+    setLoadingMoreConversations(true);
+    setCurrentPage(nextPage);
+    await fetchConversations({ page: nextPage, append: true });
+  };
 
   const fetchConversationDetails = useCallback(async (conversationId: string, signal?: AbortSignal) => {
     try {
@@ -183,7 +247,7 @@ export default function InboxPage() {
 
   useEffect(() => {
     const controller = new AbortController();
-    void fetchConversations(controller.signal);
+    void fetchConversations({ page: 1, append: false, signal: controller.signal });
 
     return () => {
       controller.abort();
@@ -229,7 +293,7 @@ export default function InboxPage() {
     if (!activeConversationId) return;
 
     const interval = setInterval(() => {
-      void fetchConversations();
+      void fetchConversations({ page: 1, append: false });
       void fetchConversationDetails(activeConversationId);
     }, pollIntervalMs);
 
@@ -301,7 +365,7 @@ export default function InboxPage() {
       }
 
       await fetchConversationDetails(activeConversationId);
-      await fetchConversations();
+      await fetchConversations({ page: 1, append: false });
     } catch (sendError) {
       setError(sendError instanceof Error ? sendError.message : "Erro inesperado ao enviar mensagem.");
     }
@@ -401,6 +465,18 @@ export default function InboxPage() {
             {filteredConversations.length === 0 && (
               <div className="px-4 py-6 text-sm text-gray-500">
                 {loading ? "Carregando conversas..." : "Nenhuma conversa encontrada."}
+              </div>
+            )}
+            {filteredConversations.length > 0 && (
+              <div className="px-4 py-4">
+                <Button
+                  type="button"
+                  className="w-full bg-gray-900 text-xs text-white hover:bg-gray-800"
+                  onClick={handleLoadMoreConversations}
+                  disabled={loadingMoreConversations || !hasMoreConversations}
+                >
+                  {loadingMoreConversations ? "Carregando..." : hasMoreConversations ? "Carregar mais" : "Fim da lista"}
+                </Button>
               </div>
             )}
           </div>

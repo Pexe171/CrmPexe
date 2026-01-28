@@ -10,6 +10,8 @@ import { AiConversationMessage } from "./ai.types";
 @Controller("ai")
 @UseGuards(AccessTokenGuard)
 export class AiController {
+  private readonly summaryMessageLimit = 30;
+
   constructor(
     private readonly aiService: AiService,
     private readonly prisma: PrismaService
@@ -27,7 +29,13 @@ export class AiController {
       where: { id: conversationId, workspaceId: resolvedWorkspaceId },
       include: {
         messages: {
-          orderBy: { sentAt: "asc" }
+          where: {
+            direction: {
+              not: MessageDirection.SYSTEM
+            }
+          },
+          orderBy: { sentAt: "desc" },
+          take: this.summaryMessageLimit
         }
       }
     });
@@ -36,11 +44,15 @@ export class AiController {
       throw new NotFoundException("Conversa não encontrada.");
     }
 
-    const messages: AiConversationMessage[] = conversation.messages.map((message) => ({
-      role: this.mapRole(message.direction),
-      content: message.text,
-      sentAt: message.sentAt
-    }));
+    const messages: AiConversationMessage[] = conversation.messages
+      .slice()
+      .reverse()
+      .map((message) => ({
+        role: this.mapRole(message.direction),
+        content: message.text ?? "",
+        sentAt: message.sentAt
+      }))
+      .filter((message) => message.content.trim().length > 0);
 
     const summaryResult = await this.aiService.summarizeConversation(resolvedWorkspaceId, {
       conversationId,

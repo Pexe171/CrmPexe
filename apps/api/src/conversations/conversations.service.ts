@@ -17,12 +17,21 @@ export class ConversationsService {
     private readonly channelsService: ChannelsService
   ) {}
 
-  async listConversations(userId: string, workspaceId?: string) {
+  async listConversations(
+    userId: string,
+    pagination: { page?: string; limit?: string } = {},
+    workspaceId?: string
+  ) {
     const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+    const page = this.parsePositiveInt(pagination.page, 1);
+    const limit = this.clampLimit(this.parsePositiveInt(pagination.limit, 20));
+    const skip = (page - 1) * limit;
 
     return this.prisma.conversation.findMany({
       where: { workspaceId: resolvedWorkspaceId },
       orderBy: [{ lastMessageAt: "desc" }, { createdAt: "desc" }],
+      skip,
+      take: limit,
       include: {
         contact: {
           select: {
@@ -48,6 +57,17 @@ export class ConversationsService {
         }
       }
     });
+  }
+
+  private parsePositiveInt(value: string | undefined, fallback: number) {
+    if (!value) return fallback;
+    const parsed = Number.parseInt(value, 10);
+    return Number.isNaN(parsed) || parsed <= 0 ? fallback : parsed;
+  }
+
+  private clampLimit(limit: number) {
+    const maxLimit = 100;
+    return Math.min(limit, maxLimit);
   }
 
   async getConversation(userId: string, conversationId: string, workspaceId?: string) {
