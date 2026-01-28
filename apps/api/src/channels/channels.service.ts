@@ -1,10 +1,10 @@
-import { BadRequestException, Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable, Logger } from "@nestjs/common";
 import { IntegrationAccountType, IntegrationAccountStatus, MessageDirection, NotificationType, Prisma } from "@prisma/client";
 import { NotificationsService } from "../notifications/notifications.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { IntegrationCryptoService } from "../integration-accounts/integration-crypto.service";
 import { AutomationEngineService } from "../automation-engine/automation-engine.service";
-import { LeadScoringService } from "../ai/lead-scoring.service";
+import { AiProcessingQueueService } from "../ai/ai-processing.queue";
 import { IChannelProvider } from "./interfaces/channel-provider.interface";
 import { WhatsappProvider } from "./providers/whatsapp.provider";
 import { ChannelInboundMessage, ChannelContact, ChannelIntegration, ChannelSendMessageInput } from "./types";
@@ -12,13 +12,14 @@ import { ChannelInboundMessage, ChannelContact, ChannelIntegration, ChannelSendM
 @Injectable()
 export class ChannelsService {
   private readonly providers = new Map<string, IChannelProvider>();
+  private readonly logger = new Logger(ChannelsService.name);
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
     private readonly integrationCryptoService: IntegrationCryptoService,
     private readonly automationEngineService: AutomationEngineService,
-    private readonly leadScoringService: LeadScoringService,
+    private readonly aiProcessingQueueService: AiProcessingQueueService,
     whatsappProvider: WhatsappProvider
   ) {
     this.providers.set(whatsappProvider.channel, whatsappProvider);
@@ -166,15 +167,20 @@ export class ChannelsService {
         contactId: result.conversation.contactId
       });
 
-      setImmediate(() => {
-        void this.leadScoringService.classifyInboundLead({
+      void this.aiProcessingQueueService
+        .enqueueLeadScoring({
           workspaceId,
           contactId: result.conversation.contactId,
           leadName: contact.name,
           lastMessage: inboundMessage.text,
           source: channel
+        })
+        .catch((error) => {
+          const message = error instanceof Error ? error.message : "Erro desconhecido";
+          this.logger.warn(
+            `Falha ao enfileirar lead scoring inbound (contactId=${result.conversation.contactId}). ${message}`
+          );
         });
-      });
     }
 
     return { conversationId: result.conversation.id, messageId: result.message.id, isDuplicate: result.isDuplicate };

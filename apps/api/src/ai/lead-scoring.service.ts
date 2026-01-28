@@ -2,7 +2,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { AiService } from "./ai.service";
 
-type LeadScorePayload = {
+export type LeadScorePayload = {
   workspaceId: string;
   contactId: string;
   leadName?: string | null;
