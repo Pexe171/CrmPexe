@@ -7,7 +7,7 @@ Plataforma SaaS multi-tenant de CRM de atendimento + automações.
 - **Backend**: NestJS + TypeScript
 - **DB**: PostgreSQL
 - **ORM**: Prisma
-- **Cache/filas**: Redis + BullMQ (base preparada)
+- **Cache/filas**: Redis + BullMQ (fila `ai-processing-queue` para lead scoring)
 - **Auth**: OTP por e-mail + JWT + Refresh + cookies httpOnly + RBAC (em evolução)
 - **Infra local**: docker-compose (postgres, redis, n8n)
 
@@ -183,6 +183,13 @@ POST /api/ai/conversations/:id/summary
 ```
 - **Resumo de conversas**: gera o resumo via IA e salva no banco em `ConversationSummary` (texto, bullets e data de criação).
 - **Limite de contexto**: o resumo considera apenas as últimas 30 mensagens úteis (exclui mensagens de sistema) para reduzir custo e respeitar limites de tokens.
+
+### Filas de IA (BullMQ)
+- O lead scoring inbound agora é enfileirado na `ai-processing-queue` para evitar timeout no webhook do WhatsApp.
+- Configure o Redis na API via:
+  - `REDIS_URL` (ex: `redis://:senha@localhost:6379/0`), **ou**
+  - `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`.
+- Ajuste a concorrência do worker com `AI_PROCESSING_CONCURRENCY` (padrão: 3).
 
 ### Inbox (performance)
 - **Paginação de conversas**: o endpoint `GET /api/conversations` aceita `page` e `limit` (ex.: `?page=1&limit=20`) para carregar o inbox em blocos.
@@ -431,7 +438,9 @@ Inbox disponível em `http://localhost:3000/inbox`.
 ### 1) Variáveis de ambiente
 - `apps/api/.env` com `DATABASE_URL`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `JWT_ACCESS_EXPIRES_IN`, `JWT_REFRESH_EXPIRES_IN`,
   `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, `OTP_TTL_MS`,
-  `MERCADOPAGO_ACCESS_TOKEN`, `MERCADOPAGO_PUBLIC_KEY`.
+  `MERCADOPAGO_ACCESS_TOKEN`, `MERCADOPAGO_PUBLIC_KEY`,
+  `REDIS_URL` (ou `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`),
+  `AI_PROCESSING_CONCURRENCY` (opcional).
 - `apps/web/.env.local` com `NEXT_PUBLIC_API_URL` apontando para a API (ex: `https://api.seudominio.com`).
 
 ### 2) Build
