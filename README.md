@@ -194,6 +194,7 @@ POST /api/ai/conversations/:id/summary
 ### Inbox (performance)
 - **Paginação de conversas**: o endpoint `GET /api/conversations` aceita `page` e `limit` (ex.: `?page=1&limit=20`) para carregar o inbox em blocos.
 - **Frontend**: a tela de Inbox carrega 20 conversas inicialmente e permite buscar mais com o botão "Carregar mais".
+- **Polling adaptativo**: o frontend ajusta o intervalo de atualização automaticamente (base 5s, até 15s) quando não há novas mensagens e aumenta quando a aba está em segundo plano.
 
 **Fluxo OTP**
 - **Cadastro**: envie `name`, `contact`, `email` e `emailConfirmation` para `/api/auth/request-otp`. Confirme com `/api/auth/verify-otp`.
