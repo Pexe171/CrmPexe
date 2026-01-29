@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
+import { ExternalCallLoggerService } from "../../common/logging/external-call-logger.service";
 import { IChannelProvider } from "../interfaces/channel-provider.interface";
 import {
   ChannelContact,
@@ -22,6 +23,8 @@ type WhatsappWebhookPayload = {
 export class WhatsappProvider implements IChannelProvider {
   readonly channel = "whatsapp";
 
+  constructor(private readonly externalCallLogger: ExternalCallLoggerService) {}
+
   async sendMessage(input: ChannelSendMessageInput, integration: ChannelIntegration): Promise<ChannelSendMessageResult> {
     const apiUrl = integration.secrets.apiUrl;
     const apiToken = integration.secrets.apiToken;
@@ -43,24 +46,51 @@ export class WhatsappProvider implements IChannelProvider {
       metadata: input.metadata ?? undefined
     };
 
-    const response = await fetch(apiUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiToken}`
-      },
-      body: JSON.stringify(payload)
-    });
+    const start = Date.now();
+    let status: number | undefined;
+    let errorMessage: string | undefined;
+    let responseBody: { id?: string } | undefined;
 
-    if (!response.ok) {
-      const errorBody = await response.text();
-      throw new BadRequestException(`Falha ao enviar WhatsApp: ${errorBody}`);
+    try {
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiToken}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      status = response.status;
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        errorMessage = errorBody;
+        throw new BadRequestException(`Falha ao enviar WhatsApp: ${errorBody}`);
+      }
+
+      responseBody = (await response.json()) as { id?: string };
+    } catch (error) {
+      if (error instanceof Error && !errorMessage) {
+        errorMessage = error.message;
+      }
+      throw error;
+    } finally {
+      this.externalCallLogger.log({
+        system: "whatsapp",
+        operation: "sendMessage",
+        method: "POST",
+        url: apiUrl,
+        status,
+        durationMs: Date.now() - start,
+        success: !errorMessage,
+        workspaceId: integration.workspaceId,
+        errorMessage
+      });
     }
 
-    const responseBody = (await response.json()) as { id?: string };
-
     return {
-      providerMessageId: responseBody.id ?? `wa_${Date.now()}`,
+      providerMessageId: responseBody?.id ?? `wa_${Date.now()}`,
       raw: responseBody
     };
   }

@@ -3,19 +3,25 @@ import {
   Catch,
   ExceptionFilter,
   HttpException,
-  HttpStatus
+  HttpStatus,
+  Injectable
 } from "@nestjs/common";
 import { Request, Response } from "express";
+import { JsonLoggerService } from "../logging/json-logger.service";
 
 interface HttpErrorResponseBody {
   statusCode: number;
   message: string | string[];
   timestamp: string;
   path: string;
+  correlationId?: string | null;
 }
 
 @Catch()
+@Injectable()
 export class HttpExceptionFilter implements ExceptionFilter {
+  constructor(private readonly logger: JsonLoggerService) {}
+
   catch(exception: unknown, host: ArgumentsHost) {
     const context = host.switchToHttp();
     const response = context.getResponse<Response>();
@@ -32,8 +38,20 @@ export class HttpExceptionFilter implements ExceptionFilter {
       statusCode,
       message,
       timestamp: new Date().toISOString(),
-      path: request.url
+      path: request.url,
+      correlationId: request.correlationId ?? null
     };
+
+    this.logger.error(
+      {
+        event: "http_error",
+        statusCode,
+        path: request.url,
+        method: request.method,
+        message: body.message
+      },
+      exception instanceof Error ? exception.stack : undefined
+    );
 
     response.status(statusCode).json(body);
   }

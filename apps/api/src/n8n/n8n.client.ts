@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { IntegrationAccountType } from "@prisma/client";
+import { ExternalCallLoggerService } from "../common/logging/external-call-logger.service";
 import { IntegrationCryptoService } from "../integration-accounts/integration-crypto.service";
 import { PrismaService } from "../prisma/prisma.service";
 
@@ -12,7 +13,8 @@ type N8nRequestOptions = {
 export class N8nClient {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly integrationCryptoService: IntegrationCryptoService
+    private readonly integrationCryptoService: IntegrationCryptoService,
+    private readonly externalCallLogger: ExternalCallLoggerService
   ) {}
 
   async listWorkflows(integrationAccountId: string) {
@@ -55,28 +57,54 @@ export class N8nClient {
   }
 
   private async request(integrationAccountId: string, path: string, options: N8nRequestOptions) {
-    const { baseUrl, apiKey } = await this.getCredentials(integrationAccountId);
+    const { baseUrl, apiKey, workspaceId } = await this.getCredentials(integrationAccountId);
     const url = new URL(path, baseUrl).toString();
 
-    const response = await fetch(url, {
-      method: options.method,
-      headers: {
-        "Content-Type": "application/json",
-        "X-N8N-API-KEY": apiKey
-      },
-      body: options.body ? JSON.stringify(options.body) : undefined
-    });
+    const start = Date.now();
+    let status: number | undefined;
+    let errorMessage: string | undefined;
 
-    if (!response.ok) {
-      const errorBody = await response.text();
-      throw new BadRequestException(`Falha ao chamar n8n: ${errorBody}`);
+    try {
+      const response = await fetch(url, {
+        method: options.method,
+        headers: {
+          "Content-Type": "application/json",
+          "X-N8N-API-KEY": apiKey
+        },
+        body: options.body ? JSON.stringify(options.body) : undefined
+      });
+
+      status = response.status;
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        errorMessage = errorBody;
+        throw new BadRequestException(`Falha ao chamar n8n: ${errorBody}`);
+      }
+
+      if (response.status === 204) {
+        return { success: true };
+      }
+
+      return (await response.json()) as Record<string, unknown>;
+    } catch (error) {
+      if (error instanceof Error && !errorMessage) {
+        errorMessage = error.message;
+      }
+      throw error;
+    } finally {
+      this.externalCallLogger.log({
+        system: "n8n",
+        operation: "request",
+        method: options.method,
+        url,
+        status,
+        durationMs: Date.now() - start,
+        success: !errorMessage,
+        workspaceId,
+        errorMessage
+      });
     }
-
-    if (response.status === 204) {
-      return { success: true };
-    }
-
-    return (await response.json()) as Record<string, unknown>;
   }
 
   private async getCredentials(integrationAccountId: string) {
@@ -102,6 +130,7 @@ export class N8nClient {
     const secrets = this.integrationCryptoService.decrypt(account.secret.encryptedPayload);
 
     return {
+      workspaceId: account.workspaceId,
       baseUrl: this.getRequiredSecret(secrets, "baseUrl"),
       apiKey: this.getRequiredSecret(secrets, "apiKey")
     };

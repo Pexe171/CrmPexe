@@ -16,6 +16,7 @@ export interface ChannelInboundMessage {
 export interface ChannelIntegration {
   id: string;
   type: string;
+  workspaceId: string;
   secrets: Record<string, string>;
 }
 

@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  TooManyRequestsException,
   UnauthorizedException
 } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
@@ -17,6 +18,8 @@ import {
 } from "./auth.constants";
 import { RequestOtpDto } from "./dto/request-otp.dto";
 import { VerifyOtpDto } from "./dto/verify-otp.dto";
+import { CaptchaService } from "./captcha.service";
+import { LoginAttemptsService } from "./login-attempts.service";
 
 @Injectable()
 export class AuthService {
@@ -34,7 +37,9 @@ export class AuthService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly jwtService: JwtService
+    private readonly jwtService: JwtService,
+    private readonly captchaService: CaptchaService,
+    private readonly loginAttemptsService: LoginAttemptsService
   ) {}
 
   get accessTokenCookieName() {
@@ -53,7 +58,7 @@ export class AuthService {
     return REFRESH_TOKEN_TTL_MS;
   }
 
-  async requestOtp(payload: RequestOtpDto) {
+  async requestOtp(payload: RequestOtpDto, context?: { ip?: string }) {
     const email = payload.email.toLowerCase();
     const isSignupPayload = Boolean(
       payload.name || payload.contact || payload.emailConfirmation
@@ -62,6 +67,8 @@ export class AuthService {
     if (isSignupPayload) {
       this.ensureSignupPayload(payload);
     }
+
+    this.captchaService.ensureValid(payload.captchaToken);
 
     const existingUser = await this.prisma.user.findUnique({
       where: { email },
@@ -98,9 +105,18 @@ export class AuthService {
     return { message: "Código enviado.", expiresAt };
   }
 
-  async verifyOtp(payload: VerifyOtpDto) {
+  async verifyOtp(payload: VerifyOtpDto, context?: { ip?: string }) {
     const email = payload.email.toLowerCase();
     const codeHash = this.hashOtpCode(payload.code.trim());
+    const loginKey = this.buildLoginKey(email, context?.ip);
+
+    if (loginKey && this.loginAttemptsService.isBlocked(loginKey)) {
+      throw new TooManyRequestsException(
+        "Muitas tentativas de login. Aguarde alguns minutos."
+      );
+    }
+
+    this.captchaService.ensureValid(payload.captchaToken);
 
     const otp = await this.prisma.otpCode.findFirst({
       where: {
@@ -112,6 +128,7 @@ export class AuthService {
     });
 
     if (!otp || otp.codeHash !== codeHash) {
+      this.registerLoginFailure(loginKey);
       throw new UnauthorizedException("Código inválido ou expirado.");
     }
 
@@ -124,6 +141,7 @@ export class AuthService {
 
     if (!user && otp.purpose === OtpPurpose.SIGNUP) {
       if (!otp.name || !otp.contact) {
+        this.registerLoginFailure(loginKey);
         throw new BadRequestException("Dados de cadastro ausentes.");
       }
 
@@ -138,7 +156,12 @@ export class AuthService {
     }
 
     if (!user) {
+      this.registerLoginFailure(loginKey);
       throw new UnauthorizedException("Usuário não encontrado.");
+    }
+
+    if (loginKey) {
+      this.loginAttemptsService.reset(loginKey);
     }
 
     const tokens = await this.issueTokens({
@@ -373,5 +396,19 @@ export class AuthService {
         this.otpTtlMs / 60000
       )} minutos.</p>`
     });
+  }
+
+  private buildLoginKey(email: string, ip?: string) {
+    if (!ip) {
+      return null;
+    }
+    return `${email}:${ip}`;
+  }
+
+  private registerLoginFailure(loginKey: string | null) {
+    if (!loginKey) {
+      return;
+    }
+    this.loginAttemptsService.registerFailure(loginKey);
   }
 }

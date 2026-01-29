@@ -60,6 +60,15 @@ Variáveis usadas pela API hoje:
 - `INTEGRATION_ENCRYPTION_KEY` (opcional) — chave para criptografia de integrações.
 - `SLA_RESPONSE_SECONDS` (opcional, padrão `900`) — SLA de resposta em conversas.
 - `NODE_ENV` (opcional) — ativa validações extras em produção.
+- `AUTH_RATE_LIMIT_WINDOW_MS` (opcional, padrão `600000`) — janela do rate limit em endpoints de auth (ms).
+- `AUTH_RATE_LIMIT_MAX` (opcional, padrão `20`) — limite máximo por janela em auth.
+- `WEBHOOK_RATE_LIMIT_WINDOW_MS` (opcional, padrão `300000`) — janela do rate limit em webhooks (ms).
+- `WEBHOOK_RATE_LIMIT_MAX` (opcional, padrão `120`) — limite máximo por janela em webhooks.
+- `LOGIN_MAX_ATTEMPTS` (opcional, padrão `5`) — tentativas de login antes do bloqueio temporário.
+- `LOGIN_WINDOW_MS` (opcional, padrão `900000`) — janela para contabilizar tentativas de login.
+- `LOGIN_BLOCK_MS` (opcional, padrão `900000`) — tempo de bloqueio após exceder tentativas.
+- `CAPTCHA_REQUIRED` (opcional, padrão `false`) — força captcha em auth quando `true`.
+- `CAPTCHA_SECRET` (opcional) — segredo para validar captcha simples via token.
 
 > Observação: `MERCADOPAGO_ACCESS_TOKEN` e `MERCADOPAGO_PUBLIC_KEY` existem no `.env.example`, mas **não são usadas pelo código atual** (mantidas para futuras integrações).
 
@@ -155,3 +164,5 @@ Fluxos suportados:
 - O backend exige **JWT secrets em produção**; em desenvolvimento há fallback para segredos padrão.
 - A API aplica **ValidationPipe** com `whitelist` e `forbidNonWhitelisted` para segurança de payloads.
 - O prefixo global da API é `/api`, então todas as rotas são prefixadas automaticamente.
+- O backend gera **logs JSON** com `correlationId` por request (header `x-correlation-id`) e registra chamadas externas (n8n, WhatsApp, billing) com tempo e status.
+- Endpoints de **auth** e **webhooks** aplicam rate limit por IP e workspace. Tentativas de login inválidas são bloqueadas após exceder o limite configurado. Captcha pode ser habilitado via variáveis de ambiente.

@@ -1,5 +1,7 @@
 import { Body, Controller, Get, Post, Req, Res, UseGuards } from "@nestjs/common";
 import { Request, Response } from "express";
+import { RateLimit } from "../common/rate-limit/rate-limit.decorator";
+import { RateLimitGuard } from "../common/rate-limit/rate-limit.guard";
 import { AccessTokenGuard } from "./access-token.guard";
 import { AuthService } from "./auth.service";
 import { CurrentUser } from "./current-user.decorator";
@@ -12,13 +14,37 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post("request-otp")
-  async requestOtp(@Body() body: RequestOtpDto) {
-    return this.authService.requestOtp(body);
+  @UseGuards(RateLimitGuard)
+  @RateLimit({
+    windowMs: Number(process.env.AUTH_RATE_LIMIT_WINDOW_MS || 10 * 60 * 1000),
+    max: Number(process.env.AUTH_RATE_LIMIT_MAX || 20),
+    byIp: true,
+    byWorkspace: true,
+    keyPrefix: "auth-request-otp"
+  })
+  async requestOtp(@Body() body: RequestOtpDto, @Req() req: Request) {
+    return this.authService.requestOtp(body, {
+      ip: this.resolveClientIp(req)
+    });
   }
 
   @Post("verify-otp")
-  async verifyOtp(@Body() body: VerifyOtpDto, @Res({ passthrough: true }) res: Response) {
-    const result = await this.authService.verifyOtp(body);
+  @UseGuards(RateLimitGuard)
+  @RateLimit({
+    windowMs: Number(process.env.AUTH_RATE_LIMIT_WINDOW_MS || 10 * 60 * 1000),
+    max: Number(process.env.AUTH_RATE_LIMIT_MAX || 20),
+    byIp: true,
+    byWorkspace: true,
+    keyPrefix: "auth-verify-otp"
+  })
+  async verifyOtp(
+    @Body() body: VerifyOtpDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response
+  ) {
+    const result = await this.authService.verifyOtp(body, {
+      ip: this.resolveClientIp(req)
+    });
     this.setAuthCookies(res, result.tokens.accessToken, result.tokens.refreshToken);
     return result.user;
   }
@@ -77,5 +103,13 @@ export class AuthController {
   private clearAuthCookies(res: Response) {
     res.clearCookie(this.authService.accessTokenCookieName, { path: "/" });
     res.clearCookie(this.authService.refreshTokenCookieName, { path: "/" });
+  }
+
+  private resolveClientIp(req: Request) {
+    const forwardedFor = req.headers["x-forwarded-for"];
+    if (typeof forwardedFor === "string" && forwardedFor.trim()) {
+      return forwardedFor.split(",")[0].trim();
+    }
+    return req.ip;
   }
 }
