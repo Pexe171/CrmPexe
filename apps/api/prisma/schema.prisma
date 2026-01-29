@@ -18,6 +18,7 @@ enum AuditAction {
   WORKSPACE_UPDATED
   ROLE_ASSIGNED
   ROLE_REVOKED
+  IMPERSONATION_STARTED
 }
 
 enum TaskStatus {
@@ -195,6 +196,7 @@ model User {
   notifications Notification[]
   activities Activity[]
   automationTemplatesCreated AutomationTemplate[] @relation("AutomationTemplateAdmin")
+  automationTemplateVersionsCreated AutomationTemplateVersion[] @relation("AutomationTemplateVersionAdmin")
   automationInstancesCreated AutomationInstance[] @relation("AutomationInstanceUser")
   currentWorkspace Workspace? @relation("UserCurrentWorkspace", fields: [currentWorkspaceId], references: [id])
 }
@@ -720,17 +722,40 @@ model AutomationTemplate {
   name                 String
   description          String?
   version              String
+  changelog            String?
   category             String
   definitionJson       Json
   requiredIntegrations String[]
+  currentVersionId     String?
   createdByAdminId     String
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
   createdByAdmin User @relation("AutomationTemplateAdmin", fields: [createdByAdminId], references: [id])
+  currentVersion AutomationTemplateVersion? @relation("AutomationTemplateCurrentVersion", fields: [currentVersionId], references: [id])
+  versions      AutomationTemplateVersion[]
   instances     AutomationInstance[]
 
   @@index([category])
+  @@index([createdByAdminId])
+}
+
+model AutomationTemplateVersion {
+  id                   String   @id @default(uuid())
+  templateId           String
+  version              String
+  changelog            String?
+  definitionJson       Json
+  requiredIntegrations String[]
+  createdByAdminId     String
+  createdAt            DateTime @default(now())
+
+  template      AutomationTemplate @relation(fields: [templateId], references: [id])
+  createdByAdmin User @relation("AutomationTemplateVersionAdmin", fields: [createdByAdminId], references: [id])
+  instances     AutomationInstance[]
+
+  @@unique([templateId, version])
+  @@index([templateId])
   @@index([createdByAdminId])
 }
 
@@ -738,6 +763,7 @@ model AutomationInstance {
   id              String                    @id @default(uuid())
   workspaceId     String
   templateId      String
+  templateVersionId String?
   status          AutomationInstanceStatus  @default(PENDING)
   externalWorkflowId String?
   enabled         Boolean                   @default(false)
@@ -748,10 +774,12 @@ model AutomationInstance {
 
   workspace     Workspace          @relation(fields: [workspaceId], references: [id])
   template      AutomationTemplate @relation(fields: [templateId], references: [id])
+  templateVersion AutomationTemplateVersion? @relation(fields: [templateVersionId], references: [id])
   createdByUser User               @relation("AutomationInstanceUser", fields: [createdByUserId], references: [id])
 
   @@index([workspaceId])
   @@index([templateId])
+  @@index([templateVersionId])
   @@index([createdByUserId])
 }
 

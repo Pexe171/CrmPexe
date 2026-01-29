@@ -1,14 +1,6 @@
 import { IsArray, IsNotEmpty, IsObject, IsOptional, IsString } from "class-validator";
 
-export class CreateAutomationTemplateDto {
-  @IsString()
-  @IsNotEmpty()
-  name!: string;
-
-  @IsOptional()
-  @IsString()
-  description?: string | null;
-
+export class CreateAutomationTemplateVersionDto {
   @IsString()
   @IsNotEmpty()
   version!: string;
@@ -17,10 +9,6 @@ export class CreateAutomationTemplateDto {
   @IsString()
   changelog?: string | null;
 
-  @IsString()
-  @IsNotEmpty()
-  category!: string;
-
   @IsObject()
   definitionJson!: Record<string, unknown>;
 
@@ -28,4 +16,16 @@ export class CreateAutomationTemplateDto {
   @IsArray()
   @IsString({ each: true })
   requiredIntegrations?: string[];
+
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string | null;
+
+  @IsOptional()
+  @IsString()
+  category?: string;
 }
