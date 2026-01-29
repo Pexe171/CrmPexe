@@ -248,6 +248,30 @@ export class AuthService {
     }
   }
 
+  async revokeRefreshTokensByWorkspace(userId: string, workspaceId?: string) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
+
+    const result = await this.prisma.user.updateMany({
+      where: {
+        memberships: {
+          some: {
+            workspaceId: resolvedWorkspaceId
+          }
+        }
+      },
+      data: { refreshTokenHash: null }
+    });
+
+    return {
+      message: "Refresh tokens revogados com sucesso.",
+      workspaceId: resolvedWorkspaceId,
+      totalRevogados: result.count
+    };
+  }
+
   async issueTokens(user: { id: string; email: string; role: UserRole }) {
     const payload = { sub: user.id, email: user.email, role: user.role };
 
@@ -403,6 +427,40 @@ export class AuthService {
       return null;
     }
     return `${email}:${ip}`;
+  }
+
+  private async resolveWorkspaceId(userId: string, workspaceId?: string) {
+    const normalized = workspaceId?.trim();
+    if (normalized) {
+      await this.ensureWorkspaceMembership(userId, normalized);
+      return normalized;
+    }
+    const currentWorkspaceId = await this.getCurrentWorkspaceId(userId);
+    await this.ensureWorkspaceMembership(userId, currentWorkspaceId);
+    return currentWorkspaceId;
+  }
+
+  private async getCurrentWorkspaceId(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { currentWorkspaceId: true }
+    });
+
+    if (!user?.currentWorkspaceId) {
+      throw new BadRequestException("Workspace atual não definido.");
+    }
+
+    return user.currentWorkspaceId;
+  }
+
+  private async ensureWorkspaceMembership(userId: string, workspaceId: string) {
+    const membership = await this.prisma.workspaceMember.findFirst({
+      where: { userId, workspaceId }
+    });
+
+    if (!membership) {
+      throw new BadRequestException("Workspace inválido.");
+    }
   }
 
   private registerLoginFailure(loginKey: string | null) {

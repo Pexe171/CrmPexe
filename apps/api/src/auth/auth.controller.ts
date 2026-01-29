@@ -1,10 +1,13 @@
-import { Body, Controller, Get, Post, Req, Res, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Headers, Post, Req, Res, UseGuards } from "@nestjs/common";
+import { UserRole } from "@prisma/client";
 import { Request, Response } from "express";
 import { RateLimit } from "../common/rate-limit/rate-limit.decorator";
 import { RateLimitGuard } from "../common/rate-limit/rate-limit.guard";
 import { AccessTokenGuard } from "./access-token.guard";
 import { AuthService } from "./auth.service";
 import { CurrentUser } from "./current-user.decorator";
+import { Roles } from "./roles.decorator";
+import { RolesGuard } from "./roles.guard";
 import { RequestOtpDto } from "./dto/request-otp.dto";
 import { VerifyOtpDto } from "./dto/verify-otp.dto";
 import { AuthUser } from "./auth.types";
@@ -63,6 +66,16 @@ export class AuthController {
     await this.authService.logout(refreshToken);
     this.clearAuthCookies(res);
     return { message: "Logout realizado com sucesso." };
+  }
+
+  @Post("revoke-refresh-tokens")
+  @UseGuards(AccessTokenGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  async revokeRefreshTokens(
+    @CurrentUser() user: AuthUser,
+    @Headers("x-workspace-id") workspaceId?: string
+  ) {
+    return this.authService.revokeRefreshTokensByWorkspace(user.id, workspaceId);
   }
 
   @Get("me")
