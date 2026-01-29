@@ -33,6 +33,9 @@ export class AccessTokenGuard implements CanActivate {
         sub: string;
         email: string;
         role: UserRole;
+        impersonatorId?: string;
+        supportWorkspaceId?: string;
+        supportMode?: boolean;
       }>(token, {
         secret: this.accessTokenSecret
       });
@@ -65,7 +68,10 @@ export class AccessTokenGuard implements CanActivate {
         email: user.email,
         role: user.role,
         isSuperAdmin: user.isSuperAdmin,
-        currentWorkspaceId: user.currentWorkspaceId
+        currentWorkspaceId: payload.supportWorkspaceId ?? user.currentWorkspaceId,
+        supportWorkspaceId: payload.supportWorkspaceId ?? null,
+        impersonatorId: payload.impersonatorId ?? null,
+        supportMode: Boolean(payload.supportMode)
       };
       return true;
     } catch {

@@ -28,6 +28,16 @@ export class AuthController {
     return result.user;
   }
 
+  @Post("impersonate")
+  async impersonate(
+    @Body() body: { token?: string },
+    @Res({ passthrough: true }) res: Response
+  ) {
+    const result = await this.authService.impersonateSupportUser(body?.token ?? "");
+    this.setAuthCookies(res, result.tokens.accessToken, result.tokens.refreshToken);
+    return result.user;
+  }
+
   @Post("logout")
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const refreshToken = req.cookies?.[this.authService.refreshTokenCookieName];

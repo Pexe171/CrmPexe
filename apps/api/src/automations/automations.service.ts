@@ -12,6 +12,7 @@ import {
 import { PrismaService } from "../prisma/prisma.service";
 import { AutomationConnectorsService } from "./connectors/automation-connectors.service";
 import { CreateAutomationTemplateDto } from "./dto/create-automation-template.dto";
+import { CreateAutomationTemplateVersionDto } from "./dto/create-automation-template-version.dto";
 import { InstallAutomationTemplateDto } from "./dto/install-automation-template.dto";
 import { N8nClient } from "../n8n/n8n.client";
 import { WorkspaceVariablesService } from "../workspace-variables/workspace-variables.service";
@@ -31,13 +32,20 @@ export class AutomationsService {
 
   async listTemplates() {
     return this.prisma.automationTemplate.findMany({
-      orderBy: { createdAt: "desc" }
+      orderBy: [{ name: "asc" }, { versionNumber: "desc" }]
     });
   }
 
   async createTemplate(userId: string, payload: CreateAutomationTemplateDto) {
+    const templateKey = this.normalizeTemplateKey(
+      payload.templateKey ?? payload.name
+    );
     const name = this.normalizeRequiredString(payload.name, "name");
     const version = this.normalizeRequiredString(payload.version, "version");
+    const changelog = this.normalizeRequiredString(
+      payload.changelog,
+      "changelog"
+    );
     const category = this.normalizeRequiredString(payload.category, "category");
     const description = this.normalizeOptionalString(payload.description);
     const definitionJson = this.normalizeJson(
@@ -50,10 +58,68 @@ export class AutomationsService {
 
     return this.prisma.automationTemplate.create({
       data: {
+        templateKey,
         name,
         description,
         version,
+        versionNumber: 1,
+        changelog,
         category,
+        definitionJson: definitionJson as Prisma.InputJsonValue,
+        requiredIntegrations,
+        createdByAdminId: userId
+      }
+    });
+  }
+
+  async createTemplateVersion(
+    userId: string,
+    templateId: string,
+    payload: CreateAutomationTemplateVersionDto
+  ) {
+    const baseTemplate = await this.prisma.automationTemplate.findUnique({
+      where: { id: templateId }
+    });
+
+    if (!baseTemplate) {
+      throw new NotFoundException("Template de automação não encontrado.");
+    }
+
+    const changelog = this.normalizeRequiredString(payload.changelog, "changelog");
+    const versionNumber = baseTemplate.versionNumber + 1;
+    const version =
+      payload.version?.trim() && payload.version.trim().length > 0
+        ? payload.version.trim()
+        : `v${versionNumber}`;
+
+    const name = payload.name
+      ? this.normalizeRequiredString(payload.name, "name")
+      : baseTemplate.name;
+    const category = payload.category
+      ? this.normalizeRequiredString(payload.category, "category")
+      : baseTemplate.category;
+    const description =
+      payload.description !== undefined
+        ? this.normalizeOptionalString(payload.description)
+        : baseTemplate.description;
+    const definitionJson =
+      payload.definitionJson !== undefined
+        ? this.normalizeJson(payload.definitionJson, "definitionJson")
+        : baseTemplate.definitionJson;
+    const requiredIntegrations =
+      payload.requiredIntegrations !== undefined
+        ? this.normalizeIntegrations(payload.requiredIntegrations)
+        : baseTemplate.requiredIntegrations;
+
+    return this.prisma.automationTemplate.create({
+      data: {
+        templateKey: baseTemplate.templateKey,
+        name,
+        description,
+        version,
+        versionNumber,
+        category,
+        changelog,
         definitionJson: definitionJson as Prisma.InputJsonValue,
         requiredIntegrations,
         createdByAdminId: userId
@@ -182,6 +248,45 @@ export class AutomationsService {
         totalPages: total === 0 ? 0 : Math.ceil(total / safePerPage)
       }
     };
+  }
+
+  async upgradeAutomationInstance(
+    userId: string,
+    instanceId: string,
+    workspaceId?: string
+  ) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
+    const instance = await this.prisma.automationInstance.findFirst({
+      where: { id: instanceId, workspaceId: resolvedWorkspaceId },
+      include: { template: true }
+    });
+
+    if (!instance) {
+      throw new NotFoundException("Automação não encontrada.");
+    }
+
+    const latestTemplate = await this.prisma.automationTemplate.findFirst({
+      where: { templateKey: instance.template.templateKey },
+      orderBy: { versionNumber: "desc" }
+    });
+
+    if (!latestTemplate) {
+      throw new NotFoundException("Template de automação não encontrado.");
+    }
+
+    if (latestTemplate.id === instance.templateId) {
+      throw new BadRequestException("A automação já está na última versão.");
+    }
+
+    await this.prisma.automationInstance.update({
+      where: { id: instance.id },
+      data: { templateId: latestTemplate.id }
+    });
+
+    return this.installAutomationInstance(userId, instance.id, resolvedWorkspaceId);
   }
 
   async installAutomationInstance(
@@ -466,6 +571,20 @@ export class AutomationsService {
     }
     const trimmed = value?.trim();
     return trimmed ? trimmed : null;
+  }
+
+  private normalizeTemplateKey(value: string) {
+    const normalized = value
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)+/g, "");
+
+    if (!normalized) {
+      throw new BadRequestException("Template key inválida.");
+    }
+
+    return normalized;
   }
 
   private normalizeJson(

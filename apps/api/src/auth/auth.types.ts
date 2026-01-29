@@ -7,6 +7,9 @@ export type AuthUser = {
   role: UserRole;
   isSuperAdmin: boolean;
   currentWorkspaceId?: string | null;
+  impersonatorId?: string | null;
+  supportWorkspaceId?: string | null;
+  supportMode?: boolean;
 };
 
 export type AuthenticatedRequest = Request & {

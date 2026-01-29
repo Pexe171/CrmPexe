@@ -15,9 +15,9 @@ import {
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
 
-  if (!body?.email || !body?.code) {
+  if (!body?.token) {
     return NextResponse.json(
-      { message: "E-mail e código são obrigatórios." },
+      { message: "Token de suporte é obrigatório." },
       { status: 400 }
     );
   }
@@ -34,10 +34,10 @@ export async function POST(request: Request) {
   let apiResponse: Response;
 
   try {
-    apiResponse = await fetch(new URL("/api/auth/verify-otp", apiBaseUrl), {
+    apiResponse = await fetch(new URL("/api/auth/impersonate", apiBaseUrl), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: body.email, code: body.code }),
+      body: JSON.stringify({ token: body.token }),
       credentials: "include"
     });
   } catch (error) {
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
 
   if (!apiResponse.ok) {
     return NextResponse.json(
-      { message: apiPayload?.message ?? "Código inválido." },
+      { message: apiPayload?.message ?? "Token de suporte inválido." },
       { status: apiResponse.status }
     );
   }
@@ -99,7 +99,7 @@ export async function POST(request: Request) {
     maxAge: SUPER_ADMIN_COOKIE_MAX_AGE
   });
 
-  response.cookies.set(SUPPORT_MODE_COOKIE, "false", {
+  response.cookies.set(SUPPORT_MODE_COOKIE, "true", {
     httpOnly: true,
     sameSite: "lax",
     path: "/",

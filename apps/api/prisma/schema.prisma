@@ -18,6 +18,7 @@ enum AuditAction {
   WORKSPACE_UPDATED
   ROLE_ASSIGNED
   ROLE_REVOKED
+  SUPPORT_IMPERSONATION_CREATED
 }
 
 enum TaskStatus {
@@ -196,6 +197,8 @@ model User {
   activities Activity[]
   automationTemplatesCreated AutomationTemplate[] @relation("AutomationTemplateAdmin")
   automationInstancesCreated AutomationInstance[] @relation("AutomationInstanceUser")
+  supportImpersonationsCreated SupportImpersonationToken[] @relation("SupportImpersonationCreator")
+  supportImpersonationsTarget SupportImpersonationToken[] @relation("SupportImpersonationTarget")
   currentWorkspace Workspace? @relation("UserCurrentWorkspace", fields: [currentWorkspaceId], references: [id])
 }
 
@@ -717,10 +720,13 @@ model Task {
 
 model AutomationTemplate {
   id                   String   @id @default(uuid())
+  templateKey          String
   name                 String
   description          String?
   version              String
+  versionNumber        Int      @default(1)
   category             String
+  changelog            String?
   definitionJson       Json
   requiredIntegrations String[]
   createdByAdminId     String
@@ -732,6 +738,8 @@ model AutomationTemplate {
 
   @@index([category])
   @@index([createdByAdminId])
+  @@index([templateKey])
+  @@unique([templateKey, versionNumber])
 }
 
 model AutomationInstance {
@@ -753,6 +761,25 @@ model AutomationInstance {
   @@index([workspaceId])
   @@index([templateId])
   @@index([createdByUserId])
+}
+
+model SupportImpersonationToken {
+  id               String   @id @default(uuid())
+  tokenHash        String   @unique
+  createdByAdminId String
+  targetUserId     String
+  workspaceId      String
+  expiresAt        DateTime
+  usedAt           DateTime?
+  createdAt        DateTime @default(now())
+
+  createdByAdmin User      @relation("SupportImpersonationCreator", fields: [createdByAdminId], references: [id])
+  targetUser     User      @relation("SupportImpersonationTarget", fields: [targetUserId], references: [id])
+  workspace      Workspace @relation(fields: [workspaceId], references: [id])
+
+  @@index([workspaceId])
+  @@index([createdByAdminId])
+  @@index([targetUserId])
 }
 
 model WorkspaceVariable {

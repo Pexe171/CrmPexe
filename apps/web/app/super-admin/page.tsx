@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
+  createSupportImpersonation,
   fetchSuperAdminErrorLogs,
   fetchSuperAdminWorkspaces,
   type ErrorLogSummary,
@@ -35,6 +36,7 @@ export default function SuperAdminPage() {
   const [errorLogs, setErrorLogs] = useState<ErrorLogSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [impersonatingId, setImpersonatingId] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -74,6 +76,35 @@ export default function SuperAdminPage() {
   const totalAutomacoes = useMemo(() => {
     return workspaces.reduce((total, workspace) => total + workspace.uso.automacoes, 0);
   }, [workspaces]);
+
+  const handleImpersonate = async (workspaceId: string) => {
+    setImpersonatingId(workspaceId);
+    setError(null);
+
+    try {
+      const tokenResponse = await createSupportImpersonation(workspaceId);
+      const response = await fetch("/api/auth/impersonate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: tokenResponse.token })
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        throw new Error(payload?.message ?? "Não foi possível iniciar o modo suporte.");
+      }
+
+      window.location.href = "/dashboard";
+    } catch (impersonateError) {
+      setError(
+        impersonateError instanceof Error
+          ? impersonateError.message
+          : "Erro inesperado ao iniciar o modo suporte."
+      );
+    } finally {
+      setImpersonatingId(null);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50/50">
@@ -138,18 +169,19 @@ export default function SuperAdminPage() {
                   <th className="py-3 pr-4">Mensagens</th>
                   <th className="py-3 pr-4">Automações</th>
                   <th className="py-3 pr-4">Atualização</th>
+                  <th className="py-3 pr-4">Suporte</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="py-6 text-center text-sm text-gray-500">
+                    <td colSpan={7} className="py-6 text-center text-sm text-gray-500">
                       Carregando workspaces...
                     </td>
                   </tr>
                 ) : workspaces.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-6 text-center text-sm text-gray-500">
+                    <td colSpan={7} className="py-6 text-center text-sm text-gray-500">
                       Nenhum workspace encontrado.
                     </td>
                   </tr>
@@ -167,6 +199,16 @@ export default function SuperAdminPage() {
                       <td className="py-4 pr-4">{workspace.uso.automacoes}</td>
                       <td className="py-4 pr-4">
                         {formatDate(workspace.updatedAtPlano ?? workspace.updatedAt)}
+                      </td>
+                      <td className="py-4 pr-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => void handleImpersonate(workspace.id)}
+                          disabled={impersonatingId === workspace.id}
+                        >
+                          {impersonatingId === workspace.id ? "Entrando..." : "Entrar como suporte"}
+                        </Button>
                       </td>
                     </tr>
                   ))

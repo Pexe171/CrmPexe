@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { fetchWorkspaceBillingSummary, type BillingSummary } from "@/lib/billing";
 
@@ -10,10 +10,13 @@ const INSTANCES_PER_PAGE = 20;
 
 type AutomationTemplate = {
   id: string;
+  templateKey: string;
   name: string;
   description?: string | null;
   version: string;
+  versionNumber: number;
   category: string;
+  changelog?: string | null;
   requiredIntegrations: string[];
   definitionJson: Record<string, unknown>;
   createdAt: string;
@@ -55,6 +58,35 @@ export default function AutomationsPage() {
   });
   const [billingSummary, setBillingSummary] = useState<BillingSummary | null>(null);
   const [billingLoading, setBillingLoading] = useState(true);
+  const [selectedVersionByKey, setSelectedVersionByKey] = useState<Record<string, string>>({});
+
+  const groupedTemplates = useMemo(() => {
+    const grouped = new Map<string, AutomationTemplate[]>();
+    templates.forEach((template) => {
+      const list = grouped.get(template.templateKey) ?? [];
+      list.push(template);
+      grouped.set(template.templateKey, list);
+    });
+
+    grouped.forEach((list, key) => {
+      grouped.set(
+        key,
+        [...list].sort((a, b) => b.versionNumber - a.versionNumber)
+      );
+    });
+
+    return grouped;
+  }, [templates]);
+
+  const latestTemplateByKey = useMemo(() => {
+    const latest = new Map<string, AutomationTemplate>();
+    groupedTemplates.forEach((list, key) => {
+      if (list.length > 0) {
+        latest.set(key, list[0]);
+      }
+    });
+    return latest;
+  }, [groupedTemplates]);
 
   const fetchTemplates = useCallback(async () => {
     const response = await fetch(`${apiUrl}/api/automation-templates`, {
@@ -133,6 +165,18 @@ export default function AutomationsPage() {
   }, [refreshData]);
 
   useEffect(() => {
+    setSelectedVersionByKey((prev) => {
+      const next = { ...prev };
+      groupedTemplates.forEach((list, key) => {
+        if (!next[key] && list.length > 0) {
+          next[key] = list[0].id;
+        }
+      });
+      return next;
+    });
+  }, [groupedTemplates]);
+
+  useEffect(() => {
     const controller = new AbortController();
 
     const loadBillingSummary = async () => {
@@ -185,6 +229,25 @@ export default function AutomationsPage() {
       setError(installError instanceof Error ? installError.message : "Erro inesperado ao instalar automação.");
     } finally {
       setInstallingId(null);
+    }
+  };
+
+  const handleUpgrade = async (instanceId: string) => {
+    setError(null);
+
+    try {
+      const response = await fetch(`${apiUrl}/api/automation-instances/${instanceId}/upgrade`, {
+        method: "POST",
+        credentials: "include"
+      });
+
+      if (!response.ok) {
+        throw new Error("Não foi possível atualizar a automação.");
+      }
+
+      await fetchInstances(instancesPage);
+    } catch (upgradeError) {
+      setError(upgradeError instanceof Error ? upgradeError.message : "Erro inesperado ao atualizar automação.");
     }
   };
 
@@ -247,41 +310,74 @@ export default function AutomationsPage() {
             </div>
           ) : (
             <div className="grid gap-4">
-              {templates.map((template) => (
-                <div key={template.id} className="rounded-xl border bg-white p-5 shadow-sm">
-                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900">{template.name}</h3>
-                      <p className="text-sm text-gray-500">
-                        Categoria: {template.category} · Versão {template.version}
-                      </p>
-                      {template.description ? (
-                        <p className="mt-2 text-sm text-gray-600">{template.description}</p>
-                      ) : null}
-                      <div className="mt-3 flex flex-wrap gap-2 text-xs text-gray-500">
-                        {(template.requiredIntegrations ?? []).length === 0 ? (
-                          <span className="rounded-full bg-gray-100 px-3 py-1">Sem integrações</span>
-                        ) : (
-                          template.requiredIntegrations.map((integration) => (
-                            <span
-                              key={integration}
-                              className="rounded-full bg-blue-50 px-3 py-1 text-blue-600"
-                            >
-                              {integration}
-                            </span>
-                          ))
-                        )}
+              {Array.from(groupedTemplates.entries()).map(([templateKey, versions]) => {
+                const selectedId = selectedVersionByKey[templateKey] ?? versions[0]?.id;
+                const selectedTemplate = versions.find((template) => template.id === selectedId) ?? versions[0];
+
+                if (!selectedTemplate) {
+                  return null;
+                }
+
+                return (
+                  <div key={templateKey} className="rounded-xl border bg-white p-5 shadow-sm">
+                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900">{selectedTemplate.name}</h3>
+                        <p className="text-sm text-gray-500">
+                          Categoria: {selectedTemplate.category} · Versão {selectedTemplate.version}
+                        </p>
+                        {selectedTemplate.description ? (
+                          <p className="mt-2 text-sm text-gray-600">{selectedTemplate.description}</p>
+                        ) : null}
+                        {selectedTemplate.changelog ? (
+                          <p className="mt-2 text-xs text-gray-500">
+                            Changelog: {selectedTemplate.changelog}
+                          </p>
+                        ) : null}
+                        <div className="mt-3 flex flex-wrap gap-2 text-xs text-gray-500">
+                          {(selectedTemplate.requiredIntegrations ?? []).length === 0 ? (
+                            <span className="rounded-full bg-gray-100 px-3 py-1">Sem integrações</span>
+                          ) : (
+                            selectedTemplate.requiredIntegrations.map((integration) => (
+                              <span
+                                key={integration}
+                                className="rounded-full bg-blue-50 px-3 py-1 text-blue-600"
+                              >
+                                {integration}
+                              </span>
+                            ))
+                          )}
+                        </div>
+                        <div className="mt-4">
+                          <label className="text-xs font-medium text-gray-500">Selecionar versão</label>
+                          <select
+                            className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700"
+                            value={selectedId}
+                            onChange={(event) =>
+                              setSelectedVersionByKey((prev) => ({
+                                ...prev,
+                                [templateKey]: event.target.value
+                              }))
+                            }
+                          >
+                            {versions.map((version) => (
+                              <option key={version.id} value={version.id}>
+                                {version.version} · {new Date(version.createdAt).toLocaleDateString("pt-BR")}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
                       </div>
+                      <Button
+                        onClick={() => handleInstall(selectedTemplate.id)}
+                        disabled={installingId === selectedTemplate.id || isReadOnly || billingLoading}
+                      >
+                        {isReadOnly ? "Bloqueado" : installingId === selectedTemplate.id ? "Instalando..." : "Instalar"}
+                      </Button>
                     </div>
-                    <Button
-                      onClick={() => handleInstall(template.id)}
-                      disabled={installingId === template.id || isReadOnly || billingLoading}
-                    >
-                      {isReadOnly ? "Bloqueado" : installingId === template.id ? "Instalando..." : "Instalar"}
-                    </Button>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </section>
@@ -304,21 +400,43 @@ export default function AutomationsPage() {
           ) : (
             <div className="space-y-4">
               <div className="space-y-3">
-                {instances.map((instance) => (
-                  <div key={instance.id} className="rounded-xl border bg-white p-4 text-sm shadow-sm">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="font-medium text-gray-800">{instance.template.name}</p>
-                        <p className="text-xs text-gray-500">
-                          Instalada em {new Date(instance.createdAt).toLocaleString()}
-                        </p>
+                {instances.map((instance) => {
+                  const latestTemplate = latestTemplateByKey.get(instance.template.templateKey);
+                  const hasUpdate =
+                    latestTemplate &&
+                    latestTemplate.versionNumber > instance.template.versionNumber;
+
+                  return (
+                    <div key={instance.id} className="rounded-xl border bg-white p-4 text-sm shadow-sm">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="font-medium text-gray-800">{instance.template.name}</p>
+                          <p className="text-xs text-gray-500">
+                            Instalada em {new Date(instance.createdAt).toLocaleString()} · Versão {instance.template.version}
+                          </p>
+                        </div>
+                        <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
+                          {instance.status}
+                        </span>
                       </div>
-                      <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
-                        {instance.status}
-                      </span>
+                      {hasUpdate ? (
+                        <div className="mt-3 flex items-center justify-between gap-3 text-xs text-gray-500">
+                          <span>
+                            Nova versão disponível: {latestTemplate.version}
+                          </span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => void handleUpgrade(instance.id)}
+                            disabled={isReadOnly || billingLoading}
+                          >
+                            Atualizar
+                          </Button>
+                        </div>
+                      ) : null}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {instancesMeta.totalPages > 1 ? (

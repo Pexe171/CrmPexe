@@ -33,6 +33,18 @@ export type PaginatedResponse<T> = {
   };
 };
 
+export type SupportImpersonationResponse = {
+  token: string;
+  expiresAt: string;
+  workspaceId: string;
+  targetUser: {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+  };
+};
+
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 export const fetchSuperAdminWorkspaces = async (
@@ -63,4 +75,21 @@ export const fetchSuperAdminErrorLogs = async (
   }
 
   return (await response.json()) as PaginatedResponse<ErrorLogSummary>;
+};
+
+export const createSupportImpersonation = async (
+  workspaceId: string
+): Promise<SupportImpersonationResponse> => {
+  const response = await fetch(`${apiUrl}/api/super-admin/workspaces/${workspaceId}/impersonate`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({})
+  });
+
+  if (!response.ok) {
+    throw new Error("Não foi possível gerar o token de suporte.");
+  }
+
+  return (await response.json()) as SupportImpersonationResponse;
 };

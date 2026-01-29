@@ -1,5 +1,7 @@
-import { Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { Prisma, SubscriptionStatus } from "@prisma/client";
+import { createHash, randomBytes } from "crypto";
+import { AuditLogsService } from "../audit-logs/audit-logs.service";
 import { PrismaService } from "../prisma/prisma.service";
 
 const DEFAULT_PAGE = 1;
@@ -42,7 +44,14 @@ export type ErrorLogSummary = {
 
 @Injectable()
 export class SuperAdminService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly supportTokenTtlMs = Number(
+    process.env.SUPPORT_IMPERSONATION_TTL_MS || 15 * 60 * 1000
+  );
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditLogsService: AuditLogsService
+  ) {}
 
   async listWorkspaces(params: { page?: number; perPage?: number; search?: string })
     : Promise<PaginatedResponse<WorkspaceOverview>> {
@@ -168,6 +177,121 @@ export class SuperAdminService {
         createdAt: log.createdAt
       })),
       meta: { page, perPage, total }
+    };
+  }
+
+  async listWorkspaceMembers(workspaceId: string) {
+    const normalizedWorkspaceId = workspaceId?.trim();
+    if (!normalizedWorkspaceId) {
+      throw new BadRequestException("Workspace inválido.");
+    }
+
+    const workspace = await this.prisma.workspace.findUnique({
+      where: { id: normalizedWorkspaceId },
+      select: { id: true }
+    });
+
+    if (!workspace) {
+      throw new NotFoundException("Workspace não encontrado.");
+    }
+
+    const members = await this.prisma.workspaceMember.findMany({
+      where: { workspaceId: normalizedWorkspaceId },
+      include: {
+        user: { select: { id: true, name: true, email: true } },
+        role: { select: { name: true } }
+      },
+      orderBy: { createdAt: "asc" }
+    });
+
+    return members.map((member) => ({
+      id: member.userId,
+      name: member.user.name,
+      email: member.user.email,
+      role: member.role.name
+    }));
+  }
+
+  async createSupportImpersonationToken(
+    adminId: string,
+    workspaceId: string,
+    userId?: string
+  ) {
+    const normalizedWorkspaceId = workspaceId?.trim();
+    if (!normalizedWorkspaceId) {
+      throw new BadRequestException("Workspace inválido.");
+    }
+
+    const workspace = await this.prisma.workspace.findUnique({
+      where: { id: normalizedWorkspaceId },
+      select: { id: true }
+    });
+
+    if (!workspace) {
+      throw new NotFoundException("Workspace não encontrado.");
+    }
+
+    const members = await this.prisma.workspaceMember.findMany({
+      where: { workspaceId: normalizedWorkspaceId },
+      include: {
+        user: { select: { id: true, name: true, email: true } },
+        role: { select: { name: true } }
+      },
+      orderBy: { createdAt: "asc" }
+    });
+
+    if (members.length === 0) {
+      throw new BadRequestException("Workspace sem membros ativos.");
+    }
+
+    const targetMember = userId
+      ? members.find((member) => member.userId === userId)
+      : members.find((member) =>
+          ["Owner", "Admin", "Administrador"].includes(member.role.name)
+        ) ?? members[0];
+
+    if (!targetMember) {
+      throw new NotFoundException("Membro não encontrado no workspace.");
+    }
+
+    const token = randomBytes(32).toString("hex");
+    const tokenHash = createHash("sha256").update(token).digest("hex");
+    const expiresAt = new Date(Date.now() + this.supportTokenTtlMs);
+
+    const created = await this.prisma.supportImpersonationToken.create({
+      data: {
+        tokenHash,
+        createdByAdminId: adminId,
+        targetUserId: targetMember.userId,
+        workspaceId: normalizedWorkspaceId,
+        expiresAt
+      }
+    });
+
+    await this.auditLogsService.record({
+      workspaceId: normalizedWorkspaceId,
+      userId: adminId,
+      action: "SUPPORT_IMPERSONATION_CREATED",
+      entity: "SupportImpersonationToken",
+      entityId: created.id,
+      metadata: {
+        targetUserId: targetMember.userId,
+        targetUserEmail: targetMember.user.email,
+        targetUserName: targetMember.user.name,
+        expiresAt: expiresAt.toISOString()
+      }
+    });
+
+    return {
+      token,
+      expiresAt,
+      workspaceId: normalizedWorkspaceId,
+      targetUser: {
+        id: targetMember.userId,
+        name: targetMember.user.name,
+        email: targetMember.user.email,
+        role: targetMember.role.name
+      }
     };
   }
 }
