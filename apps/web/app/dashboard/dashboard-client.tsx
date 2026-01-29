@@ -75,6 +75,7 @@ type WorkspaceResponse = {
 
 type DashboardClientProps = {
   role: UserRole;
+  isSuperAdmin: boolean;
 };
 
 const actionLabels: Record<string, string> = {
@@ -120,7 +121,7 @@ const formatDuration = (seconds: number) => {
   return `${hours}h ${remainder}m`;
 };
 
-export default function DashboardClient({ role }: DashboardClientProps) {
+export default function DashboardClient({ role, isSuperAdmin }: DashboardClientProps) {
   const isAdmin = role === "ADMIN";
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [instancesCount, setInstancesCount] = useState(0);
@@ -460,6 +461,14 @@ export default function DashboardClient({ role }: DashboardClientProps) {
                 Cobrança
               </Link>
             </>
+          ) : null}
+          {isSuperAdmin ? (
+            <Link
+              href="/super-admin"
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              Super Admin
+            </Link>
           ) : null}
           <Link
             href="/dashboard/variables"

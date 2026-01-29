@@ -45,6 +45,7 @@ async function main() {
       name: 'Admin',
       contact: 'Admin',
       role: UserRole.ADMIN,
+      isSuperAdmin: true,
     },
   });
 

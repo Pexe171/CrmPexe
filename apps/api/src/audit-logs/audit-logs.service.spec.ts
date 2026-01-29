@@ -46,7 +46,12 @@ describe("AuditLogsService", () => {
     prismaMock.auditLog.count.mockResolvedValue(1);
 
     const result = await service.listAuditLogs(
-      { id: "user-1", email: "user@example.com", role: UserRole.USER },
+      {
+        id: "user-1",
+        email: "user@example.com",
+        role: UserRole.USER,
+        isSuperAdmin: false
+      },
       1,
       10
     );
@@ -69,7 +74,12 @@ describe("AuditLogsService", () => {
 
     await expect(
       service.listAuditLogs(
-        { id: "user-1", email: "user@example.com", role: UserRole.USER },
+        {
+          id: "user-1",
+          email: "user@example.com",
+          role: UserRole.USER,
+          isSuperAdmin: false
+        },
         1,
         10
       )
@@ -84,7 +94,12 @@ describe("AuditLogsService", () => {
 
     await expect(
       service.listAuditLogs(
-        { id: "user-1", email: "user@example.com", role: UserRole.USER },
+        {
+          id: "user-1",
+          email: "user@example.com",
+          role: UserRole.USER,
+          isSuperAdmin: false
+        },
         1,
         10
       )
@@ -96,7 +111,12 @@ describe("AuditLogsService", () => {
     prismaMock.auditLog.count.mockResolvedValue(1);
 
     const result = await service.listAuditLogs(
-      { id: "admin-1", email: "admin@example.com", role: UserRole.ADMIN },
+      {
+        id: "admin-1",
+        email: "admin@example.com",
+        role: UserRole.ADMIN,
+        isSuperAdmin: false
+      },
       1,
       20,
       undefined,
@@ -112,7 +132,12 @@ describe("AuditLogsService", () => {
   it("bloqueia escopo global para usuários comuns", async () => {
     await expect(
       service.listAuditLogs(
-        { id: "user-2", email: "user2@example.com", role: UserRole.USER },
+        {
+          id: "user-2",
+          email: "user2@example.com",
+          role: UserRole.USER,
+          isSuperAdmin: false
+        },
         1,
         20,
         undefined,

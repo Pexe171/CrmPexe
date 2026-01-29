@@ -4,11 +4,12 @@ import { AuthController } from "./auth.controller";
 import { AccessTokenGuard } from "./access-token.guard";
 import { AuthService } from "./auth.service";
 import { RolesGuard } from "./roles.guard";
+import { SuperAdminGuard } from "./super-admin.guard";
 
 @Module({
   imports: [JwtModule.register({})],
   controllers: [AuthController],
-  providers: [AuthService, AccessTokenGuard, RolesGuard],
-  exports: [JwtModule, AccessTokenGuard, RolesGuard]
+  providers: [AuthService, AccessTokenGuard, RolesGuard, SuperAdminGuard],
+  exports: [JwtModule, AccessTokenGuard, RolesGuard, SuperAdminGuard]
 })
 export class AuthModule {}

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { SESSION_COOKIE } from "@/lib/auth";
-import { ROLE_COOKIE } from "@/lib/rbac";
+import { ROLE_COOKIE, SUPER_ADMIN_COOKIE } from "@/lib/rbac";
 
 export async function POST() {
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
@@ -41,6 +41,13 @@ export async function POST() {
   });
 
   response.cookies.set(ROLE_COOKIE, "", {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 0
+  });
+
+  response.cookies.set(SUPER_ADMIN_COOKIE, "", {
     httpOnly: true,
     sameSite: "lax",
     path: "/",
