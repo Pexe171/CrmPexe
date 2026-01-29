@@ -114,6 +114,7 @@ pnpm typecheck    # Typecheck de todos os apps
 
 ## Endpoints principais
 - **Health check**: `GET /api/health` → `{ status: "ok", service: "crmpexe-api" }`.
+- **Revogar refresh tokens do workspace**: `POST /api/auth/revoke-refresh-tokens` (requer header `x-workspace-id` e usuário com role `ADMIN`).
 
 ## Suporte (impersonate)
 O modo de suporte permite que um **super admin** gere um token temporário para entrar como membro de um workspace. Todas as ações são registradas no audit log com a ação `IMPERSONATION_STARTED`.
@@ -166,3 +167,6 @@ Fluxos suportados:
 - O prefixo global da API é `/api`, então todas as rotas são prefixadas automaticamente.
 - O backend gera **logs JSON** com `correlationId` por request (header `x-correlation-id`) e registra chamadas externas (n8n, WhatsApp, billing) com tempo e status.
 - Endpoints de **auth** e **webhooks** aplicam rate limit por IP e workspace. Tentativas de login inválidas são bloqueadas após exceder o limite configurado. Captcha pode ser habilitado via variáveis de ambiente.
+
+## Roadmap (pendências priorizadas)
+- **Rotation de secrets**: permitir recriptografar integrações quando a chave de criptografia mudar.
