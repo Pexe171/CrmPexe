@@ -113,7 +113,7 @@ Rotas protegidas (requer `isSuperAdmin`):
 - **Logs de erro**: `GET /api/super-admin/error-logs` (retorna falhas de IA com workspace e mensagem).
 - **Impersonação de suporte**: `POST /api/super-admin/workspaces/:workspaceId/impersonate` (gera token temporário para entrar como membro do workspace e registra em audit log).
 
-> Observação: o seed padrão já cria um usuário admin com `isSuperAdmin: true`.
+> Observação: o seed padrão já cria um usuário admin com `isSuperAdmin: true` e e-mail `davidhenriqusms18@gmail.com`.
 
 ## Modo suporte (impersonate)
 - O super admin pode gerar um token temporário de suporte para entrar como membro de um workspace.
