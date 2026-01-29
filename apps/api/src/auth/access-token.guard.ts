@@ -33,6 +33,8 @@ export class AccessTokenGuard implements CanActivate {
         sub: string;
         email: string;
         role: UserRole;
+        impersonatedByUserId?: string;
+        impersonatedWorkspaceId?: string;
       }>(token, {
         secret: this.accessTokenSecret
       });
@@ -60,12 +62,42 @@ export class AccessTokenGuard implements CanActivate {
         throw new UnauthorizedException("Role do token não confere.");
       }
 
+      if (payload.impersonatedByUserId) {
+        const impersonator = await this.prisma.user.findUnique({
+          where: { id: payload.impersonatedByUserId },
+          select: { id: true, isSuperAdmin: true }
+        });
+
+        if (!impersonator?.isSuperAdmin) {
+          throw new UnauthorizedException(
+            "Impersonação inválida para este token."
+          );
+        }
+
+        if (payload.impersonatedWorkspaceId) {
+          const membership = await this.prisma.workspaceMember.findFirst({
+            where: {
+              userId: user.id,
+              workspaceId: payload.impersonatedWorkspaceId
+            }
+          });
+
+          if (!membership) {
+            throw new UnauthorizedException("Workspace inválido para suporte.");
+          }
+        }
+      }
+
       request.user = {
         id: user.id,
         email: user.email,
         role: user.role,
         isSuperAdmin: user.isSuperAdmin,
-        currentWorkspaceId: user.currentWorkspaceId
+        currentWorkspaceId:
+          payload.impersonatedWorkspaceId ?? user.currentWorkspaceId,
+        isImpersonated: Boolean(payload.impersonatedByUserId),
+        impersonatedByUserId: payload.impersonatedByUserId ?? null,
+        impersonatedWorkspaceId: payload.impersonatedWorkspaceId ?? null
       };
       return true;
     } catch {
