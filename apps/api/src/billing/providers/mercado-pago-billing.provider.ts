@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { SubscriptionStatus } from "@prisma/client";
+import { ExternalCallLoggerService } from "../../common/logging/external-call-logger.service";
 import { PrismaService } from "../../prisma/prisma.service";
 import { MercadoPagoWebhookPayload } from "../dto/mercado-pago-webhook.dto";
 import {
@@ -25,43 +26,86 @@ const STATUS_MAPPING: Record<string, SubscriptionStatus> = {
 
 @Injectable()
 export class MercadoPagoBillingProvider implements IBillingProvider {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly externalCallLogger: ExternalCallLoggerService
+  ) {}
 
   async createCustomer(input: BillingCustomerInput): Promise<BillingCustomerResult> {
+    const start = Date.now();
     const safeEmail = input.email.trim().toLowerCase();
-
-    return {
+    const result = {
       providerCustomerId: `sandbox-customer-${safeEmail}`,
       sandbox: true
     };
+
+    this.externalCallLogger.log({
+      system: "billing",
+      operation: "createCustomer",
+      status: "sandbox",
+      durationMs: Date.now() - start,
+      success: true
+    });
+
+    return result;
   }
 
   async processPayment(input: BillingPaymentInput): Promise<BillingCheckoutResult> {
-    return {
+    const start = Date.now();
+    const result = {
       checkoutUrl: MERCADO_PAGO_SANDBOX_CHECKOUT_URL,
       providerReference: `sandbox-payment-${input.customerId}`,
       sandbox: true
     };
+
+    this.externalCallLogger.log({
+      system: "billing",
+      operation: "processPayment",
+      status: "sandbox",
+      durationMs: Date.now() - start,
+      success: true
+    });
+
+    return result;
   }
 
   async handleNotification(
     notification: BillingNotificationEnvelope<MercadoPagoWebhookPayload>
   ): Promise<BillingNotificationResult> {
+    const start = Date.now();
     const payloadType = notification.payload.type;
 
     if (payloadType !== "payment" && payloadType !== "subscription_authorized") {
-      return {
+      const result = {
         handled: false,
         reason: "Tipo de notificação não suportado pelo Mercado Pago."
       };
+      this.externalCallLogger.log({
+        system: "billing",
+        operation: "handleNotification",
+        status: "ignored",
+        durationMs: Date.now() - start,
+        success: false,
+        errorMessage: result.reason
+      });
+      return result;
     }
 
     const externalId = this.resolveExternalId(notification.payload);
     if (!externalId) {
-      return {
+      const result = {
         handled: false,
         reason: "Notificação do Mercado Pago sem identificador externo."
       };
+      this.externalCallLogger.log({
+        system: "billing",
+        operation: "handleNotification",
+        status: "invalid",
+        durationMs: Date.now() - start,
+        success: false,
+        errorMessage: result.reason
+      });
+      return result;
     }
 
     const status = this.resolveStatus(notification.payload, payloadType);
@@ -77,11 +121,21 @@ export class MercadoPagoBillingProvider implements IBillingProvider {
       }
     });
 
-    return {
+    const result = {
       handled: true,
       mappedStatus,
       externalId
     };
+
+    this.externalCallLogger.log({
+      system: "billing",
+      operation: "handleNotification",
+      status: mappedStatus,
+      durationMs: Date.now() - start,
+      success: true
+    });
+
+    return result;
   }
 
   private resolveExternalId(payload: MercadoPagoWebhookPayload): string | null {

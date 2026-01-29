@@ -299,6 +299,7 @@ export class ChannelsService {
     return {
       id: integration.id,
       type: integration.type,
+      workspaceId: integration.workspaceId,
       secrets
     };
   }

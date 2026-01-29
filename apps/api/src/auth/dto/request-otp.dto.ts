@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsOptional, IsString } from "class-validator";
+import { IsEmail, IsOptional, IsString } from "class-validator";
 
 export class RequestOtpDto {
   @IsEmail()
@@ -15,4 +15,8 @@ export class RequestOtpDto {
   @IsEmail()
   @IsOptional()
   emailConfirmation?: string;
+
+  @IsString()
+  @IsOptional()
+  captchaToken?: string;
 }

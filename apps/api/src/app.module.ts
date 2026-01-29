@@ -24,9 +24,14 @@ import { WorkspaceVariablesModule } from "./workspace-variables/workspace-variab
 import { BillingModule } from "./billing/billing.module";
 import { AiModule } from "./ai/ai.module";
 import { SuperAdminModule } from "./super-admin/super-admin.module";
+import { LoggingModule } from "./common/logging/logging.module";
+import { RateLimitModule } from "./common/rate-limit/rate-limit.module";
+import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
 
 @Module({
   imports: [
+    LoggingModule,
+    RateLimitModule,
     PrismaModule,
     AuthModule,
     AutomationsModule,
@@ -52,6 +57,6 @@ import { SuperAdminModule } from "./super-admin/super-admin.module";
     SuperAdminModule
   ],
   controllers: [AppController],
-  providers: [AppService]
+  providers: [AppService, HttpExceptionFilter]
 })
 export class AppModule {}
