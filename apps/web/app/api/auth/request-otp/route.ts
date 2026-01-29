@@ -20,11 +20,18 @@ export async function POST(request: Request) {
   }
 
   let apiResponse: Response;
+  const forwardedFor =
+    request.headers.get("x-forwarded-for") ?? request.headers.get("x-real-ip");
+  const userAgent = request.headers.get("user-agent");
 
   try {
     apiResponse = await fetch(new URL("/api/auth/request-otp", apiBaseUrl), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(forwardedFor ? { "x-forwarded-for": forwardedFor } : {}),
+        ...(userAgent ? { "user-agent": userAgent } : {})
+      },
       body: JSON.stringify(body),
       credentials: "include"
     });

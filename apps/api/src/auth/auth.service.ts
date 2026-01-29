@@ -34,6 +34,7 @@ export class AuthService {
   private readonly impersonationTokenExpiresIn =
     process.env.JWT_IMPERSONATION_EXPIRES_IN || "15m";
   private readonly otpTtlMs = Number(process.env.OTP_TTL_MS || 10 * 60 * 1000);
+  private readonly otpDailyLimit = Number(process.env.OTP_DAILY_LIMIT || 20);
 
   constructor(
     private readonly prisma: PrismaService,
@@ -58,7 +59,10 @@ export class AuthService {
     return REFRESH_TOKEN_TTL_MS;
   }
 
-  async requestOtp(payload: RequestOtpDto, context?: { ip?: string }) {
+  async requestOtp(
+    payload: RequestOtpDto,
+    context?: { ip?: string; userAgent?: string }
+  ) {
     const email = payload.email.toLowerCase();
     const isSignupPayload = Boolean(
       payload.name || payload.contact || payload.emailConfirmation
@@ -87,6 +91,7 @@ export class AuthService {
     const code = this.generateOtpCode();
     const expiresAt = new Date(Date.now() + this.otpTtlMs);
 
+    await this.ensureDailyOtpLimit(email);
     await this.prisma.otpCode.deleteMany({ where: { email } });
 
     await this.prisma.otpCode.create({
@@ -105,10 +110,13 @@ export class AuthService {
     return { message: "Código enviado.", expiresAt };
   }
 
-  async verifyOtp(payload: VerifyOtpDto, context?: { ip?: string }) {
+  async verifyOtp(
+    payload: VerifyOtpDto,
+    context?: { ip?: string; userAgent?: string }
+  ) {
     const email = payload.email.toLowerCase();
     const codeHash = this.hashOtpCode(payload.code.trim());
-    const loginKey = this.buildLoginKey(email, context?.ip);
+    const loginKey = this.buildLoginKey(email, context);
 
     if (loginKey && this.loginAttemptsService.isBlocked(loginKey)) {
       throw new TooManyRequestsException(
@@ -422,11 +430,52 @@ export class AuthService {
     });
   }
 
-  private buildLoginKey(email: string, ip?: string) {
-    if (!ip) {
+  private buildLoginKey(
+    email: string,
+    context?: { ip?: string; userAgent?: string }
+  ) {
+    if (!context?.ip) {
       return null;
     }
-    return `${email}:${ip}`;
+
+    const fingerprint = this.buildDeviceFingerprint(
+      context.ip,
+      context.userAgent
+    );
+
+    return `${email}:${fingerprint ?? context.ip}`;
+  }
+
+  private buildDeviceFingerprint(ip: string, userAgent?: string) {
+    if (!userAgent?.trim()) {
+      return null;
+    }
+
+    return createHash("sha256")
+      .update(`${ip}|${userAgent.trim()}`)
+      .digest("hex");
+  }
+
+  private async ensureDailyOtpLimit(email: string) {
+    if (!this.otpDailyLimit || Number.isNaN(this.otpDailyLimit)) {
+      return;
+    }
+
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const otpCount = await this.prisma.otpCode.count({
+      where: {
+        email,
+        createdAt: { gte: startOfDay }
+      }
+    });
+
+    if (otpCount >= this.otpDailyLimit) {
+      throw new TooManyRequestsException(
+        "Limite diário de códigos atingido. Tente novamente amanhã."
+      );
+    }
   }
 
   private async resolveWorkspaceId(userId: string, workspaceId?: string) {

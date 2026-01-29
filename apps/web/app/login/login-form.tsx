@@ -1,57 +1,37 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
-import type { ChangeEvent, FormEvent } from "react";
+import { useTransition } from "react";
+import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
+import { useGlobalFeedback } from "@/components/global-feedback";
 import { getDefaultDashboardPath, normalizeUserRole } from "@/lib/rbac";
+import { useAuthOtp } from "@/lib/use-auth-otp";
+import { useLoginFlow } from "@/lib/use-login-flow";
 
 const initialState = {
   email: "",
   code: ""
 };
 
-type AuthVerifyResponse = {
-  user?: {
-    role?: string | null;
-  };
-};
-
 export function LoginForm() {
   const router = useRouter();
-  const [formState, setFormState] = useState(initialState);
-  const [error, setError] = useState<string | null>(null);
-  const [status, setStatus] = useState<string | null>(null);
-  const [step, setStep] = useState<"request" | "verify">("request");
+  const { clearFeedback } = useGlobalFeedback();
+  const { formState, onChange, status, setStatus, step, setStep, resetToRequest } =
+    useLoginFlow(initialState);
+  const { isLoading, requestOtp, verifyOtp } = useAuthOtp();
   const [isPending, startTransition] = useTransition();
-
-  const onChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = event.target;
-    setFormState((prev) => ({
-      ...prev,
-      [name]: value
-    }));
-  };
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setError(null);
+    clearFeedback();
     setStatus(null);
 
     if (step === "request") {
-      const response = await fetch("/api/auth/request-otp", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ email: formState.email })
-      });
-
-      if (!response.ok) {
-        const payload = await response.json().catch(() => ({}));
-        setError(payload?.message ?? "Falha ao solicitar código.");
+      const result = await requestOtp({ email: formState.email });
+      if (!result.ok) {
         return;
       }
 
@@ -60,25 +40,17 @@ export function LoginForm() {
       return;
     }
 
-    const response = await fetch("/api/auth/verify-otp", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ email: formState.email, code: formState.code })
+    const result = await verifyOtp({
+      email: formState.email,
+      code: formState.code
     });
 
-    if (!response.ok) {
-      const payload = await response.json().catch(() => ({}));
-      setError(payload?.message ?? "Falha ao autenticar.");
+    if (!result.ok) {
       return;
     }
 
-    const payload = (await response
-      .json()
-      .catch(() => null)) as AuthVerifyResponse | null;
     const targetPath = getDefaultDashboardPath(
-      normalizeUserRole(payload?.user?.role)
+      normalizeUserRole(result.data?.user?.role)
     );
 
     startTransition(() => {
@@ -145,14 +117,8 @@ export function LoginForm() {
             </p>
           ) : null}
 
-          {error ? (
-            <p className="rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
-              {error}
-            </p>
-          ) : null}
-
-          <Button type="submit" className="w-full" disabled={isPending}>
-            {isPending
+          <Button type="submit" className="w-full" disabled={isPending || isLoading}>
+            {isPending || isLoading
               ? step === "request"
                 ? "Enviando código..."
                 : "Validando código..."
@@ -165,10 +131,7 @@ export function LoginForm() {
             <button
               type="button"
               className="w-full text-sm text-slate-400 hover:text-emerald-300"
-              onClick={() => {
-                setStep("request");
-                setFormState((prev) => ({ ...prev, code: "" }));
-              }}
+              onClick={resetToRequest}
             >
               Trocar e-mail ou reenviar código
             </button>

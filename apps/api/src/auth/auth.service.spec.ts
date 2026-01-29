@@ -1,4 +1,8 @@
-import { ConflictException, UnauthorizedException } from "@nestjs/common";
+import {
+  ConflictException,
+  TooManyRequestsException,
+  UnauthorizedException
+} from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { Test } from "@nestjs/testing";
 import { UserRole } from "@prisma/client";
@@ -22,6 +26,7 @@ const prismaMock = {
   },
   otpCode: {
     create: jest.fn(),
+    count: jest.fn(),
     deleteMany: jest.fn(),
     findFirst: jest.fn(),
     update: jest.fn()
@@ -38,6 +43,7 @@ describe("AuthService", () => {
     process.env.SMTP_PASS = "smtp-pass";
     process.env.SMTP_FROM = "no-reply@crmpexe.local";
     process.env.JWT_REFRESH_SECRET = "test_refresh_secret";
+    prismaMock.otpCode.count.mockResolvedValue(0);
 
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -93,6 +99,17 @@ describe("AuthService", () => {
         emailConfirmation: "user@example.com"
       })
     ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it("rejects OTP request when daily limit is reached", async () => {
+    prismaMock.user.findUnique.mockResolvedValue({ id: "user-1" });
+    prismaMock.otpCode.count.mockResolvedValue(20);
+
+    await expect(
+      authService.requestOtp({
+        email: "user@example.com"
+      })
+    ).rejects.toBeInstanceOf(TooManyRequestsException);
   });
 
   it("verifies OTP and issues tokens", async () => {
