@@ -111,9 +111,10 @@ O modo de suporte permite que um **super admin** gere um token temporário para 
 
 Rotas principais:
 - **Gerar token de suporte**: `POST /api/support/impersonations` (payload com `workspaceId`, `userId` e `reason` opcional).
+- **Listar membros do workspace**: `GET /api/support/workspaces/:id/members` (para selecionar o usuário a ser impersonado).
 - **Consultar sessão atual**: `GET /api/auth/me` (retorna se o usuário está em modo suporte).
 
-> Observação: o front-end exibe um aviso “Modo suporte ativo” quando o token temporário está em uso.
+> Observação: o front-end exibe um aviso “Modo suporte ativo” quando o token temporário está em uso. O portal do super admin agora possui uma tela dedicada para iniciar a impersonação.
 
 ## Super Admin
 O portal de **Super Admin** permite visualizar todos os workspaces, status de assinatura, plano atual, uso de mensagens/automações e logs de erro. Para habilitar um usuário, defina o campo `isSuperAdmin` como `true` no cadastro do usuário (ex.: via seed ou update manual no banco).
@@ -124,17 +125,20 @@ Rotas protegidas (requer `isSuperAdmin`):
 
 > Observação: o seed padrão já cria um usuário admin com `isSuperAdmin: true`.
 
+Seed padrão:
+- **E-mail do super admin**: `davidhenriqusms18@gmail.com` (recebe OTP real durante os testes).
+
 ## Automações (marketplace interno)
 Templates de automação agora possuem **versionamento** e **changelog**. Cada nova versão criada por um super admin registra o histórico e permite que workspaces escolham manter a versão atual ou atualizar para a mais recente.
 
 Fluxos suportados:
-- **Criar template**: `POST /api/automation-templates` (já cria a versão inicial).
-- **Criar nova versão**: `POST /api/automation-templates/:id/versions`.
+- **Criar template**: `POST /api/automation-templates` (já cria a versão inicial, restrito ao super admin).
+- **Criar nova versão**: `POST /api/automation-templates/:id/versions` (restrito ao super admin).
 - **Listar versões**: `GET /api/automation-templates/:id/versions`.
 - **Instalar versão específica**: `POST /api/automation-templates/:id/install` (payload com `versionId` opcional).
 - **Atualizar instância**: `POST /api/automations/:id/update-version`.
 
-> Observação: instâncias armazenam o `templateVersionId` para permitir fixar ou atualizar versões com segurança.
+> Observação: instâncias armazenam o `templateVersionId` para permitir fixar ou atualizar versões com segurança. No painel de automações do workspace é possível fixar a versão desejada ou atualizar para a última versão publicada.
 
 ## Estrutura do repositório
 ```text

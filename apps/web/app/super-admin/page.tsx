@@ -88,6 +88,12 @@ export default function SuperAdminPage() {
             <Link href="/dashboard">
               <Button variant="outline">Voltar ao dashboard</Button>
             </Link>
+            <Link href="/super-admin/support">
+              <Button variant="outline">Impersonação de suporte</Button>
+            </Link>
+            <Link href="/super-admin/templates">
+              <Button variant="outline">Templates de automação</Button>
+            </Link>
           </div>
         </div>
       </header>

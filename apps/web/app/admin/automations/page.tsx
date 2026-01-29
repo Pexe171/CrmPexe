@@ -16,8 +16,17 @@ type AutomationTemplate = {
   category: string;
   requiredIntegrations: string[];
   definitionJson: Record<string, unknown>;
+  changelog?: string | null;
+  currentVersion?: AutomationTemplateVersion | null;
   createdAt: string;
   updatedAt: string;
+};
+
+type AutomationTemplateVersion = {
+  id: string;
+  version: string;
+  changelog?: string | null;
+  createdAt: string;
 };
 
 type AutomationInstance = {
@@ -25,6 +34,7 @@ type AutomationInstance = {
   status: string;
   createdAt: string;
   template: AutomationTemplate;
+  templateVersion?: AutomationTemplateVersion | null;
 };
 
 type AutomationInstancesMeta = {
@@ -45,6 +55,7 @@ export default function AutomationsPage() {
   const [loading, setLoading] = useState(true);
   const [instancesLoading, setInstancesLoading] = useState(false);
   const [installingId, setInstallingId] = useState<string | null>(null);
+  const [updatingInstanceId, setUpdatingInstanceId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [instancesPage, setInstancesPage] = useState(1);
   const [instancesMeta, setInstancesMeta] = useState<AutomationInstancesMeta>({
@@ -55,6 +66,10 @@ export default function AutomationsPage() {
   });
   const [billingSummary, setBillingSummary] = useState<BillingSummary | null>(null);
   const [billingLoading, setBillingLoading] = useState(true);
+  const [templateVersions, setTemplateVersions] = useState<Record<string, AutomationTemplateVersion[]>>({});
+  const [loadingVersions, setLoadingVersions] = useState<Record<string, boolean>>({});
+  const [selectedTemplateVersions, setSelectedTemplateVersions] = useState<Record<string, string>>({});
+  const [selectedInstanceVersions, setSelectedInstanceVersions] = useState<Record<string, string>>({});
 
   const fetchTemplates = useCallback(async () => {
     const response = await fetch(`${apiUrl}/api/automation-templates`, {
@@ -68,6 +83,32 @@ export default function AutomationsPage() {
     const data = (await response.json()) as AutomationTemplate[];
     setTemplates(data);
   }, []);
+
+  const ensureTemplateVersions = useCallback(async (templateId: string) => {
+    if (templateVersions[templateId]) {
+      return;
+    }
+
+    setLoadingVersions((prev) => ({ ...prev, [templateId]: true }));
+
+    try {
+      const response = await fetch(`${apiUrl}/api/automation-templates/${templateId}/versions`, {
+        credentials: "include"
+      });
+
+      if (!response.ok) {
+        throw new Error("Não foi possível carregar as versões do template.");
+      }
+
+      const data = (await response.json()) as AutomationTemplateVersion[];
+      setTemplateVersions((prev) => ({ ...prev, [templateId]: data }));
+    } catch (fetchError) {
+      const message = fetchError instanceof Error ? fetchError.message : "Erro inesperado ao carregar versões.";
+      setError(message);
+    } finally {
+      setLoadingVersions((prev) => ({ ...prev, [templateId]: false }));
+    }
+  }, [templateVersions]);
 
   const fetchInstances = useCallback(async (page: number) => {
     const requestedPage = Math.max(page, 1);
@@ -162,6 +203,7 @@ export default function AutomationsPage() {
     setError(null);
 
     try {
+      const selectedVersionId = selectedTemplateVersions[templateId];
       const response = await fetch(`${apiUrl}/api/automation-templates/${templateId}/install`, {
         method: "POST",
         headers: {
@@ -172,7 +214,8 @@ export default function AutomationsPage() {
           configJson: {
             source: "ui",
             installedAt: new Date().toISOString()
-          }
+          },
+          versionId: selectedVersionId && selectedVersionId !== "latest" ? selectedVersionId : undefined
         })
       });
 
@@ -185,6 +228,37 @@ export default function AutomationsPage() {
       setError(installError instanceof Error ? installError.message : "Erro inesperado ao instalar automação.");
     } finally {
       setInstallingId(null);
+    }
+  };
+
+  const handleUpdateInstanceVersion = async (instanceId: string, versionId?: string) => {
+    if (!versionId) {
+      setError("Selecione uma versão válida.");
+      return;
+    }
+
+    setUpdatingInstanceId(instanceId);
+    setError(null);
+
+    try {
+      const response = await fetch(`${apiUrl}/api/automations/${instanceId}/update-version`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        credentials: "include",
+        body: JSON.stringify({ versionId })
+      });
+
+      if (!response.ok) {
+        throw new Error("Não foi possível atualizar a versão da automação.");
+      }
+
+      await fetchInstances(instancesPage);
+    } catch (updateError) {
+      setError(updateError instanceof Error ? updateError.message : "Erro inesperado ao atualizar versão.");
+    } finally {
+      setUpdatingInstanceId(null);
     }
   };
 
@@ -273,12 +347,40 @@ export default function AutomationsPage() {
                         )}
                       </div>
                     </div>
-                    <Button
-                      onClick={() => handleInstall(template.id)}
-                      disabled={installingId === template.id || isReadOnly || billingLoading}
-                    >
-                      {isReadOnly ? "Bloqueado" : installingId === template.id ? "Instalando..." : "Instalar"}
-                    </Button>
+                    <div className="flex flex-col gap-3">
+                      <label className="text-xs font-medium uppercase text-gray-400">
+                        Versão para instalar
+                      </label>
+                      <select
+                        className="rounded-lg border border-gray-200 px-3 py-2 text-sm"
+                        value={selectedTemplateVersions[template.id] ?? "latest"}
+                        onChange={(event) =>
+                          setSelectedTemplateVersions((prev) => ({
+                            ...prev,
+                            [template.id]: event.target.value
+                          }))
+                        }
+                        onFocus={() => void ensureTemplateVersions(template.id)}
+                        disabled={loadingVersions[template.id]}
+                      >
+                        <option value="latest">
+                          Última versão {template.currentVersion?.version ?? template.version}
+                        </option>
+                        {(templateVersions[template.id] ?? [])
+                          .filter((version) => version.id !== template.currentVersion?.id)
+                          .map((version) => (
+                            <option key={version.id} value={version.id}>
+                              {version.version}
+                            </option>
+                          ))}
+                      </select>
+                      <Button
+                        onClick={() => handleInstall(template.id)}
+                        disabled={installingId === template.id || isReadOnly || billingLoading}
+                      >
+                        {isReadOnly ? "Bloqueado" : installingId === template.id ? "Instalando..." : "Instalar"}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -312,10 +414,100 @@ export default function AutomationsPage() {
                         <p className="text-xs text-gray-500">
                           Instalada em {new Date(instance.createdAt).toLocaleString()}
                         </p>
+                        <p className="mt-1 text-xs text-gray-500">
+                          Versão atual:{" "}
+                          {instance.templateVersion?.version ??
+                            instance.template.currentVersion?.version ??
+                            instance.template.version}
+                        </p>
+                        {instance.template.currentVersion?.id &&
+                        instance.templateVersion?.id !== instance.template.currentVersion?.id ? (
+                          <p className="mt-1 text-xs text-amber-600">
+                            Nova versão disponível: {instance.template.currentVersion?.version}
+                          </p>
+                        ) : null}
                       </div>
                       <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
                         {instance.status}
                       </span>
+                    </div>
+                    <div className="mt-4 flex flex-col gap-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {(() => {
+                          const fallbackVersions: AutomationTemplateVersion[] = [];
+                          if (instance.template.currentVersion) {
+                            fallbackVersions.push(instance.template.currentVersion);
+                          }
+                          if (instance.templateVersion && instance.templateVersion.id !== instance.template.currentVersion?.id) {
+                            fallbackVersions.push(instance.templateVersion);
+                          }
+                          const availableVersions =
+                            templateVersions[instance.template.id] && templateVersions[instance.template.id].length > 0
+                              ? templateVersions[instance.template.id]
+                              : fallbackVersions;
+
+                          return (
+                        <select
+                          className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-xs"
+                          value={
+                            selectedInstanceVersions[instance.id] ??
+                            instance.templateVersion?.id ??
+                            instance.template.currentVersion?.id ??
+                            ""
+                          }
+                          onChange={(event) =>
+                            setSelectedInstanceVersions((prev) => ({
+                              ...prev,
+                              [instance.id]: event.target.value
+                            }))
+                          }
+                          onFocus={() => void ensureTemplateVersions(instance.template.id)}
+                          disabled={loadingVersions[instance.template.id]}
+                        >
+                          <option value="" disabled>
+                            Selecione uma versão
+                          </option>
+                          {availableVersions
+                            .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+                            .map((version) => (
+                              <option key={version.id} value={version.id}>
+                                {version.version}
+                              </option>
+                            ))}
+                        </select>
+                          );
+                        })()}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={
+                            updatingInstanceId === instance.id ||
+                            !selectedInstanceVersions[instance.id]
+                          }
+                          onClick={() =>
+                            void handleUpdateInstanceVersion(
+                              instance.id,
+                              selectedInstanceVersions[instance.id]
+                            )
+                          }
+                        >
+                          {updatingInstanceId === instance.id ? "Atualizando..." : "Fixar versão"}
+                        </Button>
+                      </div>
+                      {instance.template.currentVersion?.id ? (
+                        <Button
+                          size="sm"
+                          onClick={() =>
+                            void handleUpdateInstanceVersion(
+                              instance.id,
+                              instance.template.currentVersion?.id
+                            )
+                          }
+                          disabled={updatingInstanceId === instance.id}
+                        >
+                          Atualizar para última versão
+                        </Button>
+                      ) : null}
                     </div>
                   </div>
                 ))}
