@@ -105,6 +105,20 @@ pnpm typecheck    # Typecheck de todos os apps
 ## Endpoints principais
 - **Health check**: `GET /api/health` → `{ status: "ok", service: "crmpexe-api" }`.
 
+## Super Admin (portal interno)
+As rotas abaixo são restritas a usuários com a flag `superAdmin` habilitada no banco de dados. O controle é feito via `AccessTokenGuard` + `SuperAdminGuard`.
+
+### Campos de usuário
+- `User.superAdmin` (boolean, padrão `false`): habilita acesso ao portal Super Admin.
+
+### Rotas (API)
+- `GET /api/super-admin/workspaces`
+  - Retorna lista paginada de workspaces com **status**, **plano** e **uso** (mensagens e automações).
+  - Query params: `page`, `perPage`.
+- `GET /api/super-admin/error-logs`
+  - Retorna logs de erro (AI + automações com falha).
+  - Query params: `workspaceId`, `page`, `perPage`.
+
 
 ## Estrutura do repositório
 ```text

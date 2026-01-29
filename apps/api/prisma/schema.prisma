@@ -182,6 +182,7 @@ model User {
   name         String
   contact      String   @default("")
   role         UserRole @default(USER)
+  superAdmin   Boolean  @default(false)
   refreshTokenHash String?
   currentWorkspaceId String?
   createdAt    DateTime @default(now())

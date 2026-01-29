@@ -5,6 +5,7 @@ export type AuthUser = {
   id: string;
   email: string;
   role: UserRole;
+  superAdmin: boolean;
   currentWorkspaceId?: string | null;
 };
 
