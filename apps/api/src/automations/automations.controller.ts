@@ -14,8 +14,10 @@ import { CurrentUser } from "../auth/current-user.decorator";
 import { AuthUser } from "../auth/auth.types";
 import { Roles } from "../auth/roles.decorator";
 import { RolesGuard } from "../auth/roles.guard";
+import { SuperAdminGuard } from "../auth/super-admin.guard";
 import { AutomationsService } from "./automations.service";
 import { CreateAutomationTemplateDto } from "./dto/create-automation-template.dto";
+import { CreateAutomationTemplateVersionDto } from "./dto/create-automation-template-version.dto";
 import { InstallAutomationTemplateDto } from "./dto/install-automation-template.dto";
 
 @Controller()
@@ -29,13 +31,26 @@ export class AutomationsController {
   }
 
   @Post("automation-templates")
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @UseGuards(SuperAdminGuard)
   async createTemplate(
     @CurrentUser() user: AuthUser,
     @Body() body: CreateAutomationTemplateDto
   ) {
     return this.automationsService.createTemplate(user.id, body);
+  }
+
+  @Post("automation-templates/:id/versions")
+  @UseGuards(SuperAdminGuard)
+  async createTemplateVersion(
+    @CurrentUser() user: AuthUser,
+    @Param("id") templateId: string,
+    @Body() body: CreateAutomationTemplateVersionDto
+  ) {
+    return this.automationsService.createTemplateVersion(
+      user.id,
+      templateId,
+      body
+    );
   }
 
   @Post("automation-templates/:id/install")
@@ -104,6 +119,21 @@ export class AutomationsController {
     @Headers("x-workspace-id") workspaceId?: string
   ) {
     return this.automationsService.disableAutomation(
+      user.id,
+      instanceId,
+      workspaceId
+    );
+  }
+
+  @Post("automation-instances/:id/upgrade")
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  async upgradeInstance(
+    @CurrentUser() user: AuthUser,
+    @Param("id") instanceId: string,
+    @Headers("x-workspace-id") workspaceId?: string
+  ) {
+    return this.automationsService.upgradeAutomationInstance(
       user.id,
       instanceId,
       workspaceId

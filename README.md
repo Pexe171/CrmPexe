@@ -111,8 +111,19 @@ O portal de **Super Admin** permite visualizar todos os workspaces, status de as
 Rotas protegidas (requer `isSuperAdmin`):
 - **Lista de workspaces**: `GET /api/super-admin/workspaces` (retorna status, plano e uso consolidado).
 - **Logs de erro**: `GET /api/super-admin/error-logs` (retorna falhas de IA com workspace e mensagem).
+- **Impersonação de suporte**: `POST /api/super-admin/workspaces/:workspaceId/impersonate` (gera token temporário para entrar como membro do workspace e registra em audit log).
 
 > Observação: o seed padrão já cria um usuário admin com `isSuperAdmin: true`.
+
+## Modo suporte (impersonate)
+- O super admin pode gerar um token temporário de suporte para entrar como membro de um workspace.
+- Ao consumir o token no endpoint `POST /api/auth/impersonate`, a sessão recebe cookies temporários e a interface exibe o aviso **“Modo suporte ativo”**.
+- O token é de uso único e expira automaticamente após alguns minutos (configurável por `SUPPORT_IMPERSONATION_TTL_MS`).
+
+## Templates de automação (marketplace interno)
+- Templates agora possuem **versionamento** (`v1`, `v2`, etc.) e **changelog**.
+- Workspaces podem **fixar** uma versão específica ao instalar e, quando desejarem, **atualizar** a instância para a versão mais recente via endpoint `POST /api/automation-instances/:id/upgrade`.
+- O agrupamento de versões é feito pela chave `templateKey`, permitindo múltiplas versões do mesmo template.
 
 
 ## Estrutura do repositório

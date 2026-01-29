@@ -29,6 +29,9 @@ export class AuthService {
   private readonly refreshTokenExpiresIn =
     process.env.JWT_REFRESH_EXPIRES_IN || "7d";
   private readonly otpTtlMs = Number(process.env.OTP_TTL_MS || 10 * 60 * 1000);
+  private readonly supportTokenTtlMs = Number(
+    process.env.SUPPORT_IMPERSONATION_TTL_MS || 15 * 60 * 1000
+  );
 
   constructor(
     private readonly prisma: PrismaService,
@@ -191,7 +194,10 @@ export class AuthService {
     const tokens = await this.issueTokens({
       id: user.id,
       email: user.email,
-      role: user.role
+      role: user.role,
+      impersonatorId: payload.impersonatorId,
+      supportWorkspaceId: payload.supportWorkspaceId,
+      supportMode: payload.supportMode
     });
     await this.persistRefreshToken(user.id, tokens.refreshToken);
 
@@ -223,20 +229,110 @@ export class AuthService {
     }
   }
 
-  async issueTokens(user: { id: string; email: string; role: UserRole }) {
-    const payload = { sub: user.id, email: user.email, role: user.role };
+  async issueTokens(
+    user: {
+      id: string;
+      email: string;
+      role: UserRole;
+      impersonatorId?: string | null;
+      supportWorkspaceId?: string | null;
+      supportMode?: boolean;
+    },
+    options?: { accessExpiresIn?: string; refreshExpiresIn?: string }
+  ) {
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      impersonatorId: user.impersonatorId ?? undefined,
+      supportWorkspaceId: user.supportWorkspaceId ?? undefined,
+      supportMode: user.supportMode ?? undefined
+    };
 
     const accessToken = await this.jwtService.signAsync(payload, {
       secret: this.accessTokenSecret,
-      expiresIn: this.accessTokenExpiresIn
+      expiresIn: options?.accessExpiresIn ?? this.accessTokenExpiresIn
     });
 
     const refreshToken = await this.jwtService.signAsync(payload, {
       secret: this.refreshTokenSecret,
-      expiresIn: this.refreshTokenExpiresIn
+      expiresIn: options?.refreshExpiresIn ?? this.refreshTokenExpiresIn
     });
 
     return { accessToken, refreshToken };
+  }
+
+  async impersonateSupportUser(token: string) {
+    const normalizedToken = token?.trim();
+
+    if (!normalizedToken) {
+      throw new UnauthorizedException("Token de suporte inválido.");
+    }
+
+    const tokenHash = this.hashSupportToken(normalizedToken);
+    const record = await this.prisma.supportImpersonationToken.findFirst({
+      where: {
+        tokenHash,
+        usedAt: null,
+        expiresAt: { gt: new Date() }
+      },
+      include: {
+        targetUser: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            role: true,
+            isSuperAdmin: true
+          }
+        }
+      }
+    });
+
+    if (!record || !record.targetUser) {
+      throw new UnauthorizedException("Token de suporte inválido ou expirado.");
+    }
+
+    await this.prisma.supportImpersonationToken.update({
+      where: { id: record.id },
+      data: { usedAt: new Date() }
+    });
+
+    const expiresInSeconds = Math.max(
+      Math.floor(this.supportTokenTtlMs / 1000),
+      60
+    );
+    const expiresIn = `${expiresInSeconds}s`;
+
+    const tokens = await this.issueTokens(
+      {
+        id: record.targetUser.id,
+        email: record.targetUser.email,
+        role: record.targetUser.role,
+        impersonatorId: record.createdByAdminId,
+        supportWorkspaceId: record.workspaceId,
+        supportMode: true
+      },
+      {
+        accessExpiresIn: expiresIn,
+        refreshExpiresIn: expiresIn
+      }
+    );
+
+    return {
+      user: {
+        id: record.targetUser.id,
+        email: record.targetUser.email,
+        name: record.targetUser.name,
+        role: record.targetUser.role,
+        isSuperAdmin: record.targetUser.isSuperAdmin,
+        supportMode: true,
+        supportWorkspaceId: record.workspaceId,
+        impersonatorId: record.createdByAdminId
+      },
+      tokens,
+      expiresAt: new Date(Date.now() + this.supportTokenTtlMs)
+    };
   }
 
   async verifyAccessToken(token: string) {
@@ -245,6 +341,9 @@ export class AuthService {
         sub: string;
         email: string;
         role: UserRole;
+        impersonatorId?: string;
+        supportWorkspaceId?: string;
+        supportMode?: boolean;
       }>(token, {
         secret: this.accessTokenSecret
       });
@@ -259,6 +358,9 @@ export class AuthService {
         sub: string;
         email: string;
         role: UserRole;
+        impersonatorId?: string;
+        supportWorkspaceId?: string;
+        supportMode?: boolean;
       }>(token, {
         secret: this.refreshTokenSecret
       });
@@ -310,6 +412,10 @@ export class AuthService {
     return createHash("sha256")
       .update(`${refreshToken}.${this.refreshTokenSecret}`)
       .digest("hex");
+  }
+
+  private hashSupportToken(token: string) {
+    return createHash("sha256").update(token).digest("hex");
   }
 
   private async sendOtpEmail(email: string, code: string, purpose: OtpPurpose) {
