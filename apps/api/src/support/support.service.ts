@@ -60,8 +60,38 @@ export class SupportService {
       targetUser: {
         id: membership.user.id,
         email: membership.user.email,
-        name: membership.user.name
+        name: membership.user.name,
+        role: membership.user.role
       }
     };
+  }
+
+  async listWorkspaceMembers(workspaceId: string) {
+    const trimmedWorkspaceId = workspaceId.trim();
+
+    if (!trimmedWorkspaceId) {
+      throw new BadRequestException("Workspace é obrigatório.");
+    }
+
+    const workspace = await this.prisma.workspace.findUnique({
+      where: { id: trimmedWorkspaceId },
+      select: { id: true }
+    });
+
+    if (!workspace) {
+      throw new NotFoundException("Workspace não encontrado.");
+    }
+
+    const members = await this.prisma.workspaceMember.findMany({
+      where: { workspaceId: trimmedWorkspaceId },
+      include: { user: true }
+    });
+
+    return members.map((member) => ({
+      id: member.user.id,
+      name: member.user.name,
+      email: member.user.email,
+      role: member.user.role
+    }));
   }
 }

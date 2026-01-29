@@ -14,6 +14,7 @@ import { CurrentUser } from "../auth/current-user.decorator";
 import { AuthUser } from "../auth/auth.types";
 import { Roles } from "../auth/roles.decorator";
 import { RolesGuard } from "../auth/roles.guard";
+import { SuperAdminGuard } from "../auth/super-admin.guard";
 import { AutomationsService } from "./automations.service";
 import { CreateAutomationTemplateDto } from "./dto/create-automation-template.dto";
 import { CreateAutomationTemplateVersionDto } from "./dto/create-automation-template-version.dto";
@@ -31,8 +32,7 @@ export class AutomationsController {
   }
 
   @Post("automation-templates")
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @UseGuards(SuperAdminGuard)
   async createTemplate(
     @CurrentUser() user: AuthUser,
     @Body() body: CreateAutomationTemplateDto
@@ -48,8 +48,7 @@ export class AutomationsController {
   }
 
   @Post("automation-templates/:id/versions")
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @UseGuards(SuperAdminGuard)
   async createTemplateVersion(
     @CurrentUser() user: AuthUser,
     @Param("id") templateId: string,

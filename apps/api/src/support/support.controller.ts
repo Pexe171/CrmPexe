@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, UseGuards } from "@nestjs/common";
 import { AccessTokenGuard } from "../auth/access-token.guard";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { AuthUser } from "../auth/auth.types";
@@ -22,5 +22,10 @@ export class SupportController {
       workspaceId: body.workspaceId,
       reason: body.reason
     });
+  }
+
+  @Get("workspaces/:id/members")
+  async listWorkspaceMembers(@Param("id") workspaceId: string) {
+    return this.supportService.listWorkspaceMembers(workspaceId);
   }
 }
