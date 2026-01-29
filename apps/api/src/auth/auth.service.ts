@@ -152,7 +152,8 @@ export class AuthService {
         email: user.email,
         name: user.name,
         contact: user.contact,
-        role: user.role
+        role: user.role,
+        isSuperAdmin: user.isSuperAdmin
       },
       tokens
     };
@@ -171,6 +172,7 @@ export class AuthService {
         email: true,
         name: true,
         role: true,
+        isSuperAdmin: true,
         refreshTokenHash: true
       }
     });
@@ -198,7 +200,8 @@ export class AuthService {
         id: user.id,
         email: user.email,
         name: user.name,
-        role: user.role
+        role: user.role,
+        isSuperAdmin: user.isSuperAdmin
       },
       tokens
     };

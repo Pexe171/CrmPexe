@@ -105,6 +105,15 @@ pnpm typecheck    # Typecheck de todos os apps
 ## Endpoints principais
 - **Health check**: `GET /api/health` → `{ status: "ok", service: "crmpexe-api" }`.
 
+## Super Admin
+O portal de **Super Admin** permite visualizar todos os workspaces, status de assinatura, plano atual, uso de mensagens/automações e logs de erro. Para habilitar um usuário, defina o campo `isSuperAdmin` como `true` no cadastro do usuário (ex.: via seed ou update manual no banco).
+
+Rotas protegidas (requer `isSuperAdmin`):
+- **Lista de workspaces**: `GET /api/super-admin/workspaces` (retorna status, plano e uso consolidado).
+- **Logs de erro**: `GET /api/super-admin/error-logs` (retorna falhas de IA com workspace e mensagem).
+
+> Observação: o seed padrão já cria um usuário admin com `isSuperAdmin: true`.
+
 
 ## Estrutura do repositório
 ```text

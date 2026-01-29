@@ -43,7 +43,13 @@ export class AccessTokenGuard implements CanActivate {
 
       const user = await this.prisma.user.findUnique({
         where: { id: payload.sub },
-        select: { id: true, email: true, role: true, currentWorkspaceId: true }
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          isSuperAdmin: true,
+          currentWorkspaceId: true
+        }
       });
 
       if (!user) {
@@ -58,6 +64,7 @@ export class AccessTokenGuard implements CanActivate {
         id: user.id,
         email: user.email,
         role: user.role,
+        isSuperAdmin: user.isSuperAdmin,
         currentWorkspaceId: user.currentWorkspaceId
       };
       return true;

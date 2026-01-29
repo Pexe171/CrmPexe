@@ -111,7 +111,8 @@ describe("AuthService", () => {
       email: "user@example.com",
       name: "User",
       contact: "WhatsApp",
-      role: UserRole.USER
+      role: UserRole.USER,
+      isSuperAdmin: false
     });
     prismaMock.user.update.mockResolvedValue({ id: "user-1" });
     const signAsyncMock = jwtService.signAsync as jest.Mock;
@@ -163,7 +164,8 @@ describe("AuthService", () => {
       email: "new-user@example.com",
       name: "Novo Usuário",
       contact: "Contato",
-      role: UserRole.USER
+      role: UserRole.USER,
+      isSuperAdmin: false
     });
     prismaMock.user.update.mockResolvedValue({ id: "user-2" });
     const signAsyncMock = jwtService.signAsync as jest.Mock;

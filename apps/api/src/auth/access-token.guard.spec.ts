@@ -37,6 +37,7 @@ describe("AccessTokenGuard", () => {
       id: "user-1",
       email: "user@example.com",
       role: UserRole.ADMIN,
+      isSuperAdmin: false,
       currentWorkspaceId: "ws-1"
     });
 
@@ -52,6 +53,7 @@ describe("AccessTokenGuard", () => {
       id: "user-1",
       email: "user@example.com",
       role: UserRole.ADMIN,
+      isSuperAdmin: false,
       currentWorkspaceId: "ws-1"
     });
   });
@@ -66,6 +68,7 @@ describe("AccessTokenGuard", () => {
       id: "user-1",
       email: "user@example.com",
       role: UserRole.USER,
+      isSuperAdmin: false,
       currentWorkspaceId: "ws-1"
     });
 

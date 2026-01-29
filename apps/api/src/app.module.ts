@@ -22,6 +22,7 @@ import { WorkspacesModule } from "./workspaces/workspaces.module";
 import { WorkspaceVariablesModule } from "./workspace-variables/workspace-variables.module";
 import { BillingModule } from "./billing/billing.module";
 import { AiModule } from "./ai/ai.module";
+import { SuperAdminModule } from "./super-admin/super-admin.module";
 
 @Module({
   imports: [
@@ -45,7 +46,8 @@ import { AiModule } from "./ai/ai.module";
     MessageTemplatesModule,
     WebhooksModule,
     BillingModule,
-    AiModule
+    AiModule,
+    SuperAdminModule
   ],
   controllers: [AppController],
   providers: [AppService]

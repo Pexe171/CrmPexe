@@ -4,6 +4,9 @@ import { SESSION_COOKIE, SESSION_MAX_AGE } from "@/lib/auth";
 import {
   ROLE_COOKIE,
   ROLE_COOKIE_MAX_AGE,
+  SUPER_ADMIN_COOKIE,
+  SUPER_ADMIN_COOKIE_MAX_AGE,
+  normalizeSuperAdminFlag,
   normalizeUserRole
 } from "@/lib/rbac";
 
@@ -71,6 +74,7 @@ export async function POST(request: Request) {
   });
 
   const role = normalizeUserRole(apiPayload?.role) ?? "USER";
+  const isSuperAdmin = normalizeSuperAdminFlag(String(apiPayload?.isSuperAdmin ?? "false"));
 
   response.cookies.set(SESSION_COOKIE, crypto.randomUUID(), {
     httpOnly: true,
@@ -84,6 +88,13 @@ export async function POST(request: Request) {
     sameSite: "lax",
     path: "/",
     maxAge: ROLE_COOKIE_MAX_AGE
+  });
+
+  response.cookies.set(SUPER_ADMIN_COOKIE, String(isSuperAdmin), {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+    maxAge: SUPER_ADMIN_COOKIE_MAX_AGE
   });
 
   return response;
