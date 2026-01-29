@@ -7,5 +7,4 @@ export type AuditLogAction =
   | "WORKSPACE_CREATED"
   | "WORKSPACE_UPDATED"
   | "ROLE_ASSIGNED"
-  | "ROLE_REVOKED"
-  | "IMPERSONATION_STARTED";
+  | "ROLE_REVOKED";

@@ -13,10 +13,6 @@ export class CreateAutomationTemplateDto {
   @IsNotEmpty()
   version!: string;
 
-  @IsOptional()
-  @IsString()
-  changelog?: string | null;
-
   @IsString()
   @IsNotEmpty()
   category!: string;

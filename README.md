@@ -51,7 +51,6 @@ Variáveis usadas pela API hoje:
 - `JWT_REFRESH_SECRET` (**obrigatória em produção**) — segredo do refresh token.
 - `JWT_ACCESS_EXPIRES_IN` (opcional, padrão `15m`).
 - `JWT_REFRESH_EXPIRES_IN` (opcional, padrão `7d`).
-- `JWT_IMPERSONATION_EXPIRES_IN` (opcional, padrão `15m`) — validade do token temporário de suporte.
 - `OTP_TTL_MS` (opcional, padrão 10 min) — TTL do OTP.
 - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` (opcional) — envio de e-mail OTP.
 - `CORS_ORIGIN` (opcional, padrão `http://localhost:3000`) — origens permitidas.
@@ -106,15 +105,6 @@ pnpm typecheck    # Typecheck de todos os apps
 ## Endpoints principais
 - **Health check**: `GET /api/health` → `{ status: "ok", service: "crmpexe-api" }`.
 
-## Suporte (impersonate)
-O modo de suporte permite que um **super admin** gere um token temporário para entrar como membro de um workspace. Todas as ações são registradas no audit log com a ação `IMPERSONATION_STARTED`.
-
-Rotas principais:
-- **Gerar token de suporte**: `POST /api/support/impersonations` (payload com `workspaceId`, `userId` e `reason` opcional).
-- **Consultar sessão atual**: `GET /api/auth/me` (retorna se o usuário está em modo suporte).
-
-> Observação: o front-end exibe um aviso “Modo suporte ativo” quando o token temporário está em uso.
-
 ## Super Admin
 O portal de **Super Admin** permite visualizar todos os workspaces, status de assinatura, plano atual, uso de mensagens/automações e logs de erro. Para habilitar um usuário, defina o campo `isSuperAdmin` como `true` no cadastro do usuário (ex.: via seed ou update manual no banco).
 
@@ -124,17 +114,6 @@ Rotas protegidas (requer `isSuperAdmin`):
 
 > Observação: o seed padrão já cria um usuário admin com `isSuperAdmin: true`.
 
-## Automações (marketplace interno)
-Templates de automação agora possuem **versionamento** e **changelog**. Cada nova versão criada por um super admin registra o histórico e permite que workspaces escolham manter a versão atual ou atualizar para a mais recente.
-
-Fluxos suportados:
-- **Criar template**: `POST /api/automation-templates` (já cria a versão inicial).
-- **Criar nova versão**: `POST /api/automation-templates/:id/versions`.
-- **Listar versões**: `GET /api/automation-templates/:id/versions`.
-- **Instalar versão específica**: `POST /api/automation-templates/:id/install` (payload com `versionId` opcional).
-- **Atualizar instância**: `POST /api/automations/:id/update-version`.
-
-> Observação: instâncias armazenam o `templateVersionId` para permitir fixar ou atualizar versões com segurança.
 
 ## Estrutura do repositório
 ```text

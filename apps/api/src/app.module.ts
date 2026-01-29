@@ -2,7 +2,6 @@ import { Module } from "@nestjs/common";
 import { AuthModule } from "./auth/auth.module";
 import { AutomationsModule } from "./automations/automations.module";
 import { AuditLogsModule } from "./audit-logs/audit-logs.module";
-import { SupportModule } from "./support/support.module";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { CompaniesModule } from "./companies/companies.module";
@@ -33,7 +32,6 @@ import { SuperAdminModule } from "./super-admin/super-admin.module";
     WorkspacesModule,
     WorkspaceVariablesModule,
     AuditLogsModule,
-    SupportModule,
     CompaniesModule,
     ConversationsModule,
     ChannelsModule,

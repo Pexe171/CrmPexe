@@ -10,6 +10,6 @@ import { SuperAdminGuard } from "./super-admin.guard";
   imports: [JwtModule.register({})],
   controllers: [AuthController],
   providers: [AuthService, AccessTokenGuard, RolesGuard, SuperAdminGuard],
-  exports: [JwtModule, AuthService, AccessTokenGuard, RolesGuard, SuperAdminGuard]
+  exports: [JwtModule, AccessTokenGuard, RolesGuard, SuperAdminGuard]
 })
 export class AuthModule {}

@@ -28,8 +28,6 @@ export class AuthService {
     process.env.JWT_ACCESS_EXPIRES_IN || "15m";
   private readonly refreshTokenExpiresIn =
     process.env.JWT_REFRESH_EXPIRES_IN || "7d";
-  private readonly impersonationTokenExpiresIn =
-    process.env.JWT_IMPERSONATION_EXPIRES_IN || "15m";
   private readonly otpTtlMs = Number(process.env.OTP_TTL_MS || 10 * 60 * 1000);
 
   constructor(
@@ -239,32 +237,6 @@ export class AuthService {
     });
 
     return { accessToken, refreshToken };
-  }
-
-  async issueImpersonationToken(payload: {
-    userId: string;
-    email: string;
-    role: UserRole;
-    impersonatedByUserId: string;
-    impersonatedWorkspaceId: string;
-  }) {
-    const tokenPayload = {
-      sub: payload.userId,
-      email: payload.email,
-      role: payload.role,
-      impersonatedByUserId: payload.impersonatedByUserId,
-      impersonatedWorkspaceId: payload.impersonatedWorkspaceId
-    };
-
-    const accessToken = await this.jwtService.signAsync(tokenPayload, {
-      secret: this.accessTokenSecret,
-      expiresIn: this.impersonationTokenExpiresIn
-    });
-
-    return {
-      accessToken,
-      expiresIn: this.impersonationTokenExpiresIn
-    };
   }
 
   async verifyAccessToken(token: string) {

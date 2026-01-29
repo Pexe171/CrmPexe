@@ -1,11 +1,8 @@
-import { Body, Controller, Get, Post, Req, Res, UseGuards } from "@nestjs/common";
+import { Body, Controller, Post, Req, Res } from "@nestjs/common";
 import { Request, Response } from "express";
-import { AccessTokenGuard } from "./access-token.guard";
 import { AuthService } from "./auth.service";
-import { CurrentUser } from "./current-user.decorator";
 import { RequestOtpDto } from "./dto/request-otp.dto";
 import { VerifyOtpDto } from "./dto/verify-otp.dto";
-import { AuthUser } from "./auth.types";
 
 @Controller("auth")
 export class AuthController {
@@ -37,21 +34,6 @@ export class AuthController {
     await this.authService.logout(refreshToken);
     this.clearAuthCookies(res);
     return { message: "Logout realizado com sucesso." };
-  }
-
-  @Get("me")
-  @UseGuards(AccessTokenGuard)
-  async me(@CurrentUser() user: AuthUser) {
-    return {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      isSuperAdmin: user.isSuperAdmin,
-      currentWorkspaceId: user.currentWorkspaceId,
-      isImpersonated: user.isImpersonated ?? false,
-      impersonatedByUserId: user.impersonatedByUserId ?? null,
-      impersonatedWorkspaceId: user.impersonatedWorkspaceId ?? null
-    };
   }
 
   private setAuthCookies(res: Response, accessToken: string, refreshToken: string) {
