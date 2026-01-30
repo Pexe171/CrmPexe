@@ -58,6 +58,7 @@ Variáveis usadas pela API hoje:
 - `REDIS_URL` (opcional) **ou** `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD` — configuração da fila de processamento de IA.
 - `AI_PROCESSING_CONCURRENCY` (opcional, padrão `3`).
 - `INTEGRATION_ENCRYPTION_KEY` (opcional) — chave para criptografia de integrações.
+- `MERCADOPAGO_WEBHOOK_SECRET` (**obrigatória em produção**) — segredo para validar assinatura do webhook de billing.
 - `SLA_RESPONSE_SECONDS` (opcional, padrão `900`) — SLA de resposta em conversas.
 - `NODE_ENV` (opcional) — ativa validações extras em produção.
 - `AUTH_RATE_LIMIT_WINDOW_MS` (opcional, padrão `600000`) — janela do rate limit em endpoints de auth (ms).

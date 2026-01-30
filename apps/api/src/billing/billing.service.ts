@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
+import { createHmac, timingSafeEqual } from "crypto";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuthUser } from "../auth/auth.types";
 import { MercadoPagoWebhookPayload } from "./dto/mercado-pago-webhook.dto";
@@ -87,15 +88,67 @@ export class BillingService {
     payload: MercadoPagoWebhookPayload,
     headers: Record<string, string | undefined>
   ): boolean {
+    const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
     const signature = headers["x-signature"];
     const requestId = headers["x-request-id"];
 
-    // TODO: Validar o x-signature conforme a documentação do Mercado Pago (timestamp + assinatura HMAC).
-    // Manteremos o placeholder para implementar a verificação criptográfica quando as chaves forem configuradas.
-    void payload;
-    void signature;
-    void requestId;
+    if (!secret) {
+      return process.env.NODE_ENV !== "production";
+    }
 
-    return true;
+    if (!signature || !requestId) {
+      return false;
+    }
+
+    const parsedSignature = this.parseSignature(signature);
+    if (!parsedSignature?.ts || !parsedSignature?.v1) {
+      return false;
+    }
+
+    const timestamp = Number(parsedSignature.ts);
+    if (!Number.isFinite(timestamp)) {
+      return false;
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    const maxSkewSeconds = 300;
+    if (Math.abs(now - timestamp) > maxSkewSeconds) {
+      return false;
+    }
+
+    const payloadId = String(payload.data?.id ?? payload.id ?? "");
+    if (!payloadId) {
+      return false;
+    }
+
+    const signatureBase = `${timestamp}.${requestId}.${payloadId}`;
+    const expected = createHmac("sha256", secret).update(signatureBase).digest("hex");
+
+    return this.safeCompare(expected, parsedSignature.v1);
+  }
+
+  private parseSignature(signature: string): { ts?: string; v1?: string } | null {
+    const parts = signature.split(",");
+    const entries = parts
+      .map((part) => part.trim().split("="))
+      .filter((entry) => entry.length === 2 && entry[0] && entry[1]);
+
+    if (entries.length === 0) {
+      return null;
+    }
+
+    const record = Object.fromEntries(entries) as Record<string, string>;
+    return { ts: record.ts, v1: record.v1 };
+  }
+
+  private safeCompare(expected: string, received: string): boolean {
+    const expectedBuffer = Buffer.from(expected, "utf8");
+    const receivedBuffer = Buffer.from(received, "utf8");
+
+    if (expectedBuffer.length !== receivedBuffer.length) {
+      return false;
+    }
+
+    return timingSafeEqual(expectedBuffer, receivedBuffer);
   }
 }
