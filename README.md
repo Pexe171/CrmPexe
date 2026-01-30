@@ -53,6 +53,7 @@ Variáveis usadas pela API hoje:
 - `JWT_REFRESH_EXPIRES_IN` (opcional, padrão `7d`).
 - `JWT_IMPERSONATION_EXPIRES_IN` (opcional, padrão `15m`) — validade do token temporário de suporte.
 - `OTP_TTL_MS` (opcional, padrão 10 min) — TTL do OTP.
+- `OTP_DAILY_LIMIT` (opcional, padrão `20`) — limite diário de OTP por e-mail.
 - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` (opcional) — envio de e-mail OTP.
 - `CORS_ORIGIN` (opcional, padrão `http://localhost:3000`) — origens permitidas.
 - `REDIS_URL` (opcional) **ou** `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD` — configuração da fila de processamento de IA.
@@ -168,6 +169,7 @@ Fluxos suportados:
 - O prefixo global da API é `/api`, então todas as rotas são prefixadas automaticamente.
 - O backend gera **logs JSON** com `correlationId` por request (header `x-correlation-id`) e registra chamadas externas (n8n, WhatsApp, billing) com tempo e status.
 - Endpoints de **auth** e **webhooks** aplicam rate limit por IP e workspace. Tentativas de login inválidas são bloqueadas após exceder o limite configurado. Captcha pode ser habilitado via variáveis de ambiente.
+- O fluxo de OTP invalida códigos anteriores ao gerar um novo e aplica limite diário por e-mail. A verificação usa um fingerprint simples (hash de IP + user-agent) para balancear tentativas de login.
 
 ## Roadmap (pendências priorizadas)
 - **Rotation de secrets**: permitir recriptografar integrações quando a chave de criptografia mudar.

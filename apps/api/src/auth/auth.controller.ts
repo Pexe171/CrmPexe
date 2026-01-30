@@ -27,7 +27,8 @@ export class AuthController {
   })
   async requestOtp(@Body() body: RequestOtpDto, @Req() req: Request) {
     return this.authService.requestOtp(body, {
-      ip: this.resolveClientIp(req)
+      ip: this.resolveClientIp(req),
+      userAgent: this.resolveUserAgent(req)
     });
   }
 
@@ -46,7 +47,8 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response
   ) {
     const result = await this.authService.verifyOtp(body, {
-      ip: this.resolveClientIp(req)
+      ip: this.resolveClientIp(req),
+      userAgent: this.resolveUserAgent(req)
     });
     this.setAuthCookies(res, result.tokens.accessToken, result.tokens.refreshToken);
     return result.user;
@@ -124,5 +126,9 @@ export class AuthController {
       return forwardedFor.split(",")[0].trim();
     }
     return req.ip;
+  }
+
+  private resolveUserAgent(req: Request) {
+    return req.headers["user-agent"]?.toString();
   }
 }
