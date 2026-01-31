@@ -12,8 +12,6 @@ async function main() {
   const workspace = await prisma.workspace.create({
     data: {
       name: 'Workspace Demo',
-      brandName: 'Workspace Demo',
-      locale: 'pt-BR',
     },
   });
 
@@ -43,11 +41,10 @@ async function main() {
 
   const user = await prisma.user.create({
     data: {
-      email: 'davidhenriqusms18@gmail.com',
+      email: 'davidhenriquesms18@gmail.com',
       name: 'Admin',
       contact: 'Admin',
       role: UserRole.ADMIN,
-      isSuperAdmin: true,
     },
   });
 
