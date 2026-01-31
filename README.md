@@ -71,6 +71,7 @@ Variáveis usadas pela API hoje:
 - `LOGIN_BLOCK_MS` (opcional, padrão `900000`) — tempo de bloqueio após exceder tentativas.
 - `CAPTCHA_REQUIRED` (opcional, padrão `false`) — força captcha em auth quando `true`.
 - `CAPTCHA_SECRET` (opcional) — segredo para validar captcha simples via token.
+- `WORKSPACE_RETENTION_DAYS` (opcional, padrão `30`) — dias de retenção para exclusão LGPD do workspace.
 
 > Observação: `MERCADOPAGO_ACCESS_TOKEN` e `MERCADOPAGO_PUBLIC_KEY` existem no `.env.example`, mas **não são usadas pelo código atual** (mantidas para futuras integrações).
 
@@ -102,6 +103,55 @@ pnpm dev
 - API disponível em: `http://localhost:3001/api` (health: `/api/health`).
 - Web disponível em: `http://localhost:3000`.
 
+### PASSO 55 — Backups e migrações seguras
+**Objetivo:** garantir continuidade e restauração rápida do banco PostgreSQL.
+
+#### Backup do Postgres (dump lógico)
+Exemplo de backup completo (estrutura + dados):
+
+```bash
+pg_dump "$DATABASE_URL" --format=custom --file=backup/crmpexe_$(date +%F).dump
+```
+
+Restauração do backup:
+
+```bash
+pg_restore --dbname="$DATABASE_URL" --clean --if-exists backup/crmpexe_2024-01-01.dump
+```
+
+Boas práticas:
+- Agendar o backup diário (cron) e manter **retenção** mínima (ex.: 30 dias).
+- Armazenar em local seguro (bucket privado) com criptografia em repouso.
+- Validar restauração periodicamente em ambiente de staging.
+
+#### Estratégia de migração (Prisma migrate)
+Fluxo recomendado:
+- **Desenvolvimento:** usar `pnpm prisma:migrate` (gera/roda migrations locais).
+- **Produção:** aplicar **apenas** migrations já versionadas com:
+
+```bash
+pnpm --filter crmpexe-api prisma migrate deploy
+```
+
+Checklist para migrações seguras:
+- Revisar o SQL gerado (ex.: locks e alteração de coluna).
+- Preferir migrations pequenas e previsíveis.
+- Garantir backup antes de aplicar em produção.
+
+### PASSO 56 — LGPD: exportar e deletar dados
+**Objetivo:** permitir exportação e solicitação de exclusão de dados do workspace.
+
+Endpoints (requer autenticação e permissão de admin/owner):
+- **Exportar workspace (JSON):** `GET /api/workspaces/:id/export?format=json`
+- **Exportar workspace (ZIP):** `GET /api/workspaces/:id/export?format=zip`
+- **Solicitar exclusão (soft-delete):** `DELETE /api/workspaces/:id`
+  - Body opcional: `{ "reason": "Solicitação do titular" }`
+
+Notas importantes:
+- A exclusão é **soft-delete** e registra `deletedAt` + `retentionEndsAt`.
+- O prazo de retenção é configurável via `WORKSPACE_RETENTION_DAYS` (padrão: 30 dias).
+- Todas as ações são registradas no audit log.
+
 ## Scripts úteis (root)
 ```bash
 pnpm dev          # API + Web em paralelo
@@ -117,6 +167,7 @@ pnpm typecheck    # Typecheck de todos os apps
 ## Endpoints principais
 - **Health check**: `GET /api/health` → `{ status: "ok", service: "crmpexe-api" }`.
 - **Revogar refresh tokens do workspace**: `POST /api/auth/revoke-refresh-tokens` (requer header `x-workspace-id` e usuário com role `ADMIN`).
+- **LGPD (exportação/exclusão)**: `GET /api/workspaces/:id/export` e `DELETE /api/workspaces/:id` (requer autenticação).
 
 ## Suporte (impersonate)
 O modo de suporte permite que um **super admin** gere um token temporário para entrar como membro de um workspace. Todas as ações são registradas no audit log com a ação `IMPERSONATION_STARTED`.
@@ -170,6 +221,13 @@ Fluxos suportados:
 - O backend gera **logs JSON** com `correlationId` por request (header `x-correlation-id`) e registra chamadas externas (n8n, WhatsApp, billing) com tempo e status.
 - Endpoints de **auth** e **webhooks** aplicam rate limit por IP e workspace. Tentativas de login inválidas são bloqueadas após exceder o limite configurado. Captcha pode ser habilitado via variáveis de ambiente.
 - O fluxo de OTP invalida códigos anteriores ao gerar um novo e aplica limite diário por e-mail. A verificação usa um fingerprint simples (hash de IP + user-agent) para balancear tentativas de login.
+
+## Checklist de deploy
+- [ ] Atualizar variáveis de ambiente (incluindo `DATABASE_URL` e `WORKSPACE_RETENTION_DAYS`).
+- [ ] Gerar build (`pnpm build`) e rodar migrations em produção (`pnpm --filter crmpexe-api prisma migrate deploy`).
+- [ ] Garantir backup recente do Postgres (dump validado).
+- [ ] Reiniciar serviços (API/Web/filas) com zero-downtime quando possível.
+- [ ] Verificar health checks e rotas críticas pós-deploy.
 
 ## Roadmap (pendências priorizadas)
 - **Rotation de secrets**: permitir recriptografar integrações quando a chave de criptografia mudar.
