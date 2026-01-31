@@ -165,6 +165,63 @@ Endpoint para configurar políticas de membros (admin/owner):
 - `PATCH /api/workspaces/:id/members/:memberId/policies`
   - Body: `{ allowedTagIds?: string[], allowedUnitIds?: string[] }`
 
+### PASSO 59 — Times, filas e distribuição automática
+**Objetivo:** organizar o atendimento por times e filas com distribuição round-robin por canal.
+
+Novas entidades:
+- **Team**: agrupa agentes dentro do workspace.
+- **TeamMember**: liga usuários a um time (com posição e status ativo).
+- **Queue**: define fila por canal e o time responsável.
+
+Fluxo de distribuição:
+1. Uma nova conversa inbound é criada.
+2. A API identifica a fila ativa do canal (`Queue.channel`).
+3. O próximo membro ativo do time é selecionado via round-robin.
+4. A conversa é atribuída automaticamente e o responsável recebe a notificação.
+
+Endpoints principais:
+- **Times**
+  - `GET /api/teams`
+  - `POST /api/teams`
+  - `PATCH /api/teams/:id`
+  - `DELETE /api/teams/:id`
+  - `POST /api/teams/:id/members`
+  - `PATCH /api/teams/:id/members/:memberId`
+  - `DELETE /api/teams/:id/members/:memberId`
+- **Filas**
+  - `GET /api/queues`
+  - `POST /api/queues`
+  - `PATCH /api/queues/:id`
+  - `DELETE /api/queues/:id`
+
+### PASSO 62 — Base de conhecimento + respostas rápidas
+**Objetivo:** centralizar artigos e respostas prontas para consulta e uso durante o atendimento.
+
+Funcionalidades:
+- Cadastro e manutenção de artigos da base de conhecimento.
+- Cadastro de respostas rápidas com atalho opcional.
+- Busca rápida direto no inbox para inserir o conteúdo no rascunho da mensagem.
+
+Endpoints principais:
+- **Base de conhecimento**
+  - `GET /api/knowledge-base-articles`
+  - `POST /api/knowledge-base-articles`
+  - `PATCH /api/knowledge-base-articles/:id`
+  - `DELETE /api/knowledge-base-articles/:id`
+- **Respostas rápidas**
+  - `GET /api/canned-responses`
+  - `POST /api/canned-responses`
+  - `PATCH /api/canned-responses/:id`
+  - `DELETE /api/canned-responses/:id`
+
+### PASSO 63 — Busca global
+**Objetivo:** pesquisar rapidamente contatos, conversas, mensagens, deals e tarefas.
+
+Endpoint principal:
+- `GET /api/global-search?query=texto`
+
+No front-end, a busca global está disponível em `/search` e retorna resultados agrupados por entidade.
+
 ## Scripts úteis (root)
 ```bash
 pnpm dev          # API + Web em paralelo

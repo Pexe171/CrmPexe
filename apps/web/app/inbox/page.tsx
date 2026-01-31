@@ -13,6 +13,8 @@ import {
   type ConversationSummary,
   type Message
 } from "@/lib/api/conversations";
+
+const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const basePollIntervalMs = 5000;
 const maxPollIntervalMs = 15000;
 const pollBackoffStepMs = 5000;
@@ -73,6 +75,21 @@ const resolveLeadBadge = (contact?: Conversation["contact"] | null) => {
   };
 };
 
+type CannedResponse = {
+  id: string;
+  title: string;
+  content: string;
+  tags: string[];
+  shortcut?: string | null;
+};
+
+type KnowledgeBaseArticle = {
+  id: string;
+  title: string;
+  content: string;
+  tags: string[];
+};
+
 const resolveNextPollInterval = ({
   currentInterval,
   hasUpdate,
@@ -101,6 +118,12 @@ export default function InboxPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [messageDraft, setMessageDraft] = useState("");
+  const [cannedSearch, setCannedSearch] = useState("");
+  const [knowledgeSearch, setKnowledgeSearch] = useState("");
+  const [cannedResponses, setCannedResponses] = useState<CannedResponse[]>([]);
+  const [knowledgeArticles, setKnowledgeArticles] = useState<KnowledgeBaseArticle[]>([]);
+  const [cannedLoading, setCannedLoading] = useState(false);
+  const [knowledgeLoading, setKnowledgeLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const [billingSummary, setBillingSummary] = useState<BillingSummary | null>(null);
   const [billingLoading, setBillingLoading] = useState(true);
@@ -118,6 +141,10 @@ export default function InboxPage() {
   const scrollToBottom = () => {
     if (!messagesEndRef.current) return;
     messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const appendToDraft = (text: string) => {
+    setMessageDraft((prev) => (prev ? `${prev}\n${text}` : text));
   };
 
   const sortConversations = useCallback((items: Conversation[]) => {
@@ -226,6 +253,50 @@ export default function InboxPage() {
       controller.abort();
     };
   }, [fetchConversations]);
+
+  useEffect(() => {
+    const handler = setTimeout(async () => {
+      const term = cannedSearch.trim();
+      setCannedLoading(true);
+      try {
+        const query = term ? `?search=${encodeURIComponent(term)}&isActive=true` : "?isActive=true";
+        const response = await fetch(`${apiUrl}/api/canned-responses${query}`, { credentials: "include" });
+        if (!response.ok) {
+          throw new Error("Não foi possível buscar respostas rápidas.");
+        }
+        const data = (await response.json()) as CannedResponse[];
+        setCannedResponses(data);
+      } catch {
+        setCannedResponses([]);
+      } finally {
+        setCannedLoading(false);
+      }
+    }, 350);
+
+    return () => clearTimeout(handler);
+  }, [cannedSearch]);
+
+  useEffect(() => {
+    const handler = setTimeout(async () => {
+      const term = knowledgeSearch.trim();
+      setKnowledgeLoading(true);
+      try {
+        const query = term ? `?search=${encodeURIComponent(term)}&isActive=true` : "?isActive=true";
+        const response = await fetch(`${apiUrl}/api/knowledge-base-articles${query}`, { credentials: "include" });
+        if (!response.ok) {
+          throw new Error("Não foi possível buscar artigos.");
+        }
+        const data = (await response.json()) as KnowledgeBaseArticle[];
+        setKnowledgeArticles(data);
+      } catch {
+        setKnowledgeArticles([]);
+      } finally {
+        setKnowledgeLoading(false);
+      }
+    }, 350);
+
+    return () => clearTimeout(handler);
+  }, [knowledgeSearch]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -559,6 +630,73 @@ export default function InboxPage() {
                 )}
               </div>
             )}
+            <div className="mt-4 grid gap-4 lg:grid-cols-2">
+              <div className="rounded-lg border border-gray-100 bg-gray-50 px-4 py-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-gray-700">Respostas rápidas</h3>
+                  <span className="text-xs text-gray-400">
+                    {cannedLoading ? "Buscando..." : `${cannedResponses.length} itens`}
+                  </span>
+                </div>
+                <input
+                  className="mt-2 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 focus:border-blue-500 focus:outline-none"
+                  placeholder="Buscar resposta..."
+                  value={cannedSearch}
+                  onChange={(event) => setCannedSearch(event.target.value)}
+                />
+                <div className="mt-3 max-h-48 space-y-2 overflow-y-auto text-xs text-gray-600">
+                  {cannedResponses.length === 0 ? (
+                    <p className="text-gray-400">Nenhuma resposta encontrada.</p>
+                  ) : (
+                    cannedResponses.map((response) => (
+                      <button
+                        key={response.id}
+                        type="button"
+                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-left transition hover:border-blue-200 hover:bg-blue-50"
+                        onClick={() => appendToDraft(response.content)}
+                      >
+                        <p className="font-medium text-gray-800">{response.title}</p>
+                        {response.shortcut ? (
+                          <p className="text-[10px] text-gray-400">Atalho: {response.shortcut}</p>
+                        ) : null}
+                        <p className="mt-1 max-h-10 overflow-hidden text-[11px] text-gray-500">{response.content}</p>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+              <div className="rounded-lg border border-gray-100 bg-gray-50 px-4 py-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-gray-700">Base de conhecimento</h3>
+                  <span className="text-xs text-gray-400">
+                    {knowledgeLoading ? "Buscando..." : `${knowledgeArticles.length} itens`}
+                  </span>
+                </div>
+                <input
+                  className="mt-2 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 focus:border-blue-500 focus:outline-none"
+                  placeholder="Buscar artigo..."
+                  value={knowledgeSearch}
+                  onChange={(event) => setKnowledgeSearch(event.target.value)}
+                />
+                <div className="mt-3 max-h-48 space-y-2 overflow-y-auto text-xs text-gray-600">
+                  {knowledgeArticles.length === 0 ? (
+                    <p className="text-gray-400">Nenhum artigo encontrado.</p>
+                  ) : (
+                    knowledgeArticles.map((article) => (
+                      <button
+                        key={article.id}
+                        type="button"
+                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-left transition hover:border-emerald-200 hover:bg-emerald-50"
+                        onClick={() => appendToDraft(article.content)}
+                      >
+                        <p className="font-medium text-gray-800">{article.title}</p>
+                        <p className="mt-1 max-h-10 overflow-hidden text-[11px] text-gray-500">{article.content}</p>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="flex-1 overflow-y-auto px-6 py-6">

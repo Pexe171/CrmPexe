@@ -5,6 +5,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { IntegrationCryptoService } from "../integration-accounts/integration-crypto.service";
 import { AutomationEngineService } from "../automation-engine/automation-engine.service";
 import { AiProcessingQueueService } from "../ai/ai-processing.queue";
+import { QueuesService } from "../queues/queues.service";
 import { IChannelProvider } from "./interfaces/channel-provider.interface";
 import { WhatsappProvider } from "./providers/whatsapp.provider";
 import { ChannelInboundMessage, ChannelContact, ChannelIntegration, ChannelSendMessageInput } from "./types";
@@ -20,6 +21,7 @@ export class ChannelsService {
     private readonly integrationCryptoService: IntegrationCryptoService,
     private readonly automationEngineService: AutomationEngineService,
     private readonly aiProcessingQueueService: AiProcessingQueueService,
+    private readonly queuesService: QueuesService,
     whatsappProvider: WhatsappProvider
   ) {
     this.providers.set(whatsappProvider.channel, whatsappProvider);
@@ -153,11 +155,21 @@ export class ChannelsService {
     });
 
     if (!result.isDuplicate) {
+      let assignedToUserId = result.conversation.assignedToUserId;
+      if (!assignedToUserId) {
+        const assignment = await this.queuesService.assignConversationRoundRobin({
+          workspaceId,
+          channel,
+          conversationId: result.conversation.id
+        });
+        assignedToUserId = assignment?.assignedToUserId ?? null;
+      }
+
       await this.notifyInboundMessage(
         workspaceId,
         result.conversation.id,
         contact.name,
-        result.conversation.assignedToUserId
+        assignedToUserId
       );
 
       await this.automationEngineService.dispatch("message.inbound.created", {
