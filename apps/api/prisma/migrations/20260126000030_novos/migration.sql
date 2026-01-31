@@ -1,26 +1,26 @@
 -- DropForeignKey
-ALTER TABLE "AutomationInstance" DROP CONSTRAINT "AutomationInstance_createdByUserId_fkey";
+ALTER TABLE "AutomationInstance" DROP CONSTRAINT IF EXISTS "AutomationInstance_createdByUserId_fkey";
 
 -- DropForeignKey
-ALTER TABLE "AutomationInstance" DROP CONSTRAINT "AutomationInstance_templateId_fkey";
+ALTER TABLE "AutomationInstance" DROP CONSTRAINT IF EXISTS "AutomationInstance_templateId_fkey";
 
 -- DropForeignKey
-ALTER TABLE "AutomationInstance" DROP CONSTRAINT "AutomationInstance_workspaceId_fkey";
+ALTER TABLE "AutomationInstance" DROP CONSTRAINT IF EXISTS "AutomationInstance_workspaceId_fkey";
 
 -- DropForeignKey
-ALTER TABLE "AutomationTemplate" DROP CONSTRAINT "AutomationTemplate_createdByAdminId_fkey";
+ALTER TABLE "AutomationTemplate" DROP CONSTRAINT IF EXISTS "AutomationTemplate_createdByAdminId_fkey";
 
 -- DropForeignKey
-ALTER TABLE "IntegrationAccount" DROP CONSTRAINT "IntegrationAccount_workspaceId_fkey";
+ALTER TABLE "IntegrationAccount" DROP CONSTRAINT IF EXISTS "IntegrationAccount_workspaceId_fkey";
 
 -- DropForeignKey
-ALTER TABLE "MessageTemplate" DROP CONSTRAINT "MessageTemplate_workspaceId_fkey";
+ALTER TABLE "MessageTemplate" DROP CONSTRAINT IF EXISTS "MessageTemplate_workspaceId_fkey";
 
 -- DropForeignKey
-ALTER TABLE "Notification" DROP CONSTRAINT "Notification_userId_fkey";
+ALTER TABLE "Notification" DROP CONSTRAINT IF EXISTS "Notification_userId_fkey";
 
 -- DropForeignKey
-ALTER TABLE "Notification" DROP CONSTRAINT "Notification_workspaceId_fkey";
+ALTER TABLE "Notification" DROP CONSTRAINT IF EXISTS "Notification_workspaceId_fkey";
 
 -- AlterTable
 ALTER TABLE "AutomationInstance" ALTER COLUMN "id" DROP DEFAULT;
