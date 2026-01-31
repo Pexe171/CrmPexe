@@ -85,7 +85,7 @@ cp apps/web/.env.example apps/web/.env
 Variáveis usadas pela Web:
 - `NEXT_PUBLIC_API_URL` (opcional, padrão `http://localhost:3001`) — URL base da API.
 
-### PASSO 4 — Gerar client Prisma e aplicar migrations
+###  4 — Gerar client Prisma e aplicar migrations
 **Objetivo:** preparar o banco e o client do Prisma.
 
 ```bash
@@ -137,23 +137,6 @@ Checklist para migrações seguras:
 - Revisar o SQL gerado (ex.: locks e alteração de coluna).
 - Preferir migrations pequenas e previsíveis.
 - Garantir backup antes de aplicar em produção.
-
-### PASSO 56 — LGPD: exportar e deletar dados
-**Objetivo:** permitir exportação e solicitação de exclusão de dados do workspace.
-
-Endpoints (requer autenticação e permissão de admin/owner):
-- **Exportar workspace (JSON):** `GET /api/workspaces/:id/export?format=json`
-- **Exportar workspace (ZIP):** `GET /api/workspaces/:id/export?format=zip`
-- **Solicitar exclusão (soft-delete):** `DELETE /api/workspaces/:id`
-  - Body opcional: `{ "reason": "Solicitação do titular" }`
-
-Notas importantes:
-- A exclusão é **soft-delete** e registra `deletedAt` + `retentionEndsAt`.
-- O prazo de retenção é configurável via `WORKSPACE_RETENTION_DAYS` (padrão: 30 dias).
-- Todas as ações são registradas no audit log.
-
-### PASSO 57 — Multi-idioma e white-label
-**Objetivo:** permitir personalização por workspace (nome do sistema, cores, logo, domínio e idioma).
 
 Campos adicionados ao workspace:
 - `brandName`: nome do sistema exibido no front-end (padrão: nome do workspace).
