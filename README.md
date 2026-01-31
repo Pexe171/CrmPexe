@@ -101,6 +101,8 @@ Se o erro mencionar que uma relação **one-to-one** precisa de campo único (ex
 #### Problemas comuns — `prisma:migrate` com P3006/P1014
 Se o `pnpm prisma:migrate` falhar com `P3006`/`P1014` dizendo que a tabela `AiUsageLog` não existe na shadow database, revise o histórico de migrations e garanta que a migration `20260126000030_novos` **não** execute alterações na tabela `AiUsageLog` (ela só é criada em `20260630090000_add_ai_usage_logs`). Isso evita o erro de tabela inexistente durante a aplicação sequencial das migrations.
 
+Se aparecer `P3006`/`P1014` mencionando que a tabela `AutomationTemplate` não existe na shadow database, confirme que a migration `20260126000030_novos` garante a criação de `AutomationTemplate`/`AutomationInstance` antes de alterar constraints. Isso impede falhas quando a shadow database aplica migrations antigas em sequência. 
+
 Se aparecer o erro `constraint "AutomationInstance_templateId_fkey" ... does not exist` durante a criação da shadow database, confirme que a migration `20260126000030_novos` usa `DROP CONSTRAINT IF EXISTS` para evitar falhas quando a constraint ainda não foi criada em ambientes limpos.
 
 ### PASSO 5 — Iniciar a API e o Front-end
