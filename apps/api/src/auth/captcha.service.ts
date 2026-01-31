@@ -6,7 +6,7 @@ export class CaptchaService {
   private readonly secret = process.env.CAPTCHA_SECRET;
 
   ensureValid(token?: string) {
-    if (!this.secret && !this.required) {
+    if (!this.required || !this.secret) {
       return;
     }
 

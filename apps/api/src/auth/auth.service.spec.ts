@@ -10,6 +10,8 @@ import { UserRole } from "@prisma/client";
 import { createHash } from "crypto";
 import { AuthService } from "./auth.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { CaptchaService } from "./captcha.service";
+import { LoginAttemptsService } from "./login-attempts.service";
 
 const sendMailMock = jest.fn().mockResolvedValue({});
 
@@ -58,6 +60,22 @@ describe("AuthService", () => {
         {
           provide: PrismaService,
           useValue: prismaMock
+        }
+        ,
+        {
+          provide: CaptchaService,
+          useValue: {
+            ensureValid: jest.fn()
+          }
+        },
+        {
+          provide: LoginAttemptsService,
+          useValue: {
+            isBlocked: jest.fn().mockReturnValue(false),
+            registerFailure: jest.fn(),
+            reset: jest.fn(),
+            getSummary: jest.fn().mockReturnValue({ maxAttempts: 5, windowMs: 900000, blockMs: 900000 })
+          }
         }
       ]
     }).compile();

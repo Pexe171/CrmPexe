@@ -54,7 +54,10 @@ describe("AccessTokenGuard", () => {
       email: "user@example.com",
       role: UserRole.ADMIN,
       isSuperAdmin: false,
-      currentWorkspaceId: "ws-1"
+      currentWorkspaceId: "ws-1",
+      impersonatedByUserId: null,
+      impersonatedWorkspaceId: null,
+      isImpersonated: false
     });
   });
 
