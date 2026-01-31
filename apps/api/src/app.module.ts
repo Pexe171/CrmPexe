@@ -32,6 +32,7 @@ import { SuperAdminModule } from "./super-admin/super-admin.module";
 import { LoggingModule } from "./common/logging/logging.module";
 import { RateLimitModule } from "./common/rate-limit/rate-limit.module";
 import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
+import { MarketplaceModule } from "./marketplace/marketplace.module";
 
 @Module({
   imports: [
@@ -64,7 +65,8 @@ import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
     WebhooksModule,
     BillingModule,
     AiModule,
-    SuperAdminModule
+    SuperAdminModule,
+    MarketplaceModule
   ],
   controllers: [AppController],
   providers: [AppService, HttpExceptionFilter]
