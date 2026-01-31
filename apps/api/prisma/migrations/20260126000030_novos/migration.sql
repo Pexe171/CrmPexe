@@ -1,7 +1,4 @@
 -- DropForeignKey
-ALTER TABLE "AiUsageLog" DROP CONSTRAINT "AiUsageLog_workspaceId_fkey";
-
--- DropForeignKey
 ALTER TABLE "AutomationInstance" DROP CONSTRAINT "AutomationInstance_createdByUserId_fkey";
 
 -- DropForeignKey
@@ -24,9 +21,6 @@ ALTER TABLE "Notification" DROP CONSTRAINT "Notification_userId_fkey";
 
 -- DropForeignKey
 ALTER TABLE "Notification" DROP CONSTRAINT "Notification_workspaceId_fkey";
-
--- AlterTable
-ALTER TABLE "AiUsageLog" ALTER COLUMN "id" DROP DEFAULT;
 
 -- AlterTable
 ALTER TABLE "AutomationInstance" ALTER COLUMN "id" DROP DEFAULT;
@@ -64,6 +58,3 @@ ALTER TABLE "AutomationInstance" ADD CONSTRAINT "AutomationInstance_templateId_f
 
 -- AddForeignKey
 ALTER TABLE "AutomationInstance" ADD CONSTRAINT "AutomationInstance_createdByUserId_fkey" FOREIGN KEY ("createdByUserId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "AiUsageLog" ADD CONSTRAINT "AiUsageLog_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "Workspace"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
