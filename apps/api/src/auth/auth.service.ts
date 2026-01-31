@@ -1,8 +1,9 @@
 import {
   BadRequestException,
   ConflictException,
+  HttpException,
+  HttpStatus,
   Injectable,
-  TooManyRequestsException,
   UnauthorizedException
 } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
@@ -119,8 +120,9 @@ export class AuthService {
     const loginKey = this.buildLoginKey(email, context);
 
     if (loginKey && this.loginAttemptsService.isBlocked(loginKey)) {
-      throw new TooManyRequestsException(
-        "Muitas tentativas de login. Aguarde alguns minutos."
+      throw new HttpException(
+        "Muitas tentativas de login. Aguarde alguns minutos.",
+        HttpStatus.TOO_MANY_REQUESTS
       );
     }
 
@@ -472,8 +474,9 @@ export class AuthService {
     });
 
     if (otpCount >= this.otpDailyLimit) {
-      throw new TooManyRequestsException(
-        "Limite diário de códigos atingido. Tente novamente amanhã."
+      throw new HttpException(
+        "Limite diário de códigos atingido. Tente novamente amanhã.",
+        HttpStatus.TOO_MANY_REQUESTS
       );
     }
   }

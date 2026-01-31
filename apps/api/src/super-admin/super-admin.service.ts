@@ -74,11 +74,13 @@ export class SuperAdminService {
       this.prisma.message.groupBy({
         by: ["workspaceId"],
         where: { workspaceId: { in: workspaceIds } },
+        orderBy: { workspaceId: "asc" },
         _count: { _all: true }
       }),
       this.prisma.automationInstance.groupBy({
         by: ["workspaceId"],
         where: { workspaceId: { in: workspaceIds } },
+        orderBy: { workspaceId: "asc" },
         _count: { _all: true }
       }),
       this.prisma.subscription.findMany({
@@ -89,10 +91,20 @@ export class SuperAdminService {
     ]);
 
     const messageMap = new Map(
-      messageCounts.map((entry) => [entry.workspaceId, entry._count._all])
+      messageCounts.map((entry) => [
+        entry.workspaceId,
+        typeof entry._count === "object" && entry._count?._all
+          ? entry._count._all
+          : 0
+      ])
     );
     const automationMap = new Map(
-      automationCounts.map((entry) => [entry.workspaceId, entry._count._all])
+      automationCounts.map((entry) => [
+        entry.workspaceId,
+        typeof entry._count === "object" && entry._count?._all
+          ? entry._count._all
+          : 0
+      ])
     );
     const subscriptionMap = new Map(
       subscriptions.map((subscription) => [subscription.workspaceId, subscription])
@@ -100,7 +112,9 @@ export class SuperAdminService {
 
     const data = workspaces.map((workspace) => {
       const subscription = subscriptionMap.get(workspace.id);
-      const status = subscription?.status ?? "NO_SUBSCRIPTION";
+      const status =
+        (subscription?.status as SubscriptionStatus | undefined) ??
+        "NO_SUBSCRIPTION";
       const plano = subscription?.provider ?? "SEM_PLANO";
       const uso = {
         mensagens: messageMap.get(workspace.id) ?? 0,

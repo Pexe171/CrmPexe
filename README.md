@@ -119,6 +119,10 @@ pnpm dev
 - API disponível em: `http://localhost:3001/api` (health: `/api/health`).
 - Web disponível em: `http://localhost:3000`.
 
+### Observações técnicas rápidas
+- A API propaga o header `x-correlation-id` nas respostas para facilitar rastreamento de logs distribuídos. Se o cliente não enviar esse header, um valor é gerado automaticamente.  
+- Respostas de rate limit usam status **429** e mensagens amigáveis para orientar o tempo de espera.
+
 ### PASSO 55 — Backups e migrações seguras
 **Objetivo:** garantir continuidade e restauração rápida do banco PostgreSQL.
 
