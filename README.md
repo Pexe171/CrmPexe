@@ -105,6 +105,8 @@ Se aparecer `P3006`/`P1014` mencionando que a tabela `AutomationTemplate` não e
 
 Se aparecer o erro `constraint "AutomationInstance_templateId_fkey" ... does not exist` durante a criação da shadow database, confirme que a migration `20260126000030_novos` usa `DROP CONSTRAINT IF EXISTS` para evitar falhas quando a constraint ainda não foi criada em ambientes limpos.
 
+Se o erro citar `IntegrationAccount`, `MessageTemplate` ou `Notification` como tabelas inexistentes, verifique se a migration `20260126000030_novos` está protegendo os `ALTER TABLE` com `to_regclass` (executar apenas quando a tabela existe). Essas tabelas só são criadas em migrations posteriores e não devem quebrar a aplicação sequencial no banco shadow.
+
 ### PASSO 5 — Iniciar a API e o Front-end
 **Objetivo:** subir os serviços de aplicação.
 

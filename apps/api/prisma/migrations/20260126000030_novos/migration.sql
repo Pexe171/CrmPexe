@@ -48,16 +48,26 @@ ALTER TABLE "AutomationInstance" DROP CONSTRAINT IF EXISTS "AutomationInstance_w
 ALTER TABLE "AutomationTemplate" DROP CONSTRAINT IF EXISTS "AutomationTemplate_createdByAdminId_fkey";
 
 -- DropForeignKey
-ALTER TABLE "IntegrationAccount" DROP CONSTRAINT IF EXISTS "IntegrationAccount_workspaceId_fkey";
+DO $$ BEGIN
+    IF to_regclass('public."IntegrationAccount"') IS NOT NULL THEN
+        ALTER TABLE "IntegrationAccount" DROP CONSTRAINT IF EXISTS "IntegrationAccount_workspaceId_fkey";
+    END IF;
+END $$;
 
 -- DropForeignKey
-ALTER TABLE "MessageTemplate" DROP CONSTRAINT IF EXISTS "MessageTemplate_workspaceId_fkey";
+DO $$ BEGIN
+    IF to_regclass('public."MessageTemplate"') IS NOT NULL THEN
+        ALTER TABLE "MessageTemplate" DROP CONSTRAINT IF EXISTS "MessageTemplate_workspaceId_fkey";
+    END IF;
+END $$;
 
 -- DropForeignKey
-ALTER TABLE "Notification" DROP CONSTRAINT IF EXISTS "Notification_userId_fkey";
-
--- DropForeignKey
-ALTER TABLE "Notification" DROP CONSTRAINT IF EXISTS "Notification_workspaceId_fkey";
+DO $$ BEGIN
+    IF to_regclass('public."Notification"') IS NOT NULL THEN
+        ALTER TABLE "Notification" DROP CONSTRAINT IF EXISTS "Notification_userId_fkey";
+        ALTER TABLE "Notification" DROP CONSTRAINT IF EXISTS "Notification_workspaceId_fkey";
+    END IF;
+END $$;
 
 -- AlterTable
 ALTER TABLE "AutomationInstance" ALTER COLUMN "id" DROP DEFAULT;
@@ -73,16 +83,26 @@ ADD COLUMN     "resolution_time_seconds" INTEGER;
 ALTER TABLE "Notification" ALTER COLUMN "id" DROP DEFAULT;
 
 -- AddForeignKey
-ALTER TABLE "IntegrationAccount" ADD CONSTRAINT "IntegrationAccount_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "Workspace"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$ BEGIN
+    IF to_regclass('public."IntegrationAccount"') IS NOT NULL THEN
+        ALTER TABLE "IntegrationAccount" ADD CONSTRAINT "IntegrationAccount_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "Workspace"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+    END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "MessageTemplate" ADD CONSTRAINT "MessageTemplate_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "Workspace"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$ BEGIN
+    IF to_regclass('public."MessageTemplate"') IS NOT NULL THEN
+        ALTER TABLE "MessageTemplate" ADD CONSTRAINT "MessageTemplate_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "Workspace"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+    END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "Notification" ADD CONSTRAINT "Notification_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "Workspace"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Notification" ADD CONSTRAINT "Notification_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$ BEGIN
+    IF to_regclass('public."Notification"') IS NOT NULL THEN
+        ALTER TABLE "Notification" ADD CONSTRAINT "Notification_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "Workspace"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+        ALTER TABLE "Notification" ADD CONSTRAINT "Notification_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+    END IF;
+END $$;
 
 -- AddForeignKey
 ALTER TABLE "AutomationTemplate" ADD CONSTRAINT "AutomationTemplate_createdByAdminId_fkey" FOREIGN KEY ("createdByAdminId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
