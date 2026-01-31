@@ -1,4 +1,5 @@
 import "reflect-metadata";
+import "./types/express";
 import { ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import * as cookieParser from "cookie-parser";
