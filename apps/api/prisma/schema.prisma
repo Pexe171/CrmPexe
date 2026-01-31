@@ -144,6 +144,8 @@ model HealthCheck {
 model Workspace {
   id        String   @id @default(uuid())
   name      String
+  deletedAt DateTime?
+  retentionEndsAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -175,6 +177,8 @@ model Workspace {
   variables WorkspaceVariable[]
   subscriptions Subscription[]
   aiUsageLogs AiUsageLog[]
+
+  @@index([deletedAt])
 }
 
 model User {

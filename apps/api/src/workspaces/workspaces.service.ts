@@ -1,5 +1,5 @@
-import { BadRequestException, ForbiddenException, Injectable } from "@nestjs/common";
-import { Prisma } from "@prisma/client";
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { Prisma, UserRole } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 
 @Injectable()
@@ -47,7 +47,7 @@ export class WorkspacesService {
   async listWorkspaces(userId: string) {
     const [memberships, user] = await Promise.all([
       this.prisma.workspaceMember.findMany({
-        where: { userId },
+        where: { userId, workspace: { deletedAt: null } },
         include: {
           workspace: true
         }
@@ -73,7 +73,10 @@ export class WorkspacesService {
     const membership = await this.prisma.workspaceMember.findFirst({
       where: {
         userId,
-        workspaceId
+        workspaceId,
+        workspace: {
+          deletedAt: null
+        }
       }
     });
 
@@ -91,5 +94,194 @@ export class WorkspacesService {
         currentWorkspaceId: workspaceId
       };
     });
+  }
+
+  async exportWorkspaceData(userId: string, workspaceId: string) {
+    await this.ensureWorkspaceAdmin(userId, workspaceId);
+    const workspace = await this.prisma.workspace.findUnique({
+      where: { id: workspaceId }
+    });
+
+    if (!workspace) {
+      throw new NotFoundException("Workspace não encontrado.");
+    }
+
+    const [
+      members,
+      roles,
+      permissions,
+      rolePermissions,
+      auditLogs,
+      companies,
+      customers,
+      contacts,
+      deals,
+      tags,
+      tagOnCompanies,
+      tagOnContacts,
+      tagOnDeals,
+      tagOnCustomers,
+      tasks,
+      customFieldDefinitions,
+      conversations,
+      messages,
+      notifications,
+      activities,
+      webhookSubscriptions,
+      integrationAccounts,
+      integrationSecrets,
+      messageTemplates,
+      automationInstances,
+      workspaceVariables,
+      subscriptions,
+      aiUsageLogs
+    ] = await Promise.all([
+      this.prisma.workspaceMember.findMany({
+        where: { workspaceId },
+        include: { user: true, role: true }
+      }),
+      this.prisma.role.findMany({ where: { workspaceId } }),
+      this.prisma.permission.findMany({ where: { workspaceId } }),
+      this.prisma.rolePermission.findMany({ where: { workspaceId } }),
+      this.prisma.auditLog.findMany({ where: { workspaceId } }),
+      this.prisma.company.findMany({ where: { workspaceId } }),
+      this.prisma.customer.findMany({ where: { workspaceId } }),
+      this.prisma.contact.findMany({ where: { workspaceId } }),
+      this.prisma.deal.findMany({ where: { workspaceId } }),
+      this.prisma.tag.findMany({ where: { workspaceId } }),
+      this.prisma.tagOnCompany.findMany({ where: { workspaceId } }),
+      this.prisma.tagOnContact.findMany({ where: { workspaceId } }),
+      this.prisma.tagOnDeal.findMany({ where: { workspaceId } }),
+      this.prisma.tagOnCustomer.findMany({ where: { workspaceId } }),
+      this.prisma.task.findMany({ where: { workspaceId } }),
+      this.prisma.customFieldDefinition.findMany({ where: { workspaceId } }),
+      this.prisma.conversation.findMany({ where: { workspaceId } }),
+      this.prisma.message.findMany({ where: { workspaceId } }),
+      this.prisma.notification.findMany({ where: { workspaceId } }),
+      this.prisma.activity.findMany({ where: { workspaceId } }),
+      this.prisma.webhookSubscription.findMany({ where: { workspaceId } }),
+      this.prisma.integrationAccount.findMany({ where: { workspaceId } }),
+      this.prisma.integrationSecret.findMany({
+        where: { integrationAccount: { workspaceId } }
+      }),
+      this.prisma.messageTemplate.findMany({ where: { workspaceId } }),
+      this.prisma.automationInstance.findMany({ where: { workspaceId } }),
+      this.prisma.workspaceVariable.findMany({ where: { workspaceId } }),
+      this.prisma.subscription.findMany({ where: { workspaceId } }),
+      this.prisma.aiUsageLog.findMany({ where: { workspaceId } })
+    ]);
+
+    return {
+      generatedAt: new Date().toISOString(),
+      workspace,
+      members,
+      roles,
+      permissions,
+      rolePermissions,
+      auditLogs,
+      companies,
+      customers,
+      contacts,
+      deals,
+      tags,
+      tagOnCompanies,
+      tagOnContacts,
+      tagOnDeals,
+      tagOnCustomers,
+      tasks,
+      customFieldDefinitions,
+      conversations,
+      messages,
+      notifications,
+      activities,
+      webhookSubscriptions,
+      integrationAccounts,
+      integrationSecrets,
+      messageTemplates,
+      automationInstances,
+      workspaceVariables,
+      subscriptions,
+      aiUsageLogs
+    };
+  }
+
+  async requestWorkspaceDeletion(userId: string, workspaceId: string, reason?: string) {
+    await this.ensureWorkspaceAdmin(userId, workspaceId);
+
+    const workspace = await this.prisma.workspace.findUnique({
+      where: { id: workspaceId }
+    });
+
+    if (!workspace) {
+      throw new NotFoundException("Workspace não encontrado.");
+    }
+
+    if (workspace.deletedAt) {
+      return {
+        workspaceId,
+        deletedAt: workspace.deletedAt,
+        retentionEndsAt: workspace.retentionEndsAt,
+        reason
+      };
+    }
+
+    const now = new Date();
+    const retentionDays = this.getRetentionDays();
+    const retentionEndsAt = new Date(now.getTime() + retentionDays * 24 * 60 * 60 * 1000);
+
+    await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      await tx.workspace.update({
+        where: { id: workspaceId },
+        data: {
+          deletedAt: now,
+          retentionEndsAt
+        }
+      });
+
+      await tx.user.updateMany({
+        where: { currentWorkspaceId: workspaceId },
+        data: { currentWorkspaceId: null }
+      });
+    });
+
+    return {
+      workspaceId,
+      deletedAt: now,
+      retentionEndsAt,
+      reason
+    };
+  }
+
+  private async ensureWorkspaceAdmin(userId: string, workspaceId: string) {
+    const [membership, user] = await Promise.all([
+      this.prisma.workspaceMember.findFirst({
+        where: { userId, workspaceId },
+        include: { role: true }
+      }),
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { role: true, isSuperAdmin: true }
+      })
+    ]);
+
+    if (!membership) {
+      throw new BadRequestException("Workspace inválido.");
+    }
+
+    if (user?.role === UserRole.ADMIN || user?.isSuperAdmin) {
+      return;
+    }
+
+    if (membership.role?.name !== "Owner") {
+      throw new ForbiddenException("Você não possui permissão para essa ação.");
+    }
+  }
+
+  private getRetentionDays() {
+    const parsed = Number(process.env.WORKSPACE_RETENTION_DAYS);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return parsed;
+    }
+    return 30;
   }
 }
