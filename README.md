@@ -93,6 +93,9 @@ pnpm prisma:generate
 pnpm prisma:migrate
 ```
 
+#### Problema comum — `prisma:generate` falhando por relações ausentes
+Se aparecer erro de validação informando que um campo de relação não tem lado oposto, verifique se o modelo relacionado contém o back-reference (por exemplo, `Workspace.summaries`, `User.teamMemberships` e `AutomationTemplateVersion.currentVersionTemplate`). Essas relações são obrigatórias para o Prisma validar o schema e gerar o client corretamente.
+
 ### PASSO 5 — Iniciar a API e o Front-end
 **Objetivo:** subir os serviços de aplicação.
 
