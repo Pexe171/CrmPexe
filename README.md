@@ -123,6 +123,7 @@ pnpm dev
 - A API propaga o header `x-correlation-id` nas respostas para facilitar rastreamento de logs distribuídos. Se o cliente não enviar esse header, um valor é gerado automaticamente.  
 - Respostas de rate limit usam status **429** e mensagens amigáveis para orientar o tempo de espera.
 - Tipagem do `correlationId`: a API usa uma extensão do tipo `Request` do Express via `src/types/express.d.ts`. Isso garante autocomplete e evita erros de TypeScript durante o desenvolvimento.
+- O `tsconfig` da API inclui `typeRoots` para garantir que as extensões de tipos globais sejam carregadas no build e no watch mode.
 
 ### PASSO 55 — Backups e migrações seguras
 **Objetivo:** garantir continuidade e restauração rápida do banco PostgreSQL.
