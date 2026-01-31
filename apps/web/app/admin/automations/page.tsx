@@ -508,6 +508,11 @@ export default function AutomationsPage() {
                           Atualizar para última versão
                         </Button>
                       ) : null}
+                      <Button size="sm" variant="outline" asChild>
+                        <Link href={`/admin/automations/${instance.id}/history`}>
+                          Histórico de execuções
+                        </Link>
+                      </Button>
                     </div>
                   </div>
                 ))}

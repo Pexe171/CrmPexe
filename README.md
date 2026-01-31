@@ -307,6 +307,14 @@ Fluxos suportados:
 
 > Observação: instâncias armazenam o `templateVersionId` para permitir fixar ou atualizar versões com segurança. No painel de automações do workspace é possível fixar a versão desejada ou atualizar para a última versão publicada.
 
+### Tela de histórico de execuções (Web)
+**Objetivo:** acompanhar execuções de uma automação específica com detalhes de input/output.
+
+- Rota: `/admin/automations/:id/history`.
+- Lista cronológica com ID, data, duração e status da execução.
+- Clique em uma execução para abrir um painel lateral com o input (gatilho) e output (resultado) formatados como blocos de código.
+- Visual com fundo preto e detalhes em azul para manter o padrão do painel administrativo.
+
 ## Marketplace de agentes de IA
 O CrmPexe agora possui um **marketplace de agentes de IA** com dados prontos para o front-end e para parceiros que desejam publicar soluções no ecossistema.
 
