@@ -129,6 +129,14 @@ pnpm dev
 - O módulo `TeamsModule` já importa `AuthModule` para evitar erro de injeção do `JwtService` ao usar `AccessTokenGuard`.
 - O módulo `KnowledgeBaseModule` também importa `AuthModule` para permitir o uso do `AccessTokenGuard` sem falhas de injeção.
 
+### Página "Minhas Instalações" (Web)
+**Objetivo:** acompanhar automações instaladas do marketplace com controle de status e configuração.
+
+- Rota: `/marketplace/instalacoes`.
+- Lista cards das automações instaladas e exibe status, data e variáveis configuradas.
+- Botão **Ligar/Desligar** aciona os endpoints `POST /api/automations/:id/enable` e `POST /api/automations/:id/disable`.
+- Botão **Configurar** abre um modal para editar as variáveis específicas de cada instância.
+
 ### PASSO 55 — Backups e migrações seguras
 **Objetivo:** garantir continuidade e restauração rápida do banco PostgreSQL.
 
