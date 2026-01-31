@@ -5,6 +5,7 @@ import { AuthUser } from "../auth/auth.types";
 import { AssignConversationDto } from "./dto/assign-conversation.dto";
 import { CreateOutgoingMessageDto } from "./dto/create-outgoing-message.dto";
 import { SendConversationMessageDto } from "./dto/send-conversation-message.dto";
+import { UpdateConversationStatusDto } from "./dto/update-conversation-status.dto";
 import { ConversationsService } from "./conversations.service";
 
 @Controller("conversations")
@@ -68,5 +69,15 @@ export class ConversationsController {
     @Headers("x-workspace-id") workspaceId?: string
   ) {
     return this.conversationsService.closeConversation(user.id, conversationId, workspaceId);
+  }
+
+  @Patch(":id/status")
+  async updateConversationStatus(
+    @CurrentUser() user: AuthUser,
+    @Param("id") conversationId: string,
+    @Body() body: UpdateConversationStatusDto,
+    @Headers("x-workspace-id") workspaceId?: string
+  ) {
+    return this.conversationsService.updateConversationStatus(user.id, conversationId, body, workspaceId);
   }
 }

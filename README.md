@@ -137,6 +137,15 @@ pnpm dev
 - Botão **Ligar/Desligar** aciona os endpoints `POST /api/automations/:id/enable` e `POST /api/automations/:id/disable`.
 - Botão **Configurar** abre um modal para editar as variáveis específicas de cada instância.
 
+### Funil de vendas (Kanban)
+**Objetivo:** visualizar leads por etapa e mover cards com atualização em tempo real.
+
+- Exibição no dashboard com colunas: **Novo**, **Contato**, **Proposta** e **Fechado**.
+- Arrastar um card dispara atualização do status via API.
+- Endpoint: `PATCH /api/conversations/:id/status`
+  - Body: `{ "status": "NEW" | "CONTACTED" | "PROPOSAL" | "CLOSED" }`
+- Atalhos do dashboard (workspaces, integrações e ações) ficam concentrados no menu lateral.
+
 ### PASSO 55 — Backups e migrações seguras
 **Objetivo:** garantir continuidade e restauração rápida do banco PostgreSQL.
 

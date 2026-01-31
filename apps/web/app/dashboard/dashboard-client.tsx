@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
   Bar,
@@ -13,9 +12,11 @@ import {
   YAxis
 } from "recharts";
 import { SidebarNav } from "@/components/sidebar-nav";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { UserRole } from "@/lib/rbac";
+import { formatRelativeTime } from "./formatters";
 import { LogoutButton } from "./logout-button";
+import { SalesFunnelBoard } from "./sales-funnel-board";
 import { TaskOverview } from "./task-overview";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
@@ -89,20 +90,6 @@ const actionLabels: Record<string, string> = {
   WORKSPACE_UPDATED: "Workspace atualizado",
   ROLE_ASSIGNED: "Papel atribuído",
   ROLE_REVOKED: "Papel removido"
-};
-
-const formatRelativeTime = (value: string) => {
-  const date = new Date(value);
-  const diffMs = Date.now() - date.getTime();
-  if (Number.isNaN(date.getTime())) return "";
-
-  const minutes = Math.floor(diffMs / (1000 * 60));
-  if (minutes < 1) return "agora";
-  if (minutes < 60) return `há ${minutes} min`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `há ${hours}h`;
-  const days = Math.floor(hours / 24);
-  return `há ${days}d`;
 };
 
 const formatDayLabel = (date: Date) => {
@@ -361,6 +348,70 @@ export default function DashboardClient({ role, isSuperAdmin }: DashboardClientP
     }
   ];
 
+  const sidebarExtraSections = useMemo(() => {
+    const sections = [];
+
+    if (isAdmin) {
+      sections.push({
+        title: "Administração",
+        links: [
+          {
+            href: "/admin/custom-fields",
+            label: "Campos customizados",
+            emoji: "🧩",
+            helper: "Personalize dados do CRM"
+          },
+          {
+            href: "/admin/integrations",
+            label: "Integrações",
+            emoji: "🔗",
+            helper: "Canais e provedores conectados"
+          },
+          {
+            href: "/admin/automations",
+            label: "Templates",
+            emoji: "⚙️",
+            helper: "Automações e fluxos"
+          },
+          {
+            href: "/admin/knowledge-base",
+            label: "Base de conhecimento",
+            emoji: "📚",
+            helper: "Artigos e conteúdos"
+          },
+          {
+            href: "/admin/canned-responses",
+            label: "Respostas rápidas",
+            emoji: "💡",
+            helper: "Atalhos de atendimento"
+          },
+          {
+            href: "/admin/billing",
+            label: "Cobrança",
+            emoji: "💳",
+            helper: "Plano e pagamentos"
+          }
+        ]
+      });
+    }
+
+    if (isSuperAdmin) {
+      sections.push({
+        title: "Super Admin",
+        links: [
+          {
+            href: "/super-admin",
+            label: "Painel Super Admin",
+            emoji: "🛡️",
+            helper: "Controle avançado do sistema"
+          }
+        ]
+      });
+    }
+
+    return sections;
+  }, [isAdmin, isSuperAdmin]);
+
   const activityChartData = useMemo(() => {
     const today = new Date();
     const days: { label: string; count: number; avgResponse: number }[] = [];
@@ -413,96 +464,29 @@ export default function DashboardClient({ role, isSuperAdmin }: DashboardClientP
   return (
     <div className="flex min-h-screen flex-col bg-slate-950">
       <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-slate-900 px-6 shadow-sm">
-        <SidebarNav variant="client" />
+        <SidebarNav
+          variant="client"
+          extraSections={sidebarExtraSections}
+          footerActions={
+            <>
+              <Button variant="outline" size="sm">
+                Ajuda
+              </Button>
+              <div className="flex items-center gap-3 rounded-lg border border-slate-800 bg-slate-900/80 px-3 py-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500/20 text-xs font-bold text-blue-200">
+                  U
+                </div>
+                <div className="text-xs text-slate-300">Usuário ativo</div>
+              </div>
+              <LogoutButton />
+            </>
+          }
+        />
         <h1 className="text-xl font-semibold text-slate-100">
           Painel de Controle
         </h1>
-        <div className="ml-auto flex items-center gap-4">
-          <Link
-            href="/workspaces"
-            className={buttonVariants({ variant: "outline", size: "sm" })}
-          >
-            Workspaces ({workspaces.length})
-          </Link>
-          <Link
-            href="/inbox"
-            className={buttonVariants({ variant: "outline", size: "sm" })}
-          >
-            Inbox
-          </Link>
-          <Link
-            href="/search"
-            className={buttonVariants({ variant: "outline", size: "sm" })}
-          >
-            Busca global
-          </Link>
-          <Link
-            href="/companies"
-            className={buttonVariants({ variant: "outline", size: "sm" })}
-          >
-            Empresas
-          </Link>
-          {isAdmin ? (
-            <>
-              <Link
-                href="/admin/custom-fields"
-                className={buttonVariants({ variant: "outline", size: "sm" })}
-              >
-                Campos customizados
-              </Link>
-              <Link
-                href="/admin/integrations"
-                className={buttonVariants({ variant: "outline", size: "sm" })}
-              >
-                Integrações
-              </Link>
-              <Link
-                href="/admin/automations"
-                className={buttonVariants({ variant: "outline", size: "sm" })}
-              >
-                Templates
-              </Link>
-              <Link
-                href="/admin/knowledge-base"
-                className={buttonVariants({ variant: "outline", size: "sm" })}
-              >
-                Base de conhecimento
-              </Link>
-              <Link
-                href="/admin/canned-responses"
-                className={buttonVariants({ variant: "outline", size: "sm" })}
-              >
-                Respostas rápidas
-              </Link>
-              <Link
-                href="/admin/billing"
-                className={buttonVariants({ variant: "outline", size: "sm" })}
-              >
-                Cobrança
-              </Link>
-            </>
-          ) : null}
-          {isSuperAdmin ? (
-            <Link
-              href="/super-admin"
-              className={buttonVariants({ variant: "outline", size: "sm" })}
-            >
-              Super Admin
-            </Link>
-          ) : null}
-          <Link
-            href="/dashboard/variables"
-            className={buttonVariants({ variant: "outline", size: "sm" })}
-          >
-            Variáveis
-          </Link>
-          <Button variant="outline" size="sm">
-            Ajuda
-          </Button>
-          <div className="h-8 w-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-200 font-bold">
-            U
-          </div>
-          <LogoutButton />
+        <div className="ml-auto text-sm text-slate-400">
+          {workspaces.length ? `${workspaces.length} workspaces ativos` : "Carregando workspaces"}
         </div>
       </header>
 
@@ -582,6 +566,8 @@ export default function DashboardClient({ role, isSuperAdmin }: DashboardClientP
               </div>
             ))}
           </div>
+
+          <SalesFunnelBoard conversations={conversations} loading={loading} apiUrl={apiUrl} />
 
           <TaskOverview />
 
