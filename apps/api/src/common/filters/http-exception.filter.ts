@@ -9,6 +9,8 @@ import {
 import { Request, Response } from "express";
 import { JsonLoggerService } from "../logging/json-logger.service";
 
+type RequestWithCorrelationId = Request & { correlationId?: string };
+
 interface HttpErrorResponseBody {
   statusCode: number;
   message: string | string[];
@@ -25,7 +27,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
     const context = host.switchToHttp();
     const response = context.getResponse<Response>();
-    const request = context.getRequest<Request>();
+    const request = context.getRequest<RequestWithCorrelationId>();
 
     const statusCode =
       exception instanceof HttpException
