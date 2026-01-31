@@ -1,8 +1,9 @@
 import {
   CanActivate,
   ExecutionContext,
-  Injectable,
-  TooManyRequestsException
+  HttpException,
+  HttpStatus,
+  Injectable
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { Request, Response } from "express";
@@ -55,8 +56,9 @@ export class RateLimitGuard implements CanActivate {
       }
 
       if (!result.allowed) {
-        throw new TooManyRequestsException(
-          "Muitas requisições. Tente novamente em instantes."
+        throw new HttpException(
+          "Muitas requisições. Tente novamente em instantes.",
+          HttpStatus.TOO_MANY_REQUESTS
         );
       }
     }

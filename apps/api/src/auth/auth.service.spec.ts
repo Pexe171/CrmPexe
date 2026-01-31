@@ -1,6 +1,7 @@
 import {
   ConflictException,
-  TooManyRequestsException,
+  HttpException,
+  HttpStatus,
   UnauthorizedException
 } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
@@ -105,11 +106,17 @@ describe("AuthService", () => {
     prismaMock.user.findUnique.mockResolvedValue({ id: "user-1" });
     prismaMock.otpCode.count.mockResolvedValue(20);
 
-    await expect(
-      authService.requestOtp({
+    try {
+      await authService.requestOtp({
         email: "user@example.com"
-      })
-    ).rejects.toBeInstanceOf(TooManyRequestsException);
+      });
+      throw new Error("Expected requestOtp to throw");
+    } catch (error) {
+      expect(error).toBeInstanceOf(HttpException);
+      expect((error as HttpException).getStatus()).toBe(
+        HttpStatus.TOO_MANY_REQUESTS
+      );
+    }
   });
 
   it("verifies OTP and issues tokens", async () => {

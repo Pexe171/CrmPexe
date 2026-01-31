@@ -82,7 +82,7 @@ export class QueuesService {
     const data: Prisma.QueueUpdateInput = {
       name: payload.name ? this.normalizeRequiredString(payload.name, "name") : undefined,
       channel: payload.channel ? this.normalizeRequiredString(payload.channel, "channel") : undefined,
-      teamId,
+      team: { connect: { id: teamId } },
       isActive: payload.isActive
     };
 
