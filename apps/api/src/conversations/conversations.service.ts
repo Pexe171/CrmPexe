@@ -385,6 +385,73 @@ export class ConversationsService {
     });
   }
 
+  async updateConversationStatus(
+    userId: string,
+    conversationId: string,
+    payload: { status: ConversationStatus },
+    workspaceId?: string
+  ) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+    const accessFilter = await this.buildConversationAccessFilter(userId, resolvedWorkspaceId);
+    const conversation = await this.prisma.conversation.findFirst({
+      where: { AND: [accessFilter, { id: conversationId }] },
+      include: {
+        contact: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true
+          }
+        },
+        assignedToUser: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
+      }
+    });
+
+    if (!conversation) {
+      throw new NotFoundException("Conversa não encontrada.");
+    }
+
+    const targetStatus = payload.status;
+    const closedAt = new Date();
+    const resolutionTimeSeconds =
+      targetStatus === ConversationStatus.CLOSED
+        ? conversation.resolutionTimeSeconds ??
+          Math.max(0, Math.floor((closedAt.getTime() - conversation.createdAt.getTime()) / 1000))
+        : conversation.resolutionTimeSeconds;
+
+    return this.prisma.conversation.update({
+      where: { id: conversation.id },
+      data: {
+        status: targetStatus,
+        resolutionTimeSeconds
+      },
+      include: {
+        contact: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true
+          }
+        },
+        assignedToUser: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
+      }
+    });
+  }
+
   private async storeOutgoingMessage({
     workspaceId,
     conversation,

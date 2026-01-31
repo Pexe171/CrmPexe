@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 
@@ -9,6 +9,16 @@ type SidebarVariant = "client" | "superadmin";
 
 type SidebarNavProps = {
   variant: SidebarVariant;
+  extraSections?: Array<{
+    title: string;
+    links: Array<{
+      href: string;
+      label: string;
+      emoji?: string;
+      helper?: string;
+    }>;
+  }>;
+  footerActions?: ReactNode;
 };
 
 const clientLinks = [
@@ -31,7 +41,47 @@ const superAdminLinks = [
   { href: "/super-admin/templates", label: "Templates", emoji: "🧵", helper: "Automações oficiais" }
 ];
 
-export function SidebarNav({ variant }: SidebarNavProps) {
+const SidebarSection = ({
+  title,
+  links,
+  onNavigate
+}: {
+  title: string;
+  links: Array<{
+    href: string;
+    label: string;
+    emoji?: string;
+    helper?: string;
+  }>;
+  onNavigate: () => void;
+}) => {
+  return (
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-300">
+        {title}
+      </p>
+      <ul className="mt-3 space-y-3">
+        {links.map((link) => (
+          <li key={link.href}>
+            <Link
+              className="flex items-start gap-3 rounded-lg border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm text-slate-200 transition hover:border-blue-500/40 hover:text-white"
+              href={link.href}
+              onClick={onNavigate}
+            >
+              {link.emoji ? <span className="text-base">{link.emoji}</span> : null}
+              <div>
+                <p className="font-semibold">{link.label}</p>
+                {link.helper ? <p className="text-xs text-slate-400">{link.helper}</p> : null}
+              </div>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
+export function SidebarNav({ variant, extraSections, footerActions }: SidebarNavProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -71,77 +121,32 @@ export function SidebarNav({ variant }: SidebarNavProps) {
             </div>
 
             <div className="mt-6 space-y-6">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-300">
-                  Cliente
-                </p>
-                <ul className="mt-3 space-y-3">
-                  {clientLinks.map((link) => (
-                    <li key={link.href}>
-                      <Link
-                        className="flex items-start gap-3 rounded-lg border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm text-slate-200 transition hover:border-blue-500/40 hover:text-white"
-                        href={link.href}
-                        onClick={() => setOpen(false)}
-                      >
-                        <span className="text-base">{link.emoji}</span>
-                        <div>
-                          <p className="font-semibold">{link.label}</p>
-                          <p className="text-xs text-slate-400">{link.helper}</p>
-                        </div>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-300">
-                  Workspace
-                </p>
-                <ul className="mt-3 space-y-3">
-                  {workspaceLinks.map((link) => (
-                    <li key={link.href}>
-                      <Link
-                        className="flex items-start gap-3 rounded-lg border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm text-slate-200 transition hover:border-blue-500/40 hover:text-white"
-                        href={link.href}
-                        onClick={() => setOpen(false)}
-                      >
-                        <span className="text-base">{link.emoji}</span>
-                        <div>
-                          <p className="font-semibold">{link.label}</p>
-                          <p className="text-xs text-slate-400">{link.helper}</p>
-                        </div>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              <SidebarSection title="Cliente" links={clientLinks} onNavigate={() => setOpen(false)} />
+              <SidebarSection title="Workspace" links={workspaceLinks} onNavigate={() => setOpen(false)} />
 
               {variant === "superadmin" ? (
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-300">
-                    Super Admin
-                  </p>
-                  <ul className="mt-3 space-y-3">
-                    {superAdminLinks.map((link) => (
-                      <li key={link.href}>
-                        <Link
-                          className="flex items-start gap-3 rounded-lg border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm text-slate-200 transition hover:border-blue-500/40 hover:text-white"
-                          href={link.href}
-                          onClick={() => setOpen(false)}
-                        >
-                          <span className="text-base">{link.emoji}</span>
-                          <div>
-                            <p className="font-semibold">{link.label}</p>
-                            <p className="text-xs text-slate-400">{link.helper}</p>
-                          </div>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                <SidebarSection
+                  title="Super Admin"
+                  links={superAdminLinks}
+                  onNavigate={() => setOpen(false)}
+                />
               ) : null}
+
+              {extraSections?.map((section) => (
+                <SidebarSection
+                  key={section.title}
+                  title={section.title}
+                  links={section.links}
+                  onNavigate={() => setOpen(false)}
+                />
+              ))}
             </div>
+
+            {footerActions ? (
+              <div className="mt-6 border-t border-slate-800 pt-4">
+                <div className="flex flex-col gap-3">{footerActions}</div>
+              </div>
+            ) : null}
           </aside>
         </>
       ) : null}

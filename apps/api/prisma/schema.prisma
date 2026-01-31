@@ -35,6 +35,9 @@ enum AutomationInstanceStatus {
 }
 
 enum ConversationStatus {
+  NEW
+  CONTACTED
+  PROPOSAL
   OPEN
   CLOSED
 }
