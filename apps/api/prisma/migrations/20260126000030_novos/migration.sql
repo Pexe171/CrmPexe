@@ -1,3 +1,40 @@
+-- Garantir tipos e tabelas de automação antes de alterar constraints
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'AutomationInstanceStatus') THEN
+        CREATE TYPE "AutomationInstanceStatus" AS ENUM ('PENDING', 'ACTIVE', 'FAILED');
+    END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS "AutomationTemplate" (
+    "id" TEXT NOT NULL DEFAULT gen_random_uuid(),
+    "name" TEXT NOT NULL,
+    "description" TEXT,
+    "version" TEXT NOT NULL,
+    "category" TEXT NOT NULL,
+    "definitionJson" JSONB NOT NULL,
+    "requiredIntegrations" TEXT[] NOT NULL,
+    "createdByAdminId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AutomationTemplate_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "AutomationInstance" (
+    "id" TEXT NOT NULL DEFAULT gen_random_uuid(),
+    "workspaceId" TEXT NOT NULL,
+    "templateId" TEXT NOT NULL,
+    "status" "AutomationInstanceStatus" NOT NULL DEFAULT 'PENDING',
+    "externalWorkflowId" TEXT,
+    "enabled" BOOLEAN NOT NULL DEFAULT false,
+    "configJson" JSONB NOT NULL,
+    "createdByUserId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AutomationInstance_pkey" PRIMARY KEY ("id")
+);
+
 -- DropForeignKey
 ALTER TABLE "AutomationInstance" DROP CONSTRAINT IF EXISTS "AutomationInstance_createdByUserId_fkey";
 
