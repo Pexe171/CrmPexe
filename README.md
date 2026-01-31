@@ -127,6 +127,7 @@ pnpm dev
 - Para evitar erro `Cannot find module './types/express'` no runtime, **não importe** esse arquivo no bootstrap da API. A extensão de tipos é carregada automaticamente pelo TypeScript via `typeRoots`/`include`. 
 - Se um controller usar `AccessTokenGuard`, o módulo correspondente deve importar `AuthModule` para garantir que `JwtService` e o próprio guard estejam disponíveis no contexto de injeção.
 - O módulo `TeamsModule` já importa `AuthModule` para evitar erro de injeção do `JwtService` ao usar `AccessTokenGuard`.
+- O módulo `KnowledgeBaseModule` também importa `AuthModule` para permitir o uso do `AccessTokenGuard` sem falhas de injeção.
 
 ### PASSO 55 — Backups e migrações seguras
 **Objetivo:** garantir continuidade e restauração rápida do banco PostgreSQL.
