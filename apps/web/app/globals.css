@@ -4,6 +4,10 @@
 
 :root {
   color-scheme: light;
+  --brand-primary: #f8fafc;
+  --brand-primary-hover: #e2e8f0;
+  --brand-primary-text: #0f172a;
+  --brand-secondary: #34d399;
 }
 
 body {

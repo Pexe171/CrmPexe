@@ -144,6 +144,12 @@ model HealthCheck {
 model Workspace {
   id        String   @id @default(uuid())
   name      String
+  brandName String?
+  brandLogoUrl String?
+  brandPrimaryColor String?
+  brandSecondaryColor String?
+  customDomain String?
+  locale    String   @default("pt-BR")
   deletedAt DateTime?
   retentionEndsAt DateTime?
   createdAt DateTime @default(now())
@@ -239,6 +245,8 @@ model WorkspaceMember {
   workspaceId String
   userId      String
   roleId      String
+  allowedTagIds String[] @default([])
+  allowedUnitIds String[] @default([])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

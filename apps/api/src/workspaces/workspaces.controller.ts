@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Query, Res, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Res, UseGuards } from "@nestjs/common";
 import { Response } from "express";
 import { AuditEntity } from "../audit-logs/audit-log.decorator";
 import { AccessTokenGuard } from "../auth/access-token.guard";
@@ -7,6 +7,8 @@ import { AuthUser } from "../auth/auth.types";
 import { CreateWorkspaceDto } from "./dto/create-workspace.dto";
 import { ExportWorkspaceQueryDto } from "./dto/export-workspace-query.dto";
 import { RequestWorkspaceDeletionDto } from "./dto/request-workspace-deletion.dto";
+import { UpdateWorkspaceBrandingDto } from "./dto/update-workspace-branding.dto";
+import { UpdateWorkspaceMemberPoliciesDto } from "./dto/update-workspace-member-policies.dto";
 import { WorkspacesService } from "./workspaces.service";
 
 @Controller("workspaces")
@@ -32,9 +34,63 @@ export class WorkspacesController {
     return this.workspacesService.listWorkspaces(user.id);
   }
 
+  @Get("current")
+  async getCurrentWorkspace(@CurrentUser() user: AuthUser) {
+    return this.workspacesService.getCurrentWorkspace(user.id);
+  }
+
   @Post(":id/switch")
   async switchWorkspace(@CurrentUser() user: AuthUser, @Param("id") workspaceId: string) {
     return this.workspacesService.switchWorkspace(user.id, workspaceId);
+  }
+
+  @Patch(":id/branding")
+  @AuditEntity({
+    entity: "Workspace",
+    action: "UPDATE",
+    entityId: { source: "param", key: "id" },
+    workspaceId: { source: "param", key: "id" },
+    metadata: (request) => ({
+      brandName: request.body?.brandName ?? null,
+      brandLogoUrl: request.body?.brandLogoUrl ?? null,
+      brandPrimaryColor: request.body?.brandPrimaryColor ?? null,
+      brandSecondaryColor: request.body?.brandSecondaryColor ?? null,
+      customDomain: request.body?.customDomain ?? null,
+      locale: request.body?.locale ?? null
+    })
+  })
+  async updateWorkspaceBranding(
+    @CurrentUser() user: AuthUser,
+    @Param("id") workspaceId: string,
+    @Body() body: UpdateWorkspaceBrandingDto
+  ) {
+    return this.workspacesService.updateWorkspaceBranding(user.id, workspaceId, body);
+  }
+
+  @Patch(":id/members/:memberId/policies")
+  @AuditEntity({
+    entity: "WorkspaceMember",
+    action: "UPDATE",
+    entityId: { source: "param", key: "memberId" },
+    workspaceId: { source: "param", key: "id" },
+    metadata: (request) => ({
+      allowedTagIds: request.body?.allowedTagIds ?? null,
+      allowedUnitIds: request.body?.allowedUnitIds ?? null
+    })
+  })
+  async updateWorkspaceMemberPolicies(
+    @CurrentUser() user: AuthUser,
+    @Param("id") workspaceId: string,
+    @Param("memberId") memberId: string,
+    @Body() body: UpdateWorkspaceMemberPoliciesDto
+  ) {
+    return this.workspacesService.updateWorkspaceMemberPolicies({
+      requesterId: user.id,
+      workspaceId,
+      memberUserId: memberId,
+      allowedTagIds: body.allowedTagIds,
+      allowedUnitIds: body.allowedUnitIds
+    });
   }
 
   @Get(":id/export")

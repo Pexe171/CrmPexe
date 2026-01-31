@@ -6,10 +6,12 @@ import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
+import { useBranding } from "@/components/branding/branding-provider";
 import { useGlobalFeedback } from "@/components/global-feedback";
 import { getDefaultDashboardPath, normalizeUserRole } from "@/lib/rbac";
 import { useAuthOtp } from "@/lib/use-auth-otp";
 import { useLoginFlow } from "@/lib/use-login-flow";
+import { useTranslations } from "@/lib/use-translations";
 
 const initialState = {
   name: "",
@@ -21,6 +23,8 @@ const initialState = {
 
 export function RegisterForm() {
   const router = useRouter();
+  const { brandName, brandLogoUrl } = useBranding();
+  const { t } = useTranslations();
   const { clearFeedback } = useGlobalFeedback();
   const { formState, onChange, status, setStatus, step, setStep, resetToRequest } =
     useLoginFlow(initialState);
@@ -71,20 +75,27 @@ export function RegisterForm() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-950 px-6 py-12 text-slate-100">
       <div className="w-full max-w-md space-y-8 rounded-2xl border border-slate-800 bg-slate-900/70 p-8 shadow-xl">
-        <header className="space-y-2">
-          <p className="text-xs uppercase tracking-[0.3em] text-emerald-400">
-            CrmPexe
+        <header className="space-y-3">
+          {brandLogoUrl ? (
+            <img
+              src={brandLogoUrl}
+              alt={brandName || t("auth.register.brand")}
+              className="h-10 w-auto"
+            />
+          ) : null}
+          <p className="text-xs uppercase tracking-[0.3em] text-[var(--brand-secondary)]">
+            {brandName || t("auth.register.brand")}
           </p>
-          <h1 className="text-3xl font-semibold">Criar acesso</h1>
+          <h1 className="text-3xl font-semibold">{t("auth.register.title")}</h1>
           <p className="text-sm text-slate-300">
-            Cadastre seus dados e confirme o OTP enviado por e-mail.
+            {t("auth.register.subtitle")}
           </p>
         </header>
 
         <form onSubmit={onSubmit} className="space-y-5">
           <div className="space-y-2">
             <label className="text-sm text-slate-200" htmlFor="name">
-              Nome
+              {t("auth.register.name")}
             </label>
             <input
               id="name"
@@ -95,13 +106,13 @@ export function RegisterForm() {
               onChange={onChange}
               readOnly={step === "verify"}
               className="w-full rounded-lg border border-slate-800 bg-slate-950 px-4 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
-              placeholder="Seu nome completo"
+              placeholder={t("auth.register.namePlaceholder")}
             />
           </div>
 
           <div className="space-y-2">
             <label className="text-sm text-slate-200" htmlFor="contact">
-              Contato
+              {t("auth.register.contact")}
             </label>
             <input
               id="contact"
@@ -112,13 +123,13 @@ export function RegisterForm() {
               onChange={onChange}
               readOnly={step === "verify"}
               className="w-full rounded-lg border border-slate-800 bg-slate-950 px-4 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
-              placeholder="Telefone ou WhatsApp"
+              placeholder={t("auth.register.contactPlaceholder")}
             />
           </div>
 
           <div className="space-y-2">
             <label className="text-sm text-slate-200" htmlFor="email">
-              E-mail
+              {t("auth.register.email")}
             </label>
             <input
               id="email"
@@ -130,7 +141,7 @@ export function RegisterForm() {
               onChange={onChange}
               readOnly={step === "verify"}
               className="w-full rounded-lg border border-slate-800 bg-slate-950 px-4 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
-              placeholder="voce@empresa.com"
+              placeholder={t("auth.register.emailPlaceholder")}
             />
           </div>
 
@@ -139,7 +150,7 @@ export function RegisterForm() {
               className="text-sm text-slate-200"
               htmlFor="emailConfirmation"
             >
-              Confirme o e-mail
+              {t("auth.register.emailConfirmation")}
             </label>
             <input
               id="emailConfirmation"
@@ -151,14 +162,14 @@ export function RegisterForm() {
               onChange={onChange}
               readOnly={step === "verify"}
               className="w-full rounded-lg border border-slate-800 bg-slate-950 px-4 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
-              placeholder="voce@empresa.com"
+              placeholder={t("auth.register.emailPlaceholder")}
             />
           </div>
 
           {step === "verify" ? (
             <div className="space-y-2">
               <label className="text-sm text-slate-200" htmlFor="code">
-                Código recebido
+                {t("auth.login.code")}
               </label>
               <input
                 id="code"
@@ -170,7 +181,7 @@ export function RegisterForm() {
                 value={formState.code}
                 onChange={onChange}
                 className="w-full rounded-lg border border-slate-800 bg-slate-950 px-4 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
-                placeholder="123456"
+                placeholder={t("auth.login.codePlaceholder")}
               />
             </div>
           ) : null}
@@ -184,11 +195,11 @@ export function RegisterForm() {
           <Button type="submit" className="w-full" disabled={isPending || isLoading}>
             {isPending || isLoading
               ? step === "request"
-                ? "Enviando código..."
-                : "Validando código..."
+                ? t("auth.login.requestLoading")
+                : t("auth.login.verifyLoading")
               : step === "request"
-                ? "Enviar código"
-                : "Finalizar cadastro"}
+                ? t("auth.login.request")
+                : t("auth.register.submit")}
           </Button>
 
           {step === "verify" ? (
@@ -197,7 +208,7 @@ export function RegisterForm() {
               className="w-full text-sm text-slate-400 hover:text-emerald-300"
               onClick={resetToRequest}
             >
-              Alterar dados ou reenviar código
+              {t("auth.register.change")}
             </button>
           ) : null}
         </form>

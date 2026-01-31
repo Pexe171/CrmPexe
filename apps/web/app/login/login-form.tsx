@@ -6,10 +6,12 @@ import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
+import { useBranding } from "@/components/branding/branding-provider";
 import { useGlobalFeedback } from "@/components/global-feedback";
 import { getDefaultDashboardPath, normalizeUserRole } from "@/lib/rbac";
 import { useAuthOtp } from "@/lib/use-auth-otp";
 import { useLoginFlow } from "@/lib/use-login-flow";
+import { useTranslations } from "@/lib/use-translations";
 
 const initialState = {
   email: "",
@@ -18,6 +20,8 @@ const initialState = {
 
 export function LoginForm() {
   const router = useRouter();
+  const { brandName, brandLogoUrl } = useBranding();
+  const { t } = useTranslations();
   const { clearFeedback } = useGlobalFeedback();
   const { formState, onChange, status, setStatus, step, setStep, resetToRequest } =
     useLoginFlow(initialState);
@@ -62,20 +66,27 @@ export function LoginForm() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-950 px-6 py-12 text-slate-100">
       <div className="w-full max-w-md space-y-8 rounded-2xl border border-slate-800 bg-slate-900/70 p-8 shadow-xl">
-        <header className="space-y-2">
-          <p className="text-xs uppercase tracking-[0.3em] text-emerald-400">
-            CrmPexe
+        <header className="space-y-3">
+          {brandLogoUrl ? (
+            <img
+              src={brandLogoUrl}
+              alt={brandName || t("auth.login.brand")}
+              className="h-10 w-auto"
+            />
+          ) : null}
+          <p className="text-xs uppercase tracking-[0.3em] text-[var(--brand-secondary)]">
+            {brandName || t("auth.login.brand")}
           </p>
-          <h1 className="text-3xl font-semibold">Entrar</h1>
+          <h1 className="text-3xl font-semibold">{t("auth.login.title")}</h1>
           <p className="text-sm text-slate-300">
-            Acesse seu workspace para continuar o atendimento.
+            {t("auth.login.subtitle")}
           </p>
         </header>
 
         <form onSubmit={onSubmit} className="space-y-5">
           <div className="space-y-2">
             <label className="text-sm text-slate-200" htmlFor="email">
-              E-mail
+              {t("auth.login.email")}
             </label>
             <input
               id="email"
@@ -87,14 +98,14 @@ export function LoginForm() {
               onChange={onChange}
               readOnly={step === "verify"}
               className="w-full rounded-lg border border-slate-800 bg-slate-950 px-4 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
-              placeholder="voce@empresa.com"
+              placeholder={t("auth.login.emailPlaceholder")}
             />
           </div>
 
           {step === "verify" ? (
             <div className="space-y-2">
               <label className="text-sm text-slate-200" htmlFor="code">
-                Código recebido
+                {t("auth.login.code")}
               </label>
               <input
                 id="code"
@@ -106,7 +117,7 @@ export function LoginForm() {
                 value={formState.code}
                 onChange={onChange}
                 className="w-full rounded-lg border border-slate-800 bg-slate-950 px-4 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
-                placeholder="123456"
+                placeholder={t("auth.login.codePlaceholder")}
               />
             </div>
           ) : null}
@@ -120,11 +131,11 @@ export function LoginForm() {
           <Button type="submit" className="w-full" disabled={isPending || isLoading}>
             {isPending || isLoading
               ? step === "request"
-                ? "Enviando código..."
-                : "Validando código..."
+                ? t("auth.login.requestLoading")
+                : t("auth.login.verifyLoading")
               : step === "request"
-                ? "Enviar código"
-                : "Entrar"}
+                ? t("auth.login.request")
+                : t("auth.login.verify")}
           </Button>
 
           {step === "verify" ? (
@@ -133,7 +144,7 @@ export function LoginForm() {
               className="w-full text-sm text-slate-400 hover:text-emerald-300"
               onClick={resetToRequest}
             >
-              Trocar e-mail ou reenviar código
+              {t("auth.login.change")}
             </button>
           ) : null}
         </form>
