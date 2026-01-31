@@ -80,7 +80,7 @@ ALTER TABLE "Conversation" ADD COLUMN     "first_response_time_seconds" INTEGER,
 ADD COLUMN     "resolution_time_seconds" INTEGER;
 
 -- AlterTable
-ALTER TABLE "Notification" ALTER COLUMN "id" DROP DEFAULT;
+ALTER TABLE IF EXISTS "Notification" ALTER COLUMN "id" DROP DEFAULT;
 
 -- AddForeignKey
 DO $$ BEGIN
