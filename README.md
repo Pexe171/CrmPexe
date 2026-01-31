@@ -129,6 +129,14 @@ pnpm dev
 - O módulo `TeamsModule` já importa `AuthModule` para evitar erro de injeção do `JwtService` ao usar `AccessTokenGuard`.
 - O módulo `KnowledgeBaseModule` também importa `AuthModule` para permitir o uso do `AccessTokenGuard` sem falhas de injeção.
 
+### Inbox omnichannel (Web)
+**Objetivo:** centralizar o atendimento multicanal em uma única tela operacional.
+
+- Lista lateral com busca por contato e filtros rápidos por canal (WhatsApp, Instagram e E-mail).
+- Conversa central com scroll automático para o último item recebido/enviado.
+- Input com atalho `/` para inserir respostas rápidas (canned responses) sem sair do fluxo.
+- Identificador visual do canal ao lado do cliente e balões com cores distintas para atendente (azul) e cliente (zinc).
+
 ### Página "Minhas Instalações" (Web)
 **Objetivo:** acompanhar automações instaladas do marketplace com controle de status e configuração.
 

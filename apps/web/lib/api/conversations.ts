@@ -4,6 +4,7 @@ export const conversationsPageSize = 20;
 
 export type Conversation = {
   id: string;
+  channel?: string | null;
   status?: string | null;
   lastMessageAt?: string | null;
   createdAt: string;
