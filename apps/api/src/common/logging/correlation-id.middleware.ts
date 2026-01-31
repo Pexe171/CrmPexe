@@ -3,11 +3,13 @@ import { Injectable, NestMiddleware } from "@nestjs/common";
 import { Request, Response } from "express";
 import { CorrelationIdService } from "./correlation-id.service";
 
+type RequestWithCorrelationId = Request & { correlationId?: string };
+
 @Injectable()
 export class CorrelationIdMiddleware implements NestMiddleware {
   constructor(private readonly correlationIdService: CorrelationIdService) {}
 
-  use(req: Request, res: Response, next: () => void) {
+  use(req: RequestWithCorrelationId, res: Response, next: () => void) {
     const headerId = req.header("x-correlation-id");
     const correlationId = headerId?.trim() || randomUUID();
 
