@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { ConversationStatus, MessageDirection, NotificationType, Prisma } from "@prisma/client";
+import { ConversationStatus, MessageDirection, NotificationType, Prisma, UserRole } from "@prisma/client";
 import { ChannelsService } from "../channels/channels.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { PrismaService } from "../prisma/prisma.service";
@@ -23,12 +23,13 @@ export class ConversationsService {
     workspaceId?: string
   ) {
     const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+    const accessFilter = await this.buildConversationAccessFilter(userId, resolvedWorkspaceId);
     const page = this.parsePositiveInt(pagination.page, 1);
     const limit = this.clampLimit(this.parsePositiveInt(pagination.limit, 20));
     const skip = (page - 1) * limit;
 
     return this.prisma.conversation.findMany({
-      where: { workspaceId: resolvedWorkspaceId },
+      where: accessFilter,
       orderBy: [{ lastMessageAt: "desc" }, { createdAt: "desc" }],
       skip,
       take: limit,
@@ -72,9 +73,10 @@ export class ConversationsService {
 
   async getConversation(userId: string, conversationId: string, workspaceId?: string) {
     const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+    const accessFilter = await this.buildConversationAccessFilter(userId, resolvedWorkspaceId);
 
     const conversation = await this.prisma.conversation.findFirst({
-      where: { id: conversationId, workspaceId: resolvedWorkspaceId },
+      where: { AND: [accessFilter, { id: conversationId }] },
       include: {
         contact: {
           select: {
@@ -113,8 +115,9 @@ export class ConversationsService {
     workspaceId?: string
   ) {
     const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+    const accessFilter = await this.buildConversationAccessFilter(userId, resolvedWorkspaceId);
     const conversation = await this.prisma.conversation.findFirst({
-      where: { id: conversationId, workspaceId: resolvedWorkspaceId }
+      where: { AND: [accessFilter, { id: conversationId }] }
     });
 
     if (!conversation) {
@@ -158,8 +161,9 @@ export class ConversationsService {
     workspaceId?: string
   ) {
     const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+    const accessFilter = await this.buildConversationAccessFilter(userId, resolvedWorkspaceId);
     const conversation = await this.prisma.conversation.findFirst({
-      where: { id: conversationId, workspaceId: resolvedWorkspaceId },
+      where: { AND: [accessFilter, { id: conversationId }] },
       include: {
         contact: true
       }
@@ -244,8 +248,9 @@ export class ConversationsService {
     workspaceId?: string
   ) {
     const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+    const accessFilter = await this.buildConversationAccessFilter(userId, resolvedWorkspaceId);
     const conversation = await this.prisma.conversation.findFirst({
-      where: { id: conversationId, workspaceId: resolvedWorkspaceId },
+      where: { AND: [accessFilter, { id: conversationId }] },
       include: {
         contact: {
           select: {
@@ -323,8 +328,9 @@ export class ConversationsService {
 
   async closeConversation(userId: string, conversationId: string, workspaceId?: string) {
     const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+    const accessFilter = await this.buildConversationAccessFilter(userId, resolvedWorkspaceId);
     const conversation = await this.prisma.conversation.findFirst({
-      where: { id: conversationId, workspaceId: resolvedWorkspaceId },
+      where: { AND: [accessFilter, { id: conversationId }] },
       include: {
         contact: {
           select: {
@@ -461,6 +467,58 @@ export class ConversationsService {
     if (!membership) {
       throw new BadRequestException("Workspace inválido.");
     }
+  }
+
+  private async buildConversationAccessFilter(userId: string, workspaceId: string) {
+    const [membership, user] = await Promise.all([
+      this.prisma.workspaceMember.findFirst({
+        where: { userId, workspaceId },
+        include: { role: true }
+      }),
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { role: true, isSuperAdmin: true }
+      })
+    ]);
+
+    if (!membership) {
+      throw new BadRequestException("Workspace inválido.");
+    }
+
+    const isAdmin = user?.role === UserRole.ADMIN ||
+      user?.isSuperAdmin ||
+      membership.role?.name === "Owner";
+
+    if (isAdmin) {
+      return { workspaceId };
+    }
+
+    const filters: Prisma.ConversationWhereInput[] = [
+      { workspaceId },
+      { assignedToUserId: userId }
+    ];
+
+    if (membership.allowedTagIds.length > 0) {
+      filters.push({
+        contact: {
+          tags: {
+            some: {
+              tagId: { in: membership.allowedTagIds }
+            }
+          }
+        }
+      });
+    }
+
+    if (membership.allowedUnitIds.length > 0) {
+      filters.push({
+        contact: {
+          companyId: { in: membership.allowedUnitIds }
+        }
+      });
+    }
+
+    return { AND: filters };
   }
 
   private parseDate(value: string, field: string) {

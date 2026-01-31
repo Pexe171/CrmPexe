@@ -15,7 +15,9 @@ export class WorkspacesService {
     return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const workspace = await tx.workspace.create({
         data: {
-          name: trimmedName
+          name: trimmedName,
+          brandName: trimmedName,
+          locale: "pt-BR"
         }
       });
 
@@ -60,13 +62,128 @@ export class WorkspacesService {
 
     return {
       currentWorkspaceId: user?.currentWorkspaceId ?? null,
-      workspaces: memberships.map((membership: { workspace: { id: string; name: string; createdAt: Date; updatedAt: Date } }) => ({
-        id: membership.workspace.id,
-        name: membership.workspace.name,
-        createdAt: membership.workspace.createdAt,
-        updatedAt: membership.workspace.updatedAt
-      }))
+      workspaces: memberships.map(
+        (membership: {
+          workspace: {
+            id: string;
+            name: string;
+            brandName: string | null;
+            locale: string;
+            createdAt: Date;
+            updatedAt: Date;
+          };
+        }) => ({
+          id: membership.workspace.id,
+          name: membership.workspace.name,
+          brandName: membership.workspace.brandName,
+          locale: membership.workspace.locale,
+          createdAt: membership.workspace.createdAt,
+          updatedAt: membership.workspace.updatedAt
+        })
+      )
     };
+  }
+
+  async getCurrentWorkspace(userId: string, workspaceId?: string) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+    const workspace = await this.prisma.workspace.findFirst({
+      where: { id: resolvedWorkspaceId, deletedAt: null },
+      select: {
+        id: true,
+        name: true,
+        brandName: true,
+        brandLogoUrl: true,
+        brandPrimaryColor: true,
+        brandSecondaryColor: true,
+        customDomain: true,
+        locale: true,
+        createdAt: true,
+        updatedAt: true
+      }
+    });
+
+    if (!workspace) {
+      throw new NotFoundException("Workspace não encontrado.");
+    }
+
+    return workspace;
+  }
+
+  async updateWorkspaceBranding(
+    userId: string,
+    workspaceId: string,
+    payload: {
+      brandName?: string | null;
+      brandLogoUrl?: string | null;
+      brandPrimaryColor?: string | null;
+      brandSecondaryColor?: string | null;
+      customDomain?: string | null;
+      locale?: string | null;
+    }
+  ) {
+    await this.ensureWorkspaceAdmin(userId, workspaceId);
+    const resolvedLocale =
+      payload.locale === undefined ? undefined : this.normalizeOptionalString(payload.locale) ?? "pt-BR";
+
+    const updated = await this.prisma.workspace.update({
+      where: { id: workspaceId },
+      data: {
+        brandName: this.normalizeOptionalString(payload.brandName),
+        brandLogoUrl: this.normalizeOptionalString(payload.brandLogoUrl),
+        brandPrimaryColor: this.normalizeOptionalString(payload.brandPrimaryColor),
+        brandSecondaryColor: this.normalizeOptionalString(payload.brandSecondaryColor),
+        customDomain: this.normalizeOptionalString(payload.customDomain),
+        locale: resolvedLocale
+      },
+      select: {
+        id: true,
+        name: true,
+        brandName: true,
+        brandLogoUrl: true,
+        brandPrimaryColor: true,
+        brandSecondaryColor: true,
+        customDomain: true,
+        locale: true,
+        createdAt: true,
+        updatedAt: true
+      }
+    });
+
+    return updated;
+  }
+
+  async updateWorkspaceMemberPolicies(params: {
+    requesterId: string;
+    workspaceId: string;
+    memberUserId: string;
+    allowedTagIds?: string[];
+    allowedUnitIds?: string[];
+  }) {
+    await this.ensureWorkspaceAdmin(params.requesterId, params.workspaceId);
+
+    const membership = await this.prisma.workspaceMember.findFirst({
+      where: { workspaceId: params.workspaceId, userId: params.memberUserId }
+    });
+
+    if (!membership) {
+      throw new NotFoundException("Membro do workspace não encontrado.");
+    }
+
+    return this.prisma.workspaceMember.update({
+      where: { id: membership.id },
+      data: {
+        allowedTagIds: params.allowedTagIds ?? membership.allowedTagIds,
+        allowedUnitIds: params.allowedUnitIds ?? membership.allowedUnitIds
+      },
+      select: {
+        id: true,
+        userId: true,
+        workspaceId: true,
+        allowedTagIds: true,
+        allowedUnitIds: true,
+        updatedAt: true
+      }
+    });
   }
 
   async switchWorkspace(userId: string, workspaceId: string) {
@@ -275,6 +392,48 @@ export class WorkspacesService {
     if (membership.role?.name !== "Owner") {
       throw new ForbiddenException("Você não possui permissão para essa ação.");
     }
+  }
+
+  private async resolveWorkspaceId(userId: string, workspaceId?: string) {
+    const normalized = workspaceId?.trim();
+    if (normalized) {
+      await this.ensureWorkspaceMembership(userId, normalized);
+      return normalized;
+    }
+    const currentWorkspaceId = await this.getCurrentWorkspaceId(userId);
+    await this.ensureWorkspaceMembership(userId, currentWorkspaceId);
+    return currentWorkspaceId;
+  }
+
+  private async ensureWorkspaceMembership(userId: string, workspaceId: string) {
+    const membership = await this.prisma.workspaceMember.findFirst({
+      where: { userId, workspaceId }
+    });
+
+    if (!membership) {
+      throw new BadRequestException("Workspace inválido.");
+    }
+  }
+
+  private async getCurrentWorkspaceId(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { currentWorkspaceId: true }
+    });
+
+    if (!user?.currentWorkspaceId) {
+      throw new BadRequestException("Workspace atual não definido.");
+    }
+
+    return user.currentWorkspaceId;
+  }
+
+  private normalizeOptionalString(value?: string | null) {
+    if (value === undefined) {
+      return undefined;
+    }
+    const trimmed = value?.trim();
+    return trimmed ? trimmed : null;
   }
 
   private getRetentionDays() {

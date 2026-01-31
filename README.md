@@ -152,6 +152,36 @@ Notas importantes:
 - O prazo de retenção é configurável via `WORKSPACE_RETENTION_DAYS` (padrão: 30 dias).
 - Todas as ações são registradas no audit log.
 
+### PASSO 57 — Multi-idioma e white-label
+**Objetivo:** permitir personalização por workspace (nome do sistema, cores, logo, domínio e idioma).
+
+Campos adicionados ao workspace:
+- `brandName`: nome do sistema exibido no front-end (padrão: nome do workspace).
+- `brandLogoUrl`: URL pública da logo (opcional).
+- `brandPrimaryColor` / `brandSecondaryColor`: cores principais para botões e destaque.
+- `customDomain`: domínio customizado do cliente (opcional).
+- `locale`: idioma padrão (inicialmente `pt-BR`).
+
+Endpoints relevantes:
+- **Consultar workspace atual:** `GET /api/workspaces/current`
+- **Atualizar branding (admin/owner):** `PATCH /api/workspaces/:id/branding`
+  - Body: `{ brandName, brandLogoUrl, brandPrimaryColor, brandSecondaryColor, customDomain, locale }`
+
+No front-end, o layout aplica as cores e o nome do sistema via CSS variables e atualiza o título da aba quando o usuário está autenticado.
+
+### PASSO 58 — Permissões avançadas (ABAC)
+**Objetivo:** além do RBAC, aplicar políticas por atribuição, tags e unidades (empresas).
+
+Regras implementadas:
+- **Admin** (role `ADMIN` ou `Owner` do workspace) vê todas as conversas.
+- **Agentes** (demais usuários) veem **apenas** conversas atribuídas a eles.
+- **Restrição por tags**: quando `allowedTagIds` está preenchido no membro do workspace, a conversa só aparece se o contato tiver alguma dessas tags.
+- **Restrição por unidades**: quando `allowedUnitIds` está preenchido, a conversa só aparece se o contato estiver associado a uma empresa (`companyId`) dentro dessa lista.
+
+Endpoint para configurar políticas de membros (admin/owner):
+- `PATCH /api/workspaces/:id/members/:memberId/policies`
+  - Body: `{ allowedTagIds?: string[], allowedUnitIds?: string[] }`
+
 ## Scripts úteis (root)
 ```bash
 pnpm dev          # API + Web em paralelo

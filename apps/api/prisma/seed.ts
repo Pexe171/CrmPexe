@@ -12,6 +12,8 @@ async function main() {
   const workspace = await prisma.workspace.create({
     data: {
       name: 'Workspace Demo',
+      brandName: 'Workspace Demo',
+      locale: 'pt-BR',
     },
   });
 
