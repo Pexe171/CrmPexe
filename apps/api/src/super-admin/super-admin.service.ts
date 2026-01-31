@@ -112,7 +112,7 @@ export class SuperAdminService {
 
     const data = workspaces.map((workspace) => {
       const subscription = subscriptionMap.get(workspace.id);
-      const status =
+      const status: WorkspaceOverview["status"] =
         (subscription?.status as SubscriptionStatus | undefined) ??
         "NO_SUBSCRIPTION";
       const plano = subscription?.provider ?? "SEM_PLANO";
