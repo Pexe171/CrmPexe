@@ -12,6 +12,7 @@ import {
   XAxis,
   YAxis
 } from "recharts";
+import { SidebarNav } from "@/components/sidebar-nav";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { UserRole } from "@/lib/rbac";
 import { LogoutButton } from "./logout-button";
@@ -410,9 +411,10 @@ export default function DashboardClient({ role, isSuperAdmin }: DashboardClientP
   }, [auditLogs]);
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-50/50">
-      <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-white px-6 shadow-sm">
-        <h1 className="text-xl font-semibold text-gray-800">
+    <div className="flex min-h-screen flex-col bg-slate-950">
+      <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-slate-900 px-6 shadow-sm">
+        <SidebarNav variant="client" />
+        <h1 className="text-xl font-semibold text-slate-100">
           Painel de Controle
         </h1>
         <div className="ml-auto flex items-center gap-4">
@@ -497,7 +499,7 @@ export default function DashboardClient({ role, isSuperAdmin }: DashboardClientP
           <Button variant="outline" size="sm">
             Ajuda
           </Button>
-          <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
+          <div className="h-8 w-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-200 font-bold">
             U
           </div>
           <LogoutButton />
@@ -508,10 +510,10 @@ export default function DashboardClient({ role, isSuperAdmin }: DashboardClientP
         <div className="mx-auto max-w-6xl space-y-8">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <h2 className="text-2xl font-bold tracking-tight text-gray-900">
+              <h2 className="text-2xl font-bold tracking-tight text-slate-100">
                 Bem-vindo de volta!
               </h2>
-              <p className="text-gray-500">
+              <p className="text-slate-400">
                 Aqui está o resumo da sua performance hoje.
               </p>
             </div>
@@ -529,19 +531,52 @@ export default function DashboardClient({ role, isSuperAdmin }: DashboardClientP
             </div>
           ) : null}
 
+          <section className="grid gap-4 md:grid-cols-3">
+            {[
+              {
+                title: "Mapa rápido do CRM",
+                description:
+                  "O dashboard resume conversas, tarefas e performance do funil em tempo real.",
+                highlight: "Visão 360°"
+              },
+              {
+                title: "Marketplace de agentes",
+                description:
+                  "Ative agentes de IA e automações para acelerar atendimento, vendas e CS.",
+                highlight: "Marketplace"
+              },
+              {
+                title: "Próximos passos",
+                description:
+                  "Crie um workspace, cadastre empresas e organize o inbox por filas.",
+                highlight: "Ação"
+              }
+            ].map((card) => (
+              <div key={card.title} className="rounded-xl border bg-slate-900 p-6 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold text-slate-100">{card.title}</p>
+                  <span className="rounded-full bg-blue-500/20 px-3 py-1 text-xs font-semibold text-blue-200">
+                    {card.highlight}
+                  </span>
+                </div>
+                <p className="mt-3 text-sm text-slate-400">{card.description}</p>
+              </div>
+            ))}
+          </section>
+
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {stats.map((stat, index) => (
               <div
                 key={index}
-                className="rounded-xl border bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
+                className="rounded-xl border bg-slate-900 p-6 shadow-sm transition-shadow hover:shadow-md"
               >
                 <div className="flex items-center justify-between pb-2">
-                  <span className="text-sm font-medium text-gray-500">
+                  <span className="text-sm font-medium text-slate-400">
                     {stat.label}
                   </span>
-                  <div className="rounded-md bg-gray-50 p-2">{stat.icon}</div>
+                  <div className="rounded-md bg-slate-950 p-2">{stat.icon}</div>
                 </div>
-                <div className="text-2xl font-bold text-gray-900">
+                <div className="text-2xl font-bold text-slate-100">
                   {loading ? "-" : stat.value}
                 </div>
               </div>
@@ -553,10 +588,10 @@ export default function DashboardClient({ role, isSuperAdmin }: DashboardClientP
           <section className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-medium text-gray-900">
+                <h3 className="text-lg font-medium text-slate-100">
                   BI de Atendimento & Comercial
                 </h3>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-slate-400">
                   KPIs críticos para acompanhar a saúde do funil.
                 </p>
               </div>
@@ -567,31 +602,31 @@ export default function DashboardClient({ role, isSuperAdmin }: DashboardClientP
 
             <div className="grid gap-4 md:grid-cols-3">
               {kpiCards.map((kpi) => (
-                <div key={kpi.label} className="rounded-xl border bg-white p-6 shadow-sm">
+                <div key={kpi.label} className="rounded-xl border bg-slate-900 p-6 shadow-sm">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-500">{kpi.label}</span>
+                    <span className="text-sm font-medium text-slate-400">{kpi.label}</span>
                     <span className={`rounded-full px-3 py-1 text-xs font-semibold ${kpi.accent}`}>
                       KPI
                     </span>
                   </div>
-                  <div className="mt-3 text-2xl font-bold text-gray-900">
+                  <div className="mt-3 text-2xl font-bold text-slate-100">
                     {loading ? "-" : kpi.value}
                   </div>
-                  <p className="mt-2 text-xs text-gray-500">{kpi.helper}</p>
+                  <p className="mt-2 text-xs text-slate-400">{kpi.helper}</p>
                 </div>
               ))}
             </div>
           </section>
 
           <div className="grid gap-4 md:grid-cols-7">
-            <div className="col-span-4 rounded-xl border bg-white shadow-sm">
+            <div className="col-span-4 rounded-xl border bg-slate-900 shadow-sm">
               <div className="p-6">
-                <h3 className="text-lg font-medium text-gray-900">
+                <h3 className="text-lg font-medium text-slate-100">
                   Atividade do workspace
                 </h3>
-                <p className="text-sm text-gray-500">Últimos 7 dias</p>
+                <p className="text-sm text-slate-400">Últimos 7 dias</p>
                 {loading ? (
-                  <div className="mt-6 text-sm text-gray-500">Carregando dados...</div>
+                  <div className="mt-6 text-sm text-slate-400">Carregando dados...</div>
                 ) : (
                   <div className="mt-6 h-[300px]">
                     <ResponsiveContainer width="100%" height="100%">
@@ -610,42 +645,42 @@ export default function DashboardClient({ role, isSuperAdmin }: DashboardClientP
               </div>
             </div>
 
-            <div className="col-span-3 rounded-xl border bg-white shadow-sm">
+            <div className="col-span-3 rounded-xl border bg-slate-900 shadow-sm">
               <div className="p-6">
-                <h3 className="text-lg font-medium text-gray-900">
+                <h3 className="text-lg font-medium text-slate-100">
                   Atividade Recente
                 </h3>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-slate-400">
                   Últimas ações no sistema
                 </p>
               </div>
               <div className="border-t">
                 {loading ? (
-                  <div className="p-6 text-sm text-gray-500">Carregando histórico...</div>
+                  <div className="p-6 text-sm text-slate-400">Carregando histórico...</div>
                 ) : recentActivity.length === 0 ? (
-                  <div className="p-6 text-sm text-gray-500">Nenhuma atividade registrada.</div>
+                  <div className="p-6 text-sm text-slate-400">Nenhuma atividade registrada.</div>
                 ) : (
                   recentActivity.map((item) => (
                     <div
                       key={item.id}
-                      className="flex items-center justify-between border-b p-4 last:border-0 hover:bg-gray-50"
+                      className="flex items-center justify-between border-b p-4 last:border-0 hover:bg-slate-950"
                     >
                       <div className="flex items-center gap-4">
-                        <div className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center text-xs font-medium text-gray-600">
+                        <div className="h-9 w-9 rounded-full bg-slate-800 flex items-center justify-center text-xs font-medium text-slate-300">
                           {item.user
                             .split(" ")
                             .map((n) => n[0])
                             .join("")}
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-gray-900">
+                          <p className="text-sm font-medium text-slate-100">
                             {item.action}
                           </p>
-                          <p className="text-xs text-gray-500">{item.user}</p>
+                          <p className="text-xs text-slate-400">{item.user}</p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-xs text-gray-500">{item.time}</p>
+                        <p className="text-xs text-slate-400">{item.time}</p>
                         <span className="inline-block rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700">
                           {item.status}
                         </span>
@@ -654,7 +689,7 @@ export default function DashboardClient({ role, isSuperAdmin }: DashboardClientP
                   ))
                 )}
               </div>
-              <div className="p-4 border-t bg-gray-50 rounded-b-xl">
+              <div className="p-4 border-t bg-slate-950 rounded-b-xl">
                 <Button variant="outline" className="w-full text-sm">
                   Ver todo o histórico
                 </Button>
@@ -663,13 +698,13 @@ export default function DashboardClient({ role, isSuperAdmin }: DashboardClientP
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="rounded-xl border bg-white p-6 shadow-sm">
-              <h3 className="text-lg font-medium text-gray-900">
+            <div className="rounded-xl border bg-slate-900 p-6 shadow-sm">
+              <h3 className="text-lg font-medium text-slate-100">
                 Volume de conversas
               </h3>
-              <p className="text-sm text-gray-500">Última semana</p>
+              <p className="text-sm text-slate-400">Última semana</p>
               {loading ? (
-                <div className="mt-6 text-sm text-gray-500">Carregando dados...</div>
+                <div className="mt-6 text-sm text-slate-400">Carregando dados...</div>
               ) : (
                 <div className="mt-6 h-[260px]">
                   <ResponsiveContainer width="100%" height="100%">
@@ -683,13 +718,13 @@ export default function DashboardClient({ role, isSuperAdmin }: DashboardClientP
                 </div>
               )}
             </div>
-            <div className="rounded-xl border bg-white p-6 shadow-sm">
-              <h3 className="text-lg font-medium text-gray-900">
+            <div className="rounded-xl border bg-slate-900 p-6 shadow-sm">
+              <h3 className="text-lg font-medium text-slate-100">
                 TMR diário
               </h3>
-              <p className="text-sm text-gray-500">Tempo médio de resposta por dia</p>
+              <p className="text-sm text-slate-400">Tempo médio de resposta por dia</p>
               {loading ? (
-                <div className="mt-6 text-sm text-gray-500">Carregando dados...</div>
+                <div className="mt-6 text-sm text-slate-400">Carregando dados...</div>
               ) : (
                 <div className="mt-6 h-[260px]">
                   <ResponsiveContainer width="100%" height="100%">

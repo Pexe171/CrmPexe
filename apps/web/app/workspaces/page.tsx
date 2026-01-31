@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { SidebarNav } from "@/components/sidebar-nav";
 import { Button } from "@/components/ui/button";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
@@ -35,6 +36,11 @@ export default function WorkspacesPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const totalWorkspaces = workspaces.length;
+  const currentWorkspace = workspaces.find((workspace) => workspace.id === currentWorkspaceId);
+  const lastUpdatedWorkspace = workspaces
+    .slice()
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0];
 
   const fetchWorkspaces = useCallback(async () => {
     setLoading(true);
@@ -119,14 +125,17 @@ export default function WorkspacesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50/50">
-      <header className="border-b bg-white px-6 py-6 shadow-sm">
+    <div className="min-h-screen bg-slate-950">
+      <header className="border-b bg-slate-900 px-6 py-6 shadow-sm">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-2">
-          <p className="text-sm font-medium text-blue-600">Workspaces</p>
-          <h1 className="text-2xl font-semibold text-gray-900">
+          <div className="flex items-center gap-3">
+            <SidebarNav variant="client" />
+            <p className="text-sm font-medium text-blue-600">Workspaces</p>
+          </div>
+          <h1 className="text-2xl font-semibold text-slate-100">
             Selecione o workspace para continuar
           </h1>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-slate-400">
             Gerencie ou crie um novo workspace para sua equipe.
           </p>
           {error ? (
@@ -139,15 +148,35 @@ export default function WorkspacesPage() {
 
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-10 lg:flex-row">
         <section className="flex-1 space-y-4">
-          <h2 className="text-lg font-semibold text-gray-800">
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="rounded-xl border bg-slate-900 p-5 shadow-sm">
+              <p className="text-sm font-medium text-slate-400">Workspaces ativos</p>
+              <p className="mt-2 text-2xl font-semibold text-slate-100">
+                {loading ? "-" : totalWorkspaces}
+              </p>
+            </div>
+            <div className="rounded-xl border bg-slate-900 p-5 shadow-sm">
+              <p className="text-sm font-medium text-slate-400">Workspace atual</p>
+              <p className="mt-2 text-sm font-semibold text-slate-100">
+                {loading ? "-" : currentWorkspace?.name ?? "Não selecionado"}
+              </p>
+            </div>
+            <div className="rounded-xl border bg-slate-900 p-5 shadow-sm">
+              <p className="text-sm font-medium text-slate-400">Última atualização</p>
+              <p className="mt-2 text-sm font-semibold text-slate-100">
+                {loading ? "-" : formatDate(lastUpdatedWorkspace?.updatedAt)}
+              </p>
+            </div>
+          </div>
+          <h2 className="text-lg font-semibold text-slate-100">
             Seus workspaces
           </h2>
           {loading ? (
-            <div className="rounded-xl border bg-white p-5 text-sm text-gray-500 shadow-sm">
+            <div className="rounded-xl border bg-slate-900 p-5 text-sm text-slate-400 shadow-sm">
               Carregando workspaces...
             </div>
           ) : workspaces.length === 0 ? (
-            <div className="rounded-xl border bg-white p-5 text-sm text-gray-500 shadow-sm">
+            <div className="rounded-xl border bg-slate-900 p-5 text-sm text-slate-400 shadow-sm">
               Nenhum workspace cadastrado ainda.
             </div>
           ) : (
@@ -157,19 +186,19 @@ export default function WorkspacesPage() {
                 return (
                   <div
                     key={workspace.id}
-                    className="rounded-xl border bg-white p-5 shadow-sm"
+                    className="rounded-xl border bg-slate-900 p-5 shadow-sm"
                   >
                     <div className="flex items-start justify-between">
                       <div>
-                        <h3 className="text-lg font-semibold text-gray-900">
+                        <h3 className="text-lg font-semibold text-slate-100">
                           {workspace.name}
                         </h3>
-                        <p className="mt-1 text-sm text-gray-500">
+                        <p className="mt-1 text-sm text-slate-400">
                           Criado em {formatDate(workspace.createdAt)}
                         </p>
                       </div>
                       {isCurrent && (
-                        <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
+                        <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-semibold text-emerald-200">
                           Atual
                         </span>
                       )}
@@ -193,22 +222,22 @@ export default function WorkspacesPage() {
           )}
         </section>
 
-        <aside className="w-full max-w-md rounded-xl border bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-800">
+        <aside className="w-full max-w-md rounded-xl border bg-slate-900 p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-slate-100">
             Criar novo workspace
           </h2>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-slate-400">
             Defina um nome e comece a organizar seu time.
           </p>
           <div className="mt-4 space-y-3">
-            <label className="text-sm font-medium text-gray-700" htmlFor="workspace-name">
+            <label className="text-sm font-medium text-slate-200" htmlFor="workspace-name">
               Nome do workspace
             </label>
             <input
               id="workspace-name"
               type="text"
               placeholder="Ex: Operações Brasil"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+              className="w-full rounded-lg border border-slate-800 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
               value={workspaceName}
               onChange={(event) => setWorkspaceName(event.target.value)}
             />
@@ -219,8 +248,15 @@ export default function WorkspacesPage() {
             >
               {saving ? "Salvando..." : "Criar workspace"}
             </Button>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-slate-500">
               As permissões e equipes podem ser configuradas depois.
+            </p>
+          </div>
+          <div className="mt-6 rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-700">
+            <p className="font-semibold">Como funciona</p>
+            <p className="mt-2">
+              Cada workspace possui seus próprios agentes, filas e integrações. Use esta tela para
+              organizar times por unidade ou produto.
             </p>
           </div>
         </aside>

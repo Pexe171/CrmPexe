@@ -273,6 +273,28 @@ Fluxos suportados:
 
 > Observação: instâncias armazenam o `templateVersionId` para permitir fixar ou atualizar versões com segurança. No painel de automações do workspace é possível fixar a versão desejada ou atualizar para a última versão publicada.
 
+## Marketplace de agentes de IA
+O CrmPexe agora possui um **marketplace de agentes de IA** com dados prontos para o front-end e para parceiros que desejam publicar soluções no ecossistema.
+
+Rotas da API:
+- **Resumo do marketplace**: `GET /api/marketplace/summary`
+- **Categorias disponíveis**: `GET /api/marketplace/categories`
+- **Lista de agentes**: `GET /api/marketplace/agents`
+  - Filtros opcionais: `?category=atendimento` e `?search=texto`
+- **Criar categoria (super admin)**: `POST /api/marketplace/categories`
+- **Atualizar categoria (super admin)**: `PATCH /api/marketplace/categories/:id`
+- **Remover categoria (super admin)**: `DELETE /api/marketplace/categories/:id`
+- **Criar agente (super admin)**: `POST /api/marketplace/agents`
+- **Atualizar agente (super admin)**: `PATCH /api/marketplace/agents/:id`
+- **Remover agente (super admin)**: `DELETE /api/marketplace/agents/:id`
+
+Front-end:
+- A página `/marketplace` apresenta o catálogo de agentes, métricas e integrações em um layout completo pronto para o CRM de IA.
+- O painel `/super-admin/marketplace` permite que o super admin altere preço, descrição, SLA e outros campos dos agentes.
+- O CRM possui telas detalhadas para dashboard, inbox, empresas, workspaces e busca global, com seções explicativas e métricas operacionais.
+- O tema visual do CRM segue uma identidade escura (preto com azul) para reforçar o posicionamento premium do marketplace.
+- O menu lateral com botão ☰ abre um painel deslizante, com grupos detalhados e emojis para navegação rápida do cliente e do super admin.
+
 ## Estrutura do repositório
 ```text
 .

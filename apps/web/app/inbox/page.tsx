@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { SidebarNav } from "@/components/sidebar-nav";
 import { Button } from "@/components/ui/button";
 import { fetchWorkspaceBillingSummary, type BillingSummary } from "@/lib/billing";
 import {
@@ -61,9 +62,9 @@ const resolveLeadBadge = (contact?: Conversation["contact"] | null) => {
     label ?? (score !== null ? (score >= 70 ? "quente" : score >= 40 ? "morno" : "frio") : "frio");
 
   const palette: Record<string, { text: string; className: string }> = {
-    frio: { text: "Lead frio", className: "bg-slate-100 text-slate-700" },
-    morno: { text: "Lead morno", className: "bg-amber-100 text-amber-800" },
-    quente: { text: "Lead quente", className: "bg-emerald-100 text-emerald-800" }
+    frio: { text: "Lead frio", className: "bg-slate-800 text-slate-100" },
+    morno: { text: "Lead morno", className: "bg-amber-500/20 text-amber-200" },
+    quente: { text: "Lead quente", className: "bg-emerald-500/20 text-emerald-200" }
   };
 
   const config = palette[resolvedLabel] ?? palette.frio;
@@ -137,6 +138,16 @@ export default function InboxPage() {
   const pollingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollingIntervalRef = useRef(basePollIntervalMs);
   const isTabHiddenRef = useRef(false);
+  const totalConversations = useMemo(() => conversations.length, [conversations]);
+  const openConversations = useMemo(
+    () => conversations.filter((conversation) => conversation.status !== "CLOSED").length,
+    [conversations]
+  );
+  const totalMessages = useMemo(
+    () =>
+      conversations.reduce((total, conversation) => total + (conversation._count?.messages ?? 0), 0),
+    [conversations]
+  );
 
   const scrollToBottom = () => {
     if (!messagesEndRef.current) return;
@@ -491,19 +502,39 @@ export default function InboxPage() {
   const isReadOnly = billingSummary?.isDelinquent ?? false;
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-50">
-      <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-white px-6 shadow-sm">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-800">Inbox</h1>
-          <p className="text-xs text-gray-500">
-            Atualização automática a cada {pollingIntervalMs / 1000}s (polling adaptativo).
-          </p>
+    <div className="flex min-h-screen flex-col bg-slate-950">
+      <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-slate-900 px-6 shadow-sm">
+        <div className="flex items-center gap-3">
+          <SidebarNav variant="client" />
+          <div>
+            <h1 className="text-xl font-semibold text-slate-100">Inbox</h1>
+            <p className="text-xs text-slate-400">
+              Atualização automática a cada {pollingIntervalMs / 1000}s (polling adaptativo).
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-2 text-xs text-gray-500">
+        <div className="flex items-center gap-2 text-xs text-slate-400">
           <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
           {loading ? "Sincronizando..." : "Conectado"}
         </div>
       </header>
+      <div className="border-b bg-slate-900 px-6 py-4">
+        <div className="mx-auto flex w-full max-w-6xl flex-wrap gap-4">
+          {[
+            { label: "Conversas totais", value: loading ? "-" : totalConversations },
+            { label: "Conversas abertas", value: loading ? "-" : openConversations },
+            { label: "Mensagens registradas", value: loading ? "-" : totalMessages }
+          ].map((stat) => (
+            <div key={stat.label} className="rounded-xl border bg-slate-950 px-4 py-3 text-sm">
+              <p className="text-xs font-medium text-slate-400">{stat.label}</p>
+              <p className="mt-1 text-base font-semibold text-slate-100">{stat.value}</p>
+            </div>
+          ))}
+          <div className="rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-xs text-blue-200">
+            O inbox é o coração do CRM marketplace: monitore SLAs, filas e agentes em tempo real.
+          </div>
+        </div>
+      </div>
       {isReadOnly ? (
         <div className="border-b border-red-200 bg-red-50 px-6 py-2 text-xs text-red-700">
           Workspace inadimplente. O envio de mensagens está bloqueado e o atendimento está em modo somente leitura.
@@ -511,11 +542,11 @@ export default function InboxPage() {
       ) : null}
 
       <main className="flex flex-1 gap-0 overflow-hidden">
-        <aside className="flex w-full max-w-sm flex-col border-r bg-white">
+        <aside className="flex w-full max-w-sm flex-col border-r bg-slate-900">
           <div className="border-b px-4 py-3">
-            <label className="text-xs font-medium text-gray-500">Buscar conversas</label>
+            <label className="text-xs font-medium text-slate-400">Buscar conversas</label>
             <input
-              className="mt-2 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700 focus:border-blue-500 focus:outline-none"
+              className="mt-2 w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-blue-500 focus:outline-none"
               placeholder="Nome, email ou telefone"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
@@ -530,24 +561,24 @@ export default function InboxPage() {
                 <button
                   key={conversation.id}
                   className={`flex w-full flex-col gap-2 border-b px-4 py-4 text-left transition ${
-                    isActive ? "bg-blue-50" : "hover:bg-gray-50"
+                    isActive ? "bg-blue-50" : "hover:bg-slate-950"
                   }`}
                   onClick={() => setActiveConversationId(conversation.id)}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-gray-900">{contactName}</span>
+                      <span className="text-sm font-semibold text-slate-100">{contactName}</span>
                       {leadBadge && (
                         <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${leadBadge.className}`}>
                           {leadBadge.text}
                         </span>
                       )}
                     </div>
-                    <span className="text-xs text-gray-400">{formatDate(conversation.lastMessageAt)}</span>
+                    <span className="text-xs text-slate-500">{formatDate(conversation.lastMessageAt)}</span>
                   </div>
-                  <div className="flex items-center justify-between text-xs text-gray-500">
+                  <div className="flex items-center justify-between text-xs text-slate-400">
                     <span>{conversation.contact?.email ?? conversation.contact?.phone ?? "Sem contato"}</span>
-                    <span className="rounded-full bg-gray-100 px-2 py-0.5">
+                    <span className="rounded-full bg-slate-800 px-2 py-0.5">
                       {conversation._count?.messages ?? 0} msgs
                     </span>
                   </div>
@@ -555,7 +586,7 @@ export default function InboxPage() {
               );
             })}
             {filteredConversations.length === 0 && (
-              <div className="px-4 py-6 text-sm text-gray-500">
+              <div className="px-4 py-6 text-sm text-slate-400">
                 {loading ? "Carregando conversas..." : "Nenhuma conversa encontrada."}
               </div>
             )}
@@ -574,12 +605,12 @@ export default function InboxPage() {
           </div>
         </aside>
 
-        <section className="flex flex-1 flex-col bg-gray-50">
-          <div className="border-b bg-white px-6 py-4">
+        <section className="flex flex-1 flex-col bg-slate-950">
+          <div className="border-b bg-slate-900 px-6 py-4">
             <div className="flex items-center justify-between">
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-lg font-semibold text-gray-900">
+                  <h2 className="text-lg font-semibold text-slate-100">
                     {activeConversation?.contact?.name ?? "Selecione uma conversa"}
                   </h2>
                   {activeLeadBadge && (
@@ -590,13 +621,13 @@ export default function InboxPage() {
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-slate-400">
                   {activeConversation?.contact?.email ?? activeConversation?.contact?.phone ?? "Sem detalhes do contato"}
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-xs text-gray-500">Responsável</p>
-                <p className="text-sm font-medium text-gray-700">
+                <p className="text-xs text-slate-400">Responsável</p>
+                <p className="text-sm font-medium text-slate-200">
                   {activeConversation?.assignedToUser?.name ?? "Fila sem responsável"}
                 </p>
                 <Button
@@ -615,14 +646,14 @@ export default function InboxPage() {
               </div>
             )}
             {conversationSummary && (
-              <div className="mt-4 rounded-lg border border-gray-100 bg-gray-50 px-4 py-4 text-sm text-gray-700">
-                <div className="flex items-center justify-between text-xs text-gray-500">
-                  <span className="font-medium text-gray-700">Resumo da conversa</span>
+              <div className="mt-4 rounded-lg border border-slate-800 bg-slate-950 px-4 py-4 text-sm text-slate-200">
+                <div className="flex items-center justify-between text-xs text-slate-400">
+                  <span className="font-medium text-slate-200">Resumo da conversa</span>
                   <span>Gerado em {formatDateTime(conversationSummary.createdAt)}</span>
                 </div>
-                <p className="mt-2 text-sm text-gray-700">{conversationSummary.text}</p>
+                <p className="mt-2 text-sm text-slate-200">{conversationSummary.text}</p>
                 {conversationSummary.bullets.length > 0 && (
-                  <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-gray-600">
+                  <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-300">
                     {conversationSummary.bullets.map((bullet) => (
                       <li key={bullet}>{bullet}</li>
                     ))}
@@ -631,66 +662,66 @@ export default function InboxPage() {
               </div>
             )}
             <div className="mt-4 grid gap-4 lg:grid-cols-2">
-              <div className="rounded-lg border border-gray-100 bg-gray-50 px-4 py-4">
+              <div className="rounded-lg border border-slate-800 bg-slate-950 px-4 py-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-gray-700">Respostas rápidas</h3>
-                  <span className="text-xs text-gray-400">
+                  <h3 className="text-sm font-semibold text-slate-200">Respostas rápidas</h3>
+                  <span className="text-xs text-slate-500">
                     {cannedLoading ? "Buscando..." : `${cannedResponses.length} itens`}
                   </span>
                 </div>
                 <input
-                  className="mt-2 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 focus:border-blue-500 focus:outline-none"
+                  className="mt-2 w-full rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-xs text-slate-200 focus:border-blue-500 focus:outline-none"
                   placeholder="Buscar resposta..."
                   value={cannedSearch}
                   onChange={(event) => setCannedSearch(event.target.value)}
                 />
-                <div className="mt-3 max-h-48 space-y-2 overflow-y-auto text-xs text-gray-600">
+                <div className="mt-3 max-h-48 space-y-2 overflow-y-auto text-xs text-slate-300">
                   {cannedResponses.length === 0 ? (
-                    <p className="text-gray-400">Nenhuma resposta encontrada.</p>
+                    <p className="text-slate-500">Nenhuma resposta encontrada.</p>
                   ) : (
                     cannedResponses.map((response) => (
                       <button
                         key={response.id}
                         type="button"
-                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-left transition hover:border-blue-200 hover:bg-blue-50"
+                        className="w-full rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-left transition hover:border-blue-200 hover:bg-blue-50"
                         onClick={() => appendToDraft(response.content)}
                       >
-                        <p className="font-medium text-gray-800">{response.title}</p>
+                        <p className="font-medium text-slate-100">{response.title}</p>
                         {response.shortcut ? (
-                          <p className="text-[10px] text-gray-400">Atalho: {response.shortcut}</p>
+                          <p className="text-[10px] text-slate-500">Atalho: {response.shortcut}</p>
                         ) : null}
-                        <p className="mt-1 max-h-10 overflow-hidden text-[11px] text-gray-500">{response.content}</p>
+                        <p className="mt-1 max-h-10 overflow-hidden text-[11px] text-slate-400">{response.content}</p>
                       </button>
                     ))
                   )}
                 </div>
               </div>
-              <div className="rounded-lg border border-gray-100 bg-gray-50 px-4 py-4">
+              <div className="rounded-lg border border-slate-800 bg-slate-950 px-4 py-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-gray-700">Base de conhecimento</h3>
-                  <span className="text-xs text-gray-400">
+                  <h3 className="text-sm font-semibold text-slate-200">Base de conhecimento</h3>
+                  <span className="text-xs text-slate-500">
                     {knowledgeLoading ? "Buscando..." : `${knowledgeArticles.length} itens`}
                   </span>
                 </div>
                 <input
-                  className="mt-2 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 focus:border-blue-500 focus:outline-none"
+                  className="mt-2 w-full rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-xs text-slate-200 focus:border-blue-500 focus:outline-none"
                   placeholder="Buscar artigo..."
                   value={knowledgeSearch}
                   onChange={(event) => setKnowledgeSearch(event.target.value)}
                 />
-                <div className="mt-3 max-h-48 space-y-2 overflow-y-auto text-xs text-gray-600">
+                <div className="mt-3 max-h-48 space-y-2 overflow-y-auto text-xs text-slate-300">
                   {knowledgeArticles.length === 0 ? (
-                    <p className="text-gray-400">Nenhum artigo encontrado.</p>
+                    <p className="text-slate-500">Nenhum artigo encontrado.</p>
                   ) : (
                     knowledgeArticles.map((article) => (
                       <button
                         key={article.id}
                         type="button"
-                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-left transition hover:border-emerald-200 hover:bg-emerald-50"
+                        className="w-full rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-left transition hover:border-emerald-200 hover:bg-emerald-50"
                         onClick={() => appendToDraft(article.content)}
                       >
-                        <p className="font-medium text-gray-800">{article.title}</p>
-                        <p className="mt-1 max-h-10 overflow-hidden text-[11px] text-gray-500">{article.content}</p>
+                        <p className="font-medium text-slate-100">{article.title}</p>
+                        <p className="mt-1 max-h-10 overflow-hidden text-[11px] text-slate-400">{article.content}</p>
                       </button>
                     ))
                   )}
@@ -702,7 +733,7 @@ export default function InboxPage() {
           <div className="flex-1 overflow-y-auto px-6 py-6">
             <div className="flex flex-col gap-4">
               {messages.length === 0 && (
-                <div className="rounded-lg border border-dashed border-gray-200 bg-white px-4 py-6 text-center text-sm text-gray-500">
+                <div className="rounded-lg border border-dashed border-slate-800 bg-slate-900 px-4 py-6 text-center text-sm text-slate-400">
                   {activeConversationId ? "Ainda não há mensagens nessa conversa." : "Selecione uma conversa para começar."}
                 </div>
               )}
@@ -717,11 +748,11 @@ export default function InboxPage() {
                       className={`max-w-[70%] rounded-2xl px-4 py-3 text-sm shadow-sm ${
                         isOutgoing
                           ? "bg-blue-600 text-white"
-                          : "bg-white text-gray-700 border border-gray-100"
+                          : "bg-slate-900 text-slate-200 border border-slate-800"
                       }`}
                     >
                       <p className="leading-relaxed">{message.text}</p>
-                      <span className={`mt-2 block text-[10px] ${isOutgoing ? "text-blue-100" : "text-gray-400"}`}>
+                      <span className={`mt-2 block text-[10px] ${isOutgoing ? "text-blue-100" : "text-slate-500"}`}>
                         {formatTime(message.sentAt)}
                       </span>
                     </div>
@@ -732,10 +763,10 @@ export default function InboxPage() {
             </div>
           </div>
 
-          <form onSubmit={handleSendMessage} className="border-t bg-white px-6 py-4">
+          <form onSubmit={handleSendMessage} className="border-t bg-slate-900 px-6 py-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <input
-                className="flex-1 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-800 focus:border-blue-500 focus:outline-none"
+                className="flex-1 rounded-xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-slate-100 focus:border-blue-500 focus:outline-none"
                 placeholder={isReadOnly ? "Envio bloqueado por inadimplência." : "Digite sua mensagem..."}
                 value={messageDraft}
                 onChange={(event) => setMessageDraft(event.target.value)}
