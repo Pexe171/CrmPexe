@@ -93,8 +93,10 @@ pnpm prisma:generate
 pnpm prisma:migrate
 ```
 
-#### Problema comum — `prisma:generate` falhando por relações ausentes
+#### Problemas comuns — `prisma:generate` falhando
 Se aparecer erro de validação informando que um campo de relação não tem lado oposto, verifique se o modelo relacionado contém o back-reference (por exemplo, `Workspace.summaries`, `User.teamMemberships` e `AutomationTemplateVersion.currentVersionTemplate`). Essas relações são obrigatórias para o Prisma validar o schema e gerar o client corretamente.
+
+Se o erro mencionar que uma relação **one-to-one** precisa de campo único (ex.: `A one-to-one relation must use unique fields on the defining side`), confirme que o campo FK do lado definidor está marcado com `@unique` (por exemplo, `currentVersionId @unique`).
 
 ### PASSO 5 — Iniciar a API e o Front-end
 **Objetivo:** subir os serviços de aplicação.
