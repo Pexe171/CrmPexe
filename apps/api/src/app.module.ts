@@ -12,6 +12,11 @@ import { ChannelsModule } from "./channels/channels.module";
 import { IntegrationAccountsModule } from "./integration-accounts/integration-accounts.module";
 import { DashboardModule } from "./dashboard/dashboard.module";
 import { MessageTemplatesModule } from "./message-templates/message-templates.module";
+import { TeamsModule } from "./teams/teams.module";
+import { QueuesModule } from "./queues/queues.module";
+import { KnowledgeBaseModule } from "./knowledge-base/knowledge-base.module";
+import { CannedResponsesModule } from "./canned-responses/canned-responses.module";
+import { GlobalSearchModule } from "./global-search/global-search.module";
 import { NotificationsModule } from "./notifications/notifications.module";
 import { N8nModule } from "./n8n/n8n.module";
 import { PrismaModule } from "./prisma/prisma.module";
@@ -51,6 +56,11 @@ import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
     DealsModule,
     CustomFieldDefinitionsModule,
     MessageTemplatesModule,
+    TeamsModule,
+    QueuesModule,
+    KnowledgeBaseModule,
+    CannedResponsesModule,
+    GlobalSearchModule,
     WebhooksModule,
     BillingModule,
     AiModule,

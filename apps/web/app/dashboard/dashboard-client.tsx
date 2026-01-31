@@ -429,6 +429,12 @@ export default function DashboardClient({ role, isSuperAdmin }: DashboardClientP
             Inbox
           </Link>
           <Link
+            href="/search"
+            className={buttonVariants({ variant: "outline", size: "sm" })}
+          >
+            Busca global
+          </Link>
+          <Link
             href="/companies"
             className={buttonVariants({ variant: "outline", size: "sm" })}
           >
@@ -453,6 +459,18 @@ export default function DashboardClient({ role, isSuperAdmin }: DashboardClientP
                 className={buttonVariants({ variant: "outline", size: "sm" })}
               >
                 Templates
+              </Link>
+              <Link
+                href="/admin/knowledge-base"
+                className={buttonVariants({ variant: "outline", size: "sm" })}
+              >
+                Base de conhecimento
+              </Link>
+              <Link
+                href="/admin/canned-responses"
+                className={buttonVariants({ variant: "outline", size: "sm" })}
+              >
+                Respostas rápidas
               </Link>
               <Link
                 href="/admin/billing"

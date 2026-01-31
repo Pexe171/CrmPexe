@@ -179,6 +179,10 @@ model Workspace {
   webhookSubscriptions WebhookSubscription[]
   integrationAccounts IntegrationAccount[]
   messageTemplates MessageTemplate[]
+  teams       Team[]
+  queues      Queue[]
+  knowledgeBaseArticles KnowledgeBaseArticle[]
+  cannedResponses CannedResponse[]
   automationInstances AutomationInstance[]
   variables WorkspaceVariable[]
   subscriptions Subscription[]
@@ -414,6 +418,7 @@ model Conversation {
   contactId        String
   status           ConversationStatus @default(OPEN)
   assignedToUserId String?
+  queueId          String?
   channel          String
   lastMessageAt    DateTime?
   firstResponseTimeSeconds Int? @map("first_response_time_seconds")
@@ -424,6 +429,7 @@ model Conversation {
   workspace Workspace @relation(fields: [workspaceId], references: [id])
   contact   Contact   @relation(fields: [contactId], references: [id])
   assignedToUser User? @relation("ConversationAssignee", fields: [assignedToUserId], references: [id])
+  queue     Queue?   @relation(fields: [queueId], references: [id], onDelete: SetNull)
   messages  Message[]
   notifications Notification[]
   summaries ConversationSummary[]
@@ -431,6 +437,7 @@ model Conversation {
   @@index([workspaceId])
   @@index([contactId])
   @@index([assignedToUserId])
+  @@index([queueId])
   @@index([workspaceId, status])
 }
 
@@ -513,6 +520,95 @@ model MessageTemplate {
 
   @@unique([workspaceId, channel, name, language])
   @@index([workspaceId])
+}
+
+model Team {
+  id          String   @id @default(uuid())
+  workspaceId String
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+  members   TeamMember[]
+  queues    Queue[]
+
+  @@unique([workspaceId, name])
+  @@index([workspaceId])
+}
+
+model TeamMember {
+  id        String   @id @default(uuid())
+  teamId    String
+  userId    String
+  position  Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  queues Queue[] @relation("QueueLastAssignedMember")
+
+  @@unique([teamId, userId])
+  @@index([teamId])
+  @@index([userId])
+  @@index([teamId, position])
+}
+
+model Queue {
+  id          String   @id @default(uuid())
+  workspaceId String
+  teamId      String
+  name        String
+  channel     String
+  isActive    Boolean  @default(true)
+  lastAssignedMemberId String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+  team      Team      @relation(fields: [teamId], references: [id])
+  lastAssignedMember TeamMember? @relation("QueueLastAssignedMember", fields: [lastAssignedMemberId], references: [id], onDelete: SetNull)
+  conversations Conversation[]
+
+  @@unique([workspaceId, channel])
+  @@index([workspaceId])
+  @@index([teamId])
+}
+
+model KnowledgeBaseArticle {
+  id          String   @id @default(uuid())
+  workspaceId String
+  title       String
+  content     String
+  tags        String[]
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+
+  @@index([workspaceId])
+  @@index([workspaceId, title])
+}
+
+model CannedResponse {
+  id          String   @id @default(uuid())
+  workspaceId String
+  title       String
+  content     String
+  tags        String[]
+  shortcut    String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+
+  @@index([workspaceId])
+  @@index([workspaceId, title])
 }
 
 model Notification {
