@@ -125,6 +125,7 @@ pnpm dev
 - Tipagem do `correlationId`: além da extensão global do `Request` em `src/types/express/index.d.ts`, os middlewares/filtros críticos usam um tipo local (`RequestWithCorrelationId`) para manter o TypeScript estrito sem erro em watch mode.
 - O `tsconfig` da API inclui `typeRoots` para garantir que as extensões de tipos globais sejam carregadas no build e no watch mode.
 - Para evitar erro `Cannot find module './types/express'` no runtime, **não importe** esse arquivo no bootstrap da API. A extensão de tipos é carregada automaticamente pelo TypeScript via `typeRoots`/`include`. 
+- Se um controller usar `AccessTokenGuard`, o módulo correspondente deve importar `AuthModule` para garantir que `JwtService` e o próprio guard estejam disponíveis no contexto de injeção.
 
 ### PASSO 55 — Backups e migrações seguras
 **Objetivo:** garantir continuidade e restauração rápida do banco PostgreSQL.
