@@ -62,28 +62,8 @@ export default async function MarketplacePage() {
             <h1 className="text-2xl font-semibold text-slate-100">
               Catálogo de agentes para o seu CRM
             </h1>
-            <p className="text-sm text-slate-400">
-              O cliente apenas sinaliza interesse. A liberação é feita exclusivamente pelo super
-              admin no painel, garantindo controle total da ativação por workspace.
-            </p>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <Link
-              className="text-sm font-medium text-slate-300 transition hover:text-white"
-              href="/dashboard"
-            >
-              Dashboard
-            </Link>
-            <Link
-              className="text-sm font-medium text-slate-300 transition hover:text-white"
-              href="/login"
-            >
-              Login
-            </Link>
-            <Link href="/register">
-              <Button>Criar workspace</Button>
-            </Link>
-          </div>
+          <div />
         </div>
       </header>
 
