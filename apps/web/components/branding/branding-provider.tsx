@@ -26,8 +26,6 @@ const defaultBranding: Branding = {
 
 const BrandingContext = createContext<Branding>(defaultBranding);
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-
 const applyCssVariable = (key: string, value: string | null) => {
   if (!value) return;
   document.documentElement.style.setProperty(key, value);
@@ -64,9 +62,12 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const fetchBranding = async () => {
       try {
-        const response = await fetch(`${apiUrl}/api/workspaces/current`, {
+        const response = await fetch("/api/workspaces/current", {
           credentials: "include"
         });
+        if (response.status === 204) {
+          return;
+        }
         if (!response.ok) return;
         const data = (await response.json()) as {
           id: string;
