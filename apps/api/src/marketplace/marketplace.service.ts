@@ -290,7 +290,7 @@ export class MarketplaceService {
       data: {
         workspaceId: resolvedWorkspaceId,
         templateId: agent.templateId,
-        status: AutomationInstanceStatus.PENDING,
+        status: AutomationInstanceStatus.PENDING_CONFIG,
         configJson: {},
         createdByUserId: userId
       }

@@ -207,7 +207,7 @@ export class AutomationsService {
         workspaceId: resolvedWorkspaceId,
         templateId: template.id,
         templateVersionId: templateVersion?.id ?? template.currentVersionId,
-        status: AutomationInstanceStatus.PENDING,
+        status: AutomationInstanceStatus.PENDING_CONFIG,
         configJson: configJson as Prisma.InputJsonValue,
         createdByUserId: userId
       }
