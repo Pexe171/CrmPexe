@@ -137,6 +137,15 @@ pnpm dev
 - Botão **Ligar/Desligar** aciona os endpoints `POST /api/automations/:id/enable` e `POST /api/automations/:id/disable`.
 - Botão **Configurar** abre um modal para editar as variáveis específicas de cada instância.
 
+### Inbox unificado (Web)
+**Objetivo:** centralizar o atendimento multicanal em um único painel de chat.
+
+- Rota: `/inbox`.
+- Lista de contatos com busca e filtros por canal (WhatsApp, Instagram e Email).
+- Ícone do canal ao lado do nome do cliente para identificar a origem da conversa.
+- Área de chat com scroll automático até a última mensagem.
+- Campo de mensagem com suporte a respostas rápidas via atalho `/`.
+
 ### Funil de vendas (Kanban)
 **Objetivo:** visualizar leads por etapa e mover cards com atualização em tempo real.
 

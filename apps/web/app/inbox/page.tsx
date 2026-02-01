@@ -76,6 +76,31 @@ const resolveLeadBadge = (contact?: Conversation["contact"] | null) => {
   };
 };
 
+type ChannelKey = "WHATSAPP" | "INSTAGRAM" | "EMAIL" | "OUTROS";
+type ChannelFilter = ChannelKey | "ALL";
+
+const channelMeta: Record<ChannelKey, { label: string; icon: string; className: string }> = {
+  WHATSAPP: { label: "WhatsApp", icon: "💬", className: "bg-emerald-500/20 text-emerald-200" },
+  INSTAGRAM: { label: "Instagram", icon: "📸", className: "bg-fuchsia-500/20 text-fuchsia-200" },
+  EMAIL: { label: "Email", icon: "✉️", className: "bg-sky-500/20 text-sky-200" },
+  OUTROS: { label: "Outros", icon: "💠", className: "bg-slate-700 text-slate-200" }
+};
+
+const channelFilters: { id: ChannelFilter; label: string }[] = [
+  { id: "ALL", label: "Todos" },
+  { id: "WHATSAPP", label: "WhatsApp" },
+  { id: "INSTAGRAM", label: "Instagram" },
+  { id: "EMAIL", label: "Email" }
+];
+
+const resolveChannelKey = (value?: string | null): ChannelKey => {
+  const normalized = value?.toUpperCase() ?? "";
+  if (normalized.includes("WHATSAPP")) return "WHATSAPP";
+  if (normalized.includes("INSTAGRAM")) return "INSTAGRAM";
+  if (normalized.includes("EMAIL")) return "EMAIL";
+  return "OUTROS";
+};
+
 type CannedResponse = {
   id: string;
   title: string;
@@ -116,6 +141,7 @@ export default function InboxPage() {
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [search, setSearch] = useState("");
+  const [channelFilter, setChannelFilter] = useState<ChannelFilter>("ALL");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [messageDraft, setMessageDraft] = useState("");
@@ -427,19 +453,58 @@ export default function InboxPage() {
     scrollToBottom();
   }, [messages]);
 
+  const slashCommand = useMemo(() => {
+    const lastSlashIndex = messageDraft.lastIndexOf("/");
+    if (lastSlashIndex === -1) return null;
+    const prefix = messageDraft.slice(0, lastSlashIndex);
+    if (prefix && !/\s$/.test(prefix)) return null;
+    const suffix = messageDraft.slice(lastSlashIndex + 1);
+    if (suffix.includes(" ") || suffix.includes("\n")) return null;
+    return {
+      query: suffix.trim().toLowerCase(),
+      startIndex: lastSlashIndex
+    };
+  }, [messageDraft]);
+
+  const cannedShortcutMatches = useMemo(() => {
+    if (!slashCommand) return [];
+    const term = slashCommand.query;
+    return cannedResponses
+      .filter((response) => {
+        const title = response.title?.toLowerCase() ?? "";
+        const content = response.content?.toLowerCase() ?? "";
+        const shortcut = response.shortcut?.toLowerCase() ?? "";
+        if (!term) return true;
+        return title.includes(term) || content.includes(term) || shortcut.includes(term);
+      })
+      .slice(0, 6);
+  }, [cannedResponses, slashCommand]);
+
   const filteredConversations = useMemo(() => {
     const term = search.trim().toLowerCase();
-    if (!term) return conversations;
     return conversations.filter((conversation) => {
       const name = conversation.contact?.name?.toLowerCase() ?? "";
       const email = conversation.contact?.email?.toLowerCase() ?? "";
       const phone = conversation.contact?.phone?.toLowerCase() ?? "";
-      return name.includes(term) || email.includes(term) || phone.includes(term);
+      const matchesTerm = !term || name.includes(term) || email.includes(term) || phone.includes(term);
+      if (!matchesTerm) return false;
+      if (channelFilter === "ALL") return true;
+      return resolveChannelKey(conversation.channel) === channelFilter;
     });
-  }, [conversations, search]);
+  }, [conversations, search, channelFilter]);
 
   const activeConversation = conversations.find((conversation) => conversation.id === activeConversationId) ?? null;
   const activeLeadBadge = resolveLeadBadge(activeConversation?.contact);
+  const activeChannelKey = resolveChannelKey(activeConversation?.channel);
+
+  const handleSelectCannedResponse = (response: CannedResponse) => {
+    if (!slashCommand) return;
+    setMessageDraft((current) => {
+      const prefix = current.slice(0, slashCommand.startIndex);
+      const prefixWithSpace = prefix && !/\s$/.test(prefix) ? `${prefix} ` : prefix;
+      return `${prefixWithSpace}${response.content}`;
+    });
+  };
 
   const handleSendMessage = async (event: FormEvent) => {
     event.preventDefault();
@@ -551,12 +616,35 @@ export default function InboxPage() {
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
+            <div className="mt-3 flex flex-wrap gap-2">
+              {channelFilters.map((filter) => {
+                const isActive = filter.id === channelFilter;
+                const meta = filter.id === "ALL" ? null : channelMeta[filter.id];
+                return (
+                  <button
+                    key={filter.id}
+                    type="button"
+                    className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-semibold transition ${
+                      isActive
+                        ? "border-blue-500/60 bg-blue-500/20 text-blue-100"
+                        : "border-slate-800 bg-slate-950 text-slate-300 hover:border-slate-600"
+                    }`}
+                    onClick={() => setChannelFilter(filter.id)}
+                  >
+                    {meta ? <span className="text-xs">{meta.icon}</span> : null}
+                    <span>{filter.label}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
           <div className="flex-1 overflow-y-auto">
             {filteredConversations.map((conversation) => {
               const isActive = conversation.id === activeConversationId;
               const contactName = conversation.contact?.name ?? "Contato sem nome";
               const leadBadge = resolveLeadBadge(conversation.contact);
+              const channelKey = resolveChannelKey(conversation.channel);
+              const channelInfo = channelMeta[channelKey];
               return (
                 <button
                   key={conversation.id}
@@ -567,6 +655,13 @@ export default function InboxPage() {
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
+                      <span
+                        className={`flex h-6 w-6 items-center justify-center rounded-full text-xs ${channelInfo.className}`}
+                        aria-label={`Canal ${channelInfo.label}`}
+                        title={channelInfo.label}
+                      >
+                        {channelInfo.icon}
+                      </span>
                       <span className="text-sm font-semibold text-slate-100">{contactName}</span>
                       {leadBadge && (
                         <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${leadBadge.className}`}>
@@ -577,7 +672,10 @@ export default function InboxPage() {
                     <span className="text-xs text-slate-500">{formatDate(conversation.lastMessageAt)}</span>
                   </div>
                   <div className="flex items-center justify-between text-xs text-slate-400">
-                    <span>{conversation.contact?.email ?? conversation.contact?.phone ?? "Sem contato"}</span>
+                    <div className="flex flex-col">
+                      <span>{conversation.contact?.email ?? conversation.contact?.phone ?? "Sem contato"}</span>
+                      <span className="text-[10px] text-slate-500">{channelInfo.label}</span>
+                    </div>
                     <span className="rounded-full bg-slate-800 px-2 py-0.5">
                       {conversation._count?.messages ?? 0} msgs
                     </span>
@@ -610,6 +708,17 @@ export default function InboxPage() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="flex flex-wrap items-center gap-2">
+                  {activeConversation ? (
+                    <span
+                      className={`flex h-7 w-7 items-center justify-center rounded-full text-sm ${
+                        channelMeta[activeChannelKey].className
+                      }`}
+                      aria-label={`Canal ${channelMeta[activeChannelKey].label}`}
+                      title={channelMeta[activeChannelKey].label}
+                    >
+                      {channelMeta[activeChannelKey].icon}
+                    </span>
+                  ) : null}
                   <h2 className="text-lg font-semibold text-slate-100">
                     {activeConversation?.contact?.name ?? "Selecione uma conversa"}
                   </h2>
@@ -623,6 +732,7 @@ export default function InboxPage() {
                 </div>
                 <p className="text-xs text-slate-400">
                   {activeConversation?.contact?.email ?? activeConversation?.contact?.phone ?? "Sem detalhes do contato"}
+                  {activeConversation ? ` • ${channelMeta[activeChannelKey].label}` : ""}
                 </p>
               </div>
               <div className="text-right">
@@ -748,7 +858,7 @@ export default function InboxPage() {
                       className={`max-w-[70%] rounded-2xl px-4 py-3 text-sm shadow-sm ${
                         isOutgoing
                           ? "bg-blue-600 text-white"
-                          : "bg-slate-900 text-slate-200 border border-slate-800"
+                          : "bg-zinc-800 text-slate-100 border border-zinc-700"
                       }`}
                     >
                       <p className="leading-relaxed">{message.text}</p>
@@ -765,13 +875,42 @@ export default function InboxPage() {
 
           <form onSubmit={handleSendMessage} className="border-t bg-slate-900 px-6 py-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <input
-                className="flex-1 rounded-xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-slate-100 focus:border-blue-500 focus:outline-none"
-                placeholder={isReadOnly ? "Envio bloqueado por inadimplência." : "Digite sua mensagem..."}
-                value={messageDraft}
-                onChange={(event) => setMessageDraft(event.target.value)}
-                disabled={!activeConversationId || isReadOnly || billingLoading}
-              />
+              <div className="relative flex-1">
+                <input
+                  className="w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-slate-100 focus:border-blue-500 focus:outline-none"
+                  placeholder={isReadOnly ? "Envio bloqueado por inadimplência." : "Digite sua mensagem..."}
+                  value={messageDraft}
+                  onChange={(event) => setMessageDraft(event.target.value)}
+                  disabled={!activeConversationId || isReadOnly || billingLoading}
+                  autoComplete="off"
+                />
+                {slashCommand && cannedShortcutMatches.length > 0 && (
+                  <div className="absolute bottom-full left-0 right-0 mb-2 rounded-xl border border-slate-800 bg-slate-950 p-2 text-xs text-slate-100 shadow-xl">
+                    <div className="mb-2 flex items-center justify-between px-2 text-[10px] text-slate-400">
+                      <span>Respostas rápidas</span>
+                      <span>Digite para filtrar • /{slashCommand.query || ""}</span>
+                    </div>
+                    <div className="max-h-40 space-y-1 overflow-y-auto">
+                      {cannedShortcutMatches.map((response) => (
+                        <button
+                          key={response.id}
+                          type="button"
+                          className="w-full rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-left transition hover:border-blue-400/60 hover:bg-blue-500/10"
+                          onClick={() => handleSelectCannedResponse(response)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-semibold text-slate-100">{response.title}</span>
+                            {response.shortcut ? (
+                              <span className="text-[10px] text-slate-500">{response.shortcut}</span>
+                            ) : null}
+                          </div>
+                          <p className="mt-1 line-clamp-2 text-[10px] text-slate-400">{response.content}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
               <Button
                 type="submit"
                 className="bg-blue-600 hover:bg-blue-700"
