@@ -36,23 +36,27 @@ export type MarketplaceAgent = {
   installs: number;
   responseSlaSeconds: number;
   priceLabel?: string;
-  status: "AVAILABLE" | "COMING_SOON";
+  status: "PENDING" | "APPROVED";
+  pingUrl?: string;
+  configJson?: string;
 };
 
 export type MarketplaceAgentInput = {
   name: string;
-  headline: string;
+  headline?: string;
   description: string;
-  categoryId: string;
-  tags: string[];
-  capabilities: string[];
-  requirements: string[];
-  templateId: string;
-  rating: number;
-  installs: number;
-  responseSlaSeconds: number;
+  categoryId?: string;
+  tags?: string[];
+  capabilities?: string[];
+  requirements?: string[];
+  templateId?: string;
+  rating?: number;
+  installs?: number;
+  responseSlaSeconds?: number;
   priceLabel?: string;
-  status: "AVAILABLE" | "COMING_SOON";
+  status?: "PENDING" | "APPROVED";
+  pingUrl?: string;
+  configJson?: string;
 };
 
 export type MarketplaceSummary = {
@@ -94,30 +98,32 @@ export class MarketplaceService {
   private agents: MarketplaceAgent[] = [
     {
       id: "agent-exemplo",
-      name: "Agent Atlas",
-      headline: "Exemplo de agente pronto para ser editado pelo super admin.",
+      name: "Agente Atlas",
+      headline: "Agente configurado pelo admin para esse cliente.",
       description:
-        "Esse agente é um modelo inicial. Ajuste a descrição, integrações e detalhes pelo painel de super admin.",
-      categoryId: "atendimento",
-      tags: ["Exemplo", "Marketplace"],
-      capabilities: ["Triagem automática", "Resumo de tickets", "Follow-up ativo"],
+        "Esse agente está em aprovação. Assim que o super admin aprovar, ele ficará ativo no seu workspace.",
+      categoryId: "personalizado",
+      tags: ["Cliente"],
+      capabilities: ["Resumo inteligente", "Follow-up ativo"],
       requirements: ["WhatsApp", "Email"],
       templateId: "template-exemplo",
-      rating: 4.9,
+      rating: 0,
       installs: 0,
-      responseSlaSeconds: 45,
-      priceLabel: "Incluso no workspace",
-      status: "AVAILABLE"
+      responseSlaSeconds: 0,
+      priceLabel: "Sob consulta",
+      status: "PENDING",
+      pingUrl: "https://api.crmpexe.com.br/ping",
+      configJson: "{\"canal\":\"whatsapp\",\"prioridade\":\"alta\"}"
     }
   ];
 
   getSummary(): MarketplaceSummary {
     return {
-      headline: "Marketplace de agentes especialistas para cada etapa do seu CRM.",
-      activeAgents: this.agents.filter((agent) => agent.status === "AVAILABLE").length,
-      automationsAvailable: 42,
-      averageNps: 68,
-      satisfactionRate: 0.93,
+      headline: "Agentes personalizados configurados pelo time CrmPexe.",
+      activeAgents: this.agents.filter((agent) => agent.status === "APPROVED").length,
+      automationsAvailable: 0,
+      averageNps: 0,
+      satisfactionRate: 0,
       lastUpdatedAt: new Date().toISOString()
     };
   }
@@ -203,20 +209,22 @@ export class MarketplaceService {
     const newAgent: MarketplaceAgent = {
       id: randomUUID(),
       name: input.name.trim(),
-      headline: input.headline.trim(),
+      headline: input.headline?.trim() || "Agente configurado pelo time CrmPexe.",
       description: input.description.trim(),
-      categoryId: input.categoryId.trim(),
+      categoryId: input.categoryId?.trim() || "personalizado",
       tags: input.tags ?? [],
       capabilities: input.capabilities ?? [],
       requirements: input.requirements ?? [],
-      templateId: input.templateId.trim(),
-      rating: Number.isFinite(input.rating) ? input.rating : 4.5,
+      templateId: input.templateId?.trim() || "template-personalizado",
+      rating: Number.isFinite(input.rating) ? input.rating : 0,
       installs: Number.isFinite(input.installs) ? input.installs : 0,
       responseSlaSeconds: Number.isFinite(input.responseSlaSeconds)
         ? input.responseSlaSeconds
-        : 60,
+        : 0,
       priceLabel: input.priceLabel?.trim(),
-      status: input.status ?? "AVAILABLE"
+      status: input.status ?? "PENDING",
+      pingUrl: input.pingUrl?.trim(),
+      configJson: input.configJson?.trim()
     };
 
     this.agents.push(newAgent);
@@ -260,7 +268,13 @@ export class MarketplaceService {
       ...("priceLabel" in input && input.priceLabel !== undefined
         ? { priceLabel: input.priceLabel?.trim() }
         : null),
-      ...("status" in input && input.status ? { status: input.status } : null)
+      ...("status" in input && input.status ? { status: input.status } : null),
+      ...("pingUrl" in input && input.pingUrl !== undefined
+        ? { pingUrl: input.pingUrl?.trim() }
+        : null),
+      ...("configJson" in input && input.configJson !== undefined
+        ? { configJson: input.configJson?.trim() }
+        : null)
     };
 
     this.agents[index] = updated;

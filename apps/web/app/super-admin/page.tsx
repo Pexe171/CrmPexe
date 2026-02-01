@@ -99,7 +99,7 @@ export default function SuperAdminPage() {
               <Button variant="outline">Templates de automação</Button>
             </Link>
             <Link href="/super-admin/marketplace">
-              <Button variant="outline">Marketplace do CRM</Button>
+              <Button variant="outline">Agentes do CRM</Button>
             </Link>
           </div>
         </div>
