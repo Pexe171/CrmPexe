@@ -1,5 +1,11 @@
-import { Injectable } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException
+} from "@nestjs/common";
 import { randomUUID } from "crypto";
+import { AutomationInstanceStatus } from "@prisma/client";
+import { PrismaService } from "../prisma/prisma.service";
 
 export type MarketplaceCategory = {
   id: string;
@@ -23,10 +29,13 @@ export type MarketplaceAgent = {
   description: string;
   categoryId: string;
   tags: string[];
+  capabilities: string[];
+  requirements: string[];
+  templateId: string;
   rating: number;
   installs: number;
   responseSlaSeconds: number;
-  priceLabel: string;
+  priceLabel?: string;
   status: "AVAILABLE" | "COMING_SOON";
 };
 
@@ -36,10 +45,13 @@ export type MarketplaceAgentInput = {
   description: string;
   categoryId: string;
   tags: string[];
+  capabilities: string[];
+  requirements: string[];
+  templateId: string;
   rating: number;
   installs: number;
   responseSlaSeconds: number;
-  priceLabel: string;
+  priceLabel?: string;
   status: "AVAILABLE" | "COMING_SOON";
 };
 
@@ -56,6 +68,8 @@ type StoredCategory = Omit<MarketplaceCategory, "agentsCount">;
 
 @Injectable()
 export class MarketplaceService {
+  constructor(private readonly prisma: PrismaService) {}
+
   private categories: StoredCategory[] = [
     {
       id: "atendimento",
@@ -83,13 +97,16 @@ export class MarketplaceService {
       name: "Agent Atlas",
       headline: "Exemplo de agente pronto para ser editado pelo super admin.",
       description:
-        "Esse agente é um modelo inicial. Altere o preço, a descrição e os detalhes pelo painel de super admin.",
+        "Esse agente é um modelo inicial. Ajuste a descrição, integrações e detalhes pelo painel de super admin.",
       categoryId: "atendimento",
       tags: ["Exemplo", "Marketplace"],
+      capabilities: ["Triagem automática", "Resumo de tickets", "Follow-up ativo"],
+      requirements: ["WhatsApp", "Email"],
+      templateId: "template-exemplo",
       rating: 4.9,
       installs: 0,
       responseSlaSeconds: 45,
-      priceLabel: "R$ 0,00",
+      priceLabel: "Incluso no workspace",
       status: "AVAILABLE"
     }
   ];
@@ -165,7 +182,14 @@ export class MarketplaceService {
     return this.agents.filter((agent) => {
       const matchesCategory = category ? agent.categoryId === category : true;
       const matchesSearch = search
-        ? [agent.name, agent.headline, agent.description, ...agent.tags]
+        ? [
+            agent.name,
+            agent.headline,
+            agent.description,
+            ...agent.tags,
+            ...agent.capabilities,
+            ...agent.requirements
+          ]
             .join(" ")
             .toLowerCase()
             .includes(search)
@@ -183,12 +207,15 @@ export class MarketplaceService {
       description: input.description.trim(),
       categoryId: input.categoryId.trim(),
       tags: input.tags ?? [],
+      capabilities: input.capabilities ?? [],
+      requirements: input.requirements ?? [],
+      templateId: input.templateId.trim(),
       rating: Number.isFinite(input.rating) ? input.rating : 4.5,
       installs: Number.isFinite(input.installs) ? input.installs : 0,
       responseSlaSeconds: Number.isFinite(input.responseSlaSeconds)
         ? input.responseSlaSeconds
         : 60,
-      priceLabel: input.priceLabel.trim(),
+      priceLabel: input.priceLabel?.trim(),
       status: input.status ?? "AVAILABLE"
     };
 
@@ -212,6 +239,15 @@ export class MarketplaceService {
         ? { categoryId: input.categoryId.trim() }
         : null),
       ...("tags" in input && input.tags ? { tags: input.tags } : null),
+      ...("capabilities" in input && input.capabilities
+        ? { capabilities: input.capabilities }
+        : null),
+      ...("requirements" in input && input.requirements
+        ? { requirements: input.requirements }
+        : null),
+      ...("templateId" in input && input.templateId
+        ? { templateId: input.templateId.trim() }
+        : null),
       ...("rating" in input && Number.isFinite(input.rating)
         ? { rating: input.rating }
         : null),
@@ -221,8 +257,8 @@ export class MarketplaceService {
       ...("responseSlaSeconds" in input && Number.isFinite(input.responseSlaSeconds)
         ? { responseSlaSeconds: input.responseSlaSeconds }
         : null),
-      ...("priceLabel" in input && input.priceLabel
-        ? { priceLabel: input.priceLabel.trim() }
+      ...("priceLabel" in input && input.priceLabel !== undefined
+        ? { priceLabel: input.priceLabel?.trim() }
         : null),
       ...("status" in input && input.status ? { status: input.status } : null)
     };
@@ -237,5 +273,27 @@ export class MarketplaceService {
 
     this.agents.splice(index, 1);
     return true;
+  }
+
+  async installAgent(userId: string, agentId: string, workspaceId?: string) {
+    const resolvedWorkspaceId = workspaceId?.trim();
+    if (!resolvedWorkspaceId) {
+      throw new BadRequestException("Workspace não informado para a instalação.");
+    }
+
+    const agent = this.agents.find((entry) => entry.id === agentId);
+    if (!agent) {
+      throw new NotFoundException("Agente não encontrado no marketplace.");
+    }
+
+    return this.prisma.automationInstance.create({
+      data: {
+        workspaceId: resolvedWorkspaceId,
+        templateId: agent.templateId,
+        status: AutomationInstanceStatus.PENDING,
+        configJson: {},
+        createdByUserId: userId
+      }
+    });
   }
 }
