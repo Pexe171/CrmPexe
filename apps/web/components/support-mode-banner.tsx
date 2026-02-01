@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from "react";
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-
 type SupportSession = {
   isImpersonated: boolean;
   impersonatedByUserId?: string | null;
@@ -18,10 +16,15 @@ export function SupportModeBanner() {
 
     const loadSession = async () => {
       try {
-        const response = await fetch(`${apiUrl}/api/auth/me`, {
+        const response = await fetch("/api/auth/me", {
           credentials: "include",
           signal: controller.signal
         });
+
+        if (response.status === 204) {
+          setSession(null);
+          return;
+        }
 
         if (!response.ok) {
           setSession(null);

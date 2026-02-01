@@ -282,6 +282,12 @@ pnpm test         # Testes de todos os apps
 pnpm typecheck    # Typecheck de todos os apps
 ```
 
+## Proxy de autenticação no Next.js
+O front-end possui rotas internas que repassam cookies da sessão para a API, evitando chamadas diretas do navegador para o backend quando o token está em cookie HTTP-only. Essas rotas são usadas pelos componentes de branding e modo suporte para evitar erros 401 no carregamento inicial.
+
+- `GET /api/auth/me` → proxy para `GET /api/auth/me` da API.
+- `GET /api/workspaces/current` → proxy para `GET /api/workspaces/current` da API.
+
 
 ## Endpoints principais
 - **Health check**: `GET /api/health` → `{ status: "ok", service: "crmpexe-api" }`.
