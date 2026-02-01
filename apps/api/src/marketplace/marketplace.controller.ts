@@ -1,4 +1,18 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Headers,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards
+} from "@nestjs/common";
+import { AccessTokenGuard } from "../auth/access-token.guard";
+import { CurrentUser } from "../auth/current-user.decorator";
+import { AuthUser } from "../auth/auth.types";
 import {
   MarketplaceAgent,
   MarketplaceAgentInput,
@@ -64,5 +78,15 @@ export class MarketplaceController {
   @Delete("agents/:id")
   removeAgent(@Param("id") id: string): { removed: boolean } {
     return { removed: this.marketplaceService.removeAgent(id) };
+  }
+
+  @Post("agents/:id/install")
+  @UseGuards(AccessTokenGuard)
+  installAgent(
+    @CurrentUser() user: AuthUser,
+    @Param("id") id: string,
+    @Headers("x-workspace-id") workspaceId?: string
+  ) {
+    return this.marketplaceService.installAgent(user.id, id, workspaceId);
   }
 }
