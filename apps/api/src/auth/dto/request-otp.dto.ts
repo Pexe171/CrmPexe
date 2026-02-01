@@ -15,8 +15,4 @@ export class RequestOtpDto {
   @IsEmail()
   @IsOptional()
   emailConfirmation?: string;
-
-  @IsString()
-  @IsOptional()
-  captchaToken?: string;
 }

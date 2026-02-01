@@ -59,6 +59,8 @@ Variáveis usadas pela API hoje:
 - `REDIS_URL` (opcional) **ou** `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD` — configuração da fila de processamento de IA.
 - `AI_PROCESSING_CONCURRENCY` (opcional, padrão `3`).
 - `INTEGRATION_ENCRYPTION_KEY` (opcional) — chave para criptografia de integrações.
+- `MERCADOPAGO_ACCESS_TOKEN` (obrigatória para pagamentos) — token de API do Mercado Pago.
+- `MERCADOPAGO_PUBLIC_KEY` (obrigatória para pagamentos) — chave pública do Mercado Pago.
 - `MERCADOPAGO_WEBHOOK_SECRET` (**obrigatória em produção**) — segredo para validar assinatura do webhook de billing.
 - `SLA_RESPONSE_SECONDS` (opcional, padrão `900`) — SLA de resposta em conversas.
 - `NODE_ENV` (opcional) — ativa validações extras em produção.
@@ -69,11 +71,15 @@ Variáveis usadas pela API hoje:
 - `LOGIN_MAX_ATTEMPTS` (opcional, padrão `5`) — tentativas de login antes do bloqueio temporário.
 - `LOGIN_WINDOW_MS` (opcional, padrão `900000`) — janela para contabilizar tentativas de login.
 - `LOGIN_BLOCK_MS` (opcional, padrão `900000`) — tempo de bloqueio após exceder tentativas.
-- `CAPTCHA_REQUIRED` (opcional, padrão `false`) — força captcha em auth quando `true`.
-- `CAPTCHA_SECRET` (opcional) — segredo para validar captcha simples via token.
 - `WORKSPACE_RETENTION_DAYS` (opcional, padrão `30`) — dias de retenção para exclusão LGPD do workspace.
 
-> Observação: `MERCADOPAGO_ACCESS_TOKEN` e `MERCADOPAGO_PUBLIC_KEY` existem no `.env.example`, mas **não são usadas pelo código atual** (mantidas para futuras integrações).
+#### Produção — variáveis mínimas obrigatórias
+- `DATABASE_URL`
+- `JWT_ACCESS_SECRET`
+- `JWT_REFRESH_SECRET`
+- `MERCADOPAGO_ACCESS_TOKEN`
+- `MERCADOPAGO_PUBLIC_KEY`
+- `MERCADOPAGO_WEBHOOK_SECRET`
 
 #### 3.2 Web (`apps/web/.env`)
 Crie um arquivo `apps/web/.env` baseado no exemplo.
@@ -362,7 +368,7 @@ Front-end:
 - A API aplica **ValidationPipe** com `whitelist` e `forbidNonWhitelisted` para segurança de payloads.
 - O prefixo global da API é `/api`, então todas as rotas são prefixadas automaticamente.
 - O backend gera **logs JSON** com `correlationId` por request (header `x-correlation-id`) e registra chamadas externas (n8n, WhatsApp, billing) com tempo e status.
-- Endpoints de **auth** e **webhooks** aplicam rate limit por IP e workspace. Tentativas de login inválidas são bloqueadas após exceder o limite configurado. Captcha pode ser habilitado via variáveis de ambiente.
+- Endpoints de **auth** e **webhooks** aplicam rate limit por IP e workspace. Tentativas de login inválidas são bloqueadas após exceder o limite configurado.
 - O fluxo de OTP invalida códigos anteriores ao gerar um novo e aplica limite diário por e-mail. A verificação usa um fingerprint simples (hash de IP + user-agent) para balancear tentativas de login.
 
 ## Checklist de deploy

@@ -19,7 +19,6 @@ import {
 } from "./auth.constants";
 import { RequestOtpDto } from "./dto/request-otp.dto";
 import { VerifyOtpDto } from "./dto/verify-otp.dto";
-import { CaptchaService } from "./captcha.service";
 import { LoginAttemptsService } from "./login-attempts.service";
 
 @Injectable()
@@ -40,7 +39,6 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
-    private readonly captchaService: CaptchaService,
     private readonly loginAttemptsService: LoginAttemptsService
   ) {}
 
@@ -72,8 +70,6 @@ export class AuthService {
     if (isSignupPayload) {
       this.ensureSignupPayload(payload);
     }
-
-    this.captchaService.ensureValid(payload.captchaToken);
 
     const existingUser = await this.prisma.user.findUnique({
       where: { email },
@@ -125,8 +121,6 @@ export class AuthService {
         HttpStatus.TOO_MANY_REQUESTS
       );
     }
-
-    this.captchaService.ensureValid(payload.captchaToken);
 
     const otp = await this.prisma.otpCode.findFirst({
       where: {
