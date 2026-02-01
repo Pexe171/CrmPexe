@@ -3,7 +3,6 @@ import { JwtModule } from "@nestjs/jwt";
 import { AuthController } from "./auth.controller";
 import { AccessTokenGuard } from "./access-token.guard";
 import { AuthService } from "./auth.service";
-import { CaptchaService } from "./captcha.service";
 import { LoginAttemptsService } from "./login-attempts.service";
 import { RolesGuard } from "./roles.guard";
 import { SuperAdminGuard } from "./super-admin.guard";
@@ -16,7 +15,6 @@ import { SuperAdminGuard } from "./super-admin.guard";
     AccessTokenGuard,
     RolesGuard,
     SuperAdminGuard,
-    CaptchaService,
     LoginAttemptsService
   ],
   exports: [JwtModule, AuthService, AccessTokenGuard, RolesGuard, SuperAdminGuard]
