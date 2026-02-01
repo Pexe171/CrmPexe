@@ -1,0 +1,8 @@
+ALTER TYPE "AutomationInstanceStatus" ADD VALUE IF NOT EXISTS 'PENDING_CONFIG';
+
+UPDATE "AutomationInstance"
+SET "status" = 'PENDING_CONFIG'
+WHERE "status" = 'PENDING';
+
+ALTER TABLE "AutomationInstance"
+ALTER COLUMN "status" SET DEFAULT 'PENDING_CONFIG';

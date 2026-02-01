@@ -30,6 +30,7 @@ enum TaskStatus {
 
 enum AutomationInstanceStatus {
   PENDING
+  PENDING_CONFIG
   ACTIVE
   FAILED
 }
@@ -878,7 +879,7 @@ model AutomationInstance {
   workspaceId     String
   templateId      String
   templateVersionId String?
-  status          AutomationInstanceStatus  @default(PENDING)
+  status          AutomationInstanceStatus  @default(PENDING_CONFIG)
   externalWorkflowId String?
   enabled         Boolean                   @default(false)
   configJson      Json
