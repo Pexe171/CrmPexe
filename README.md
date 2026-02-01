@@ -298,17 +298,43 @@ Rotas principais:
 
 > Observação: o front-end exibe um aviso “Modo suporte ativo” quando o token temporário está em uso. O portal do super admin agora possui uma tela dedicada para iniciar a impersonação.
 
+## Admin e Super Admin (acesso e credenciais)
+> **Resumo rápido:** o login é via **OTP por e-mail**, não existe senha fixa. Após informar o e-mail, o código chega via SMTP configurado (ou pelo log do back-end em dev).
+
+### URLs principais
+- **Login (admin/workspace):** `http://localhost:3000/login`
+- **Dashboard admin (workspace):** `http://localhost:3000/dashboard`
+- **Portal Super Admin:** `http://localhost:3000/super-admin`
+
+### Credenciais padrão (seed)
+- **E-mail admin (workspace):** `davidhenriquesms18@gmail.com`
+- **Senha:** não existe (login via OTP).
+- **Logo/branding padrão:** herdado do workspace (exibido no topo do login e no painel).
+
+> Observação: o seed **não** marca o usuário como super admin. Para liberar o portal super admin, defina `isSuperAdmin: true` no usuário (via Prisma Studio, update manual no banco ou ajuste do seed).
+
+### Seed Admin (base inicial)
+Executa a criação do workspace demo + usuário admin padrão:
+
+```bash
+pnpm --filter crmpexe-api prisma db seed
+```
+
+O seed cria:
+- **Workspace:** `Workspace Demo`
+- **Usuário admin:** `davidhenriquesms18@gmail.com` com `role: ADMIN`
+- **Role/Admin + permission `workspace.manage`** vinculados ao workspace
+
+> Dica: para transformar o usuário em super admin, atualize `isSuperAdmin` para `true` no banco após rodar o seed.
+
 ## Super Admin
-O portal de **Super Admin** permite visualizar todos os workspaces, status de assinatura, plano atual, uso de mensagens/automações e logs de erro. Para habilitar um usuário, defina o campo `isSuperAdmin` como `true` no cadastro do usuário (ex.: via seed ou update manual no banco).
+O portal de **Super Admin** permite visualizar todos os workspaces, status de assinatura, plano atual, uso de mensagens/automações e logs de erro. Para habilitar um usuário, defina o campo `isSuperAdmin` como `true` no cadastro do usuário (ex.: via update manual no banco).
 
 Rotas protegidas (requer `isSuperAdmin`):
 - **Lista de workspaces**: `GET /api/super-admin/workspaces` (retorna status, plano e uso consolidado).
 - **Logs de erro**: `GET /api/super-admin/error-logs` (retorna falhas de IA com workspace e mensagem).
 
-> Observação: o seed padrão já cria um usuário admin com `isSuperAdmin: true`.
-
-Seed padrão:
-- **E-mail do super admin**: `davidhenriqusms18@gmail.com` (recebe OTP real durante os testes).
+> Observação: o seed padrão cria **apenas** o admin do workspace (sem flag de super admin).
 
 ## Automações (marketplace interno)
 Templates de automação agora possuem **versionamento** e **changelog**. Cada nova versão criada por um super admin registra o histórico e permite que workspaces escolham manter a versão atual ou atualizar para a mais recente.
