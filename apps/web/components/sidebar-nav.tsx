@@ -26,7 +26,7 @@ const clientLinks = [
   { href: "/inbox", label: "Inbox omnichannel", emoji: "💬", helper: "Atenda e acompanhe SLAs" },
   { href: "/companies", label: "Empresas", emoji: "🏢", helper: "Clientes e contas do CRM" },
   { href: "/search", label: "Busca global", emoji: "🔎", helper: "Encontre contatos e mensagens" },
-  { href: "/marketplace", label: "Marketplace", emoji: "🧩", helper: "Compre e ative agentes" }
+  { href: "/marketplace", label: "Agentes", emoji: "🧩", helper: "Status dos agentes disponíveis" }
 ];
 
 const workspaceLinks = [
@@ -36,7 +36,7 @@ const workspaceLinks = [
 
 const superAdminLinks = [
   { href: "/super-admin", label: "Visão geral", emoji: "🛡️", helper: "Panorama de workspaces" },
-  { href: "/super-admin/marketplace", label: "Marketplace do CRM", emoji: "🧠", helper: "Catálogo de agentes" },
+  { href: "/super-admin/marketplace", label: "Agentes do CRM", emoji: "🧠", helper: "Cadastro e configuração" },
   { href: "/super-admin/support", label: "Impersonação", emoji: "🧰", helper: "Suporte e acesso seguro" },
   { href: "/super-admin/templates", label: "Templates", emoji: "🧵", helper: "Automações oficiais" }
 ];

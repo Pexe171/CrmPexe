@@ -524,10 +524,10 @@ export default function DashboardClient({ role, isSuperAdmin }: DashboardClientP
                 highlight: "Visão 360°"
               },
               {
-                title: "Marketplace de agentes",
+                title: "Agentes disponíveis",
                 description:
-                  "Ative agentes de IA e automações para acelerar atendimento, vendas e CS.",
-                highlight: "Marketplace"
+                  "Acompanhe o status dos agentes configurados pelo time CrmPexe para o seu CRM.",
+                highlight: "Agentes"
               },
               {
                 title: "Próximos passos",

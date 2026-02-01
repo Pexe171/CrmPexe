@@ -13,6 +13,7 @@ import {
 import { AccessTokenGuard } from "../auth/access-token.guard";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { AuthUser } from "../auth/auth.types";
+import { SuperAdminGuard } from "../auth/super-admin.guard";
 import {
   MarketplaceAgent,
   MarketplaceAgentInput,
@@ -37,11 +38,13 @@ export class MarketplaceController {
   }
 
   @Post("categories")
+  @UseGuards(AccessTokenGuard, SuperAdminGuard)
   createCategory(@Body() body: MarketplaceCategoryInput): MarketplaceCategory {
     return this.marketplaceService.createCategory(body);
   }
 
   @Patch("categories/:id")
+  @UseGuards(AccessTokenGuard, SuperAdminGuard)
   updateCategory(
     @Param("id") id: string,
     @Body() body: Partial<MarketplaceCategoryInput>
@@ -50,6 +53,7 @@ export class MarketplaceController {
   }
 
   @Delete("categories/:id")
+  @UseGuards(AccessTokenGuard, SuperAdminGuard)
   removeCategory(@Param("id") id: string): { removed: boolean } {
     return { removed: this.marketplaceService.removeCategory(id) };
   }
@@ -63,11 +67,13 @@ export class MarketplaceController {
   }
 
   @Post("agents")
+  @UseGuards(AccessTokenGuard, SuperAdminGuard)
   createAgent(@Body() body: MarketplaceAgentInput): MarketplaceAgent {
     return this.marketplaceService.createAgent(body);
   }
 
   @Patch("agents/:id")
+  @UseGuards(AccessTokenGuard, SuperAdminGuard)
   updateAgent(
     @Param("id") id: string,
     @Body() body: Partial<MarketplaceAgentInput>
@@ -76,12 +82,13 @@ export class MarketplaceController {
   }
 
   @Delete("agents/:id")
+  @UseGuards(AccessTokenGuard, SuperAdminGuard)
   removeAgent(@Param("id") id: string): { removed: boolean } {
     return { removed: this.marketplaceService.removeAgent(id) };
   }
 
   @Post("agents/:id/install")
-  @UseGuards(AccessTokenGuard)
+  @UseGuards(AccessTokenGuard, SuperAdminGuard)
   installAgent(
     @CurrentUser() user: AuthUser,
     @Param("id") id: string,

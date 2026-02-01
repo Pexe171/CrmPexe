@@ -7,103 +7,62 @@ import { Button } from "@/components/ui/button";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
-type MarketplaceCategory = {
-  id: string;
-  name: string;
-  description: string;
-  highlights: string[];
-  agentsCount: number;
-};
-
 type MarketplaceAgent = {
   id: string;
   name: string;
-  headline: string;
   description: string;
-  categoryId: string;
-  tags: string[];
-  rating: number;
-  installs: number;
-  responseSlaSeconds: number;
-  priceLabel: string;
-  status: "AVAILABLE" | "COMING_SOON";
+  status: "PENDING" | "APPROVED";
+  pingUrl?: string;
+  configJson?: string;
 };
 
 type FormState = {
-  categoryName: string;
-  categoryDescription: string;
-  categoryHighlights: string;
   agentName: string;
-  agentHeadline: string;
   agentDescription: string;
-  agentCategoryId: string;
-  agentTags: string;
-  agentRating: string;
-  agentInstalls: string;
-  agentSla: string;
-  agentPrice: string;
-  agentStatus: "AVAILABLE" | "COMING_SOON";
+  agentPingUrl: string;
+  agentConfigJson: string;
+  agentStatus: "PENDING" | "APPROVED";
 };
 
 const initialFormState: FormState = {
-  categoryName: "",
-  categoryDescription: "",
-  categoryHighlights: "",
   agentName: "",
-  agentHeadline: "",
   agentDescription: "",
-  agentCategoryId: "",
-  agentTags: "",
-  agentRating: "",
-  agentInstalls: "",
-  agentSla: "",
-  agentPrice: "",
-  agentStatus: "AVAILABLE"
+  agentPingUrl: "",
+  agentConfigJson: "",
+  agentStatus: "PENDING"
 };
 
-const toTags = (value: string) =>
-  value
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-
 export default function SuperAdminMarketplacePage() {
-  const [categories, setCategories] = useState<MarketplaceCategory[]>([]);
   const [agents, setAgents] = useState<MarketplaceAgent[]>([]);
   const [formState, setFormState] = useState<FormState>(initialFormState);
+  const [releaseWorkspaceIds, setReleaseWorkspaceIds] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const totalAgents = useMemo(() => agents.length, [agents]);
 
-  const loadMarketplace = async () => {
+  const loadAgents = async () => {
     setLoading(true);
     setError(null);
     setMessage(null);
 
     try {
-      const [categoriesResponse, agentsResponse] = await Promise.all([
-        fetch(`${apiUrl}/api/marketplace/categories`, { credentials: "include" }),
-        fetch(`${apiUrl}/api/marketplace/agents`, { credentials: "include" })
-      ]);
+      const agentsResponse = await fetch(`${apiUrl}/api/marketplace/agents`, {
+        credentials: "include"
+      });
 
-      if (!categoriesResponse.ok || !agentsResponse.ok) {
-        throw new Error("Não foi possível carregar o marketplace.");
+      if (!agentsResponse.ok) {
+        throw new Error("Não foi possível carregar os agentes.");
       }
 
-      const [categoriesData, agentsData] = await Promise.all([
-        categoriesResponse.json() as Promise<MarketplaceCategory[]>,
-        agentsResponse.json() as Promise<MarketplaceAgent[]>
-      ]);
-
-      setCategories(categoriesData);
+      const agentsData = (await agentsResponse.json()) as MarketplaceAgent[];
       setAgents(agentsData);
     } catch (fetchError) {
       setError(
         fetchError instanceof Error
           ? fetchError.message
-          : "Erro inesperado ao carregar o marketplace."
+          : "Erro inesperado ao carregar os agentes."
       );
     } finally {
       setLoading(false);
@@ -111,7 +70,7 @@ export default function SuperAdminMarketplacePage() {
   };
 
   useEffect(() => {
-    void loadMarketplace();
+    void loadAgents();
   }, []);
 
   const handleFormChange = (key: keyof FormState, value: string) => {
@@ -128,114 +87,15 @@ export default function SuperAdminMarketplacePage() {
         agent.id === id
           ? {
               ...agent,
-              [key]:
-                key === "rating" || key === "installs" || key === "responseSlaSeconds"
-                  ? Number(value)
-                  : key === "tags"
-                    ? toTags(value)
-                    : value
+              [key]: value
             }
           : agent
       )
     );
   };
 
-  const handleCategoryFieldChange = (
-    id: string,
-    key: keyof MarketplaceCategory,
-    value: string
-  ) => {
-    setCategories((current) =>
-      current.map((category) =>
-        category.id === id
-          ? {
-              ...category,
-              [key]: key === "highlights" ? toTags(value) : value
-            }
-          : category
-      )
-    );
-  };
-
-  const handleCreateCategory = async () => {
-    setError(null);
-    setMessage(null);
-
-    try {
-      const response = await fetch(`${apiUrl}/api/marketplace/categories`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          name: formState.categoryName,
-          description: formState.categoryDescription,
-          highlights: toTags(formState.categoryHighlights)
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error("Não foi possível criar a categoria.");
-      }
-
-      setFormState((current) => ({
-        ...current,
-        categoryName: "",
-        categoryDescription: "",
-        categoryHighlights: ""
-      }));
-      setMessage("Categoria criada com sucesso.");
-      await loadMarketplace();
-    } catch (createError) {
-      setError(createError instanceof Error ? createError.message : "Erro ao criar categoria.");
-    }
-  };
-
-  const handleUpdateCategory = async (category: MarketplaceCategory) => {
-    setError(null);
-    setMessage(null);
-
-    try {
-      const response = await fetch(`${apiUrl}/api/marketplace/categories/${category.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          name: category.name,
-          description: category.description,
-          highlights: category.highlights
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error("Não foi possível atualizar a categoria.");
-      }
-
-      setMessage("Categoria atualizada com sucesso.");
-      await loadMarketplace();
-    } catch (updateError) {
-      setError(updateError instanceof Error ? updateError.message : "Erro ao atualizar categoria.");
-    }
-  };
-
-  const handleDeleteCategory = async (categoryId: string) => {
-    setError(null);
-    setMessage(null);
-
-    try {
-      const response = await fetch(`${apiUrl}/api/marketplace/categories/${categoryId}`, {
-        method: "DELETE",
-        credentials: "include"
-      });
-
-      if (!response.ok) {
-        throw new Error("Não foi possível remover a categoria.");
-      }
-
-      setMessage("Categoria removida com sucesso.");
-      await loadMarketplace();
-    } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : "Erro ao remover categoria.");
-    }
+  const handleReleaseWorkspaceChange = (agentId: string, value: string) => {
+    setReleaseWorkspaceIds((current) => ({ ...current, [agentId]: value }));
   };
 
   const handleCreateAgent = async () => {
@@ -249,15 +109,10 @@ export default function SuperAdminMarketplacePage() {
         credentials: "include",
         body: JSON.stringify({
           name: formState.agentName,
-          headline: formState.agentHeadline,
           description: formState.agentDescription,
-          categoryId: formState.agentCategoryId,
-          tags: toTags(formState.agentTags),
-          rating: Number(formState.agentRating || 0),
-          installs: Number(formState.agentInstalls || 0),
-          responseSlaSeconds: Number(formState.agentSla || 0),
-          priceLabel: formState.agentPrice,
-          status: formState.agentStatus
+          status: formState.agentStatus,
+          pingUrl: formState.agentPingUrl,
+          configJson: formState.agentConfigJson
         })
       });
 
@@ -265,21 +120,9 @@ export default function SuperAdminMarketplacePage() {
         throw new Error("Não foi possível criar o agente.");
       }
 
-      setFormState((current) => ({
-        ...current,
-        agentName: "",
-        agentHeadline: "",
-        agentDescription: "",
-        agentCategoryId: "",
-        agentTags: "",
-        agentRating: "",
-        agentInstalls: "",
-        agentSla: "",
-        agentPrice: "",
-        agentStatus: "AVAILABLE"
-      }));
+      setFormState(initialFormState);
       setMessage("Agente criado com sucesso.");
-      await loadMarketplace();
+      await loadAgents();
     } catch (createError) {
       setError(createError instanceof Error ? createError.message : "Erro ao criar agente.");
     }
@@ -296,15 +139,10 @@ export default function SuperAdminMarketplacePage() {
         credentials: "include",
         body: JSON.stringify({
           name: agent.name,
-          headline: agent.headline,
           description: agent.description,
-          categoryId: agent.categoryId,
-          tags: agent.tags,
-          rating: agent.rating,
-          installs: agent.installs,
-          responseSlaSeconds: agent.responseSlaSeconds,
-          priceLabel: agent.priceLabel,
-          status: agent.status
+          status: agent.status,
+          pingUrl: agent.pingUrl,
+          configJson: agent.configJson
         })
       });
 
@@ -313,7 +151,7 @@ export default function SuperAdminMarketplacePage() {
       }
 
       setMessage("Agente atualizado com sucesso.");
-      await loadMarketplace();
+      await loadAgents();
     } catch (updateError) {
       setError(updateError instanceof Error ? updateError.message : "Erro ao atualizar agente.");
     }
@@ -334,9 +172,41 @@ export default function SuperAdminMarketplacePage() {
       }
 
       setMessage("Agente removido com sucesso.");
-      await loadMarketplace();
+      await loadAgents();
     } catch (deleteError) {
       setError(deleteError instanceof Error ? deleteError.message : "Erro ao remover agente.");
+    }
+  };
+
+  const handleReleaseAgent = async (agentId: string) => {
+    setError(null);
+    setMessage(null);
+
+    const workspaceId = releaseWorkspaceIds[agentId]?.trim();
+    if (!workspaceId) {
+      setError("Informe o workspace antes de liberar o agente.");
+      return;
+    }
+
+    try {
+      const response = await fetch(`${apiUrl}/api/marketplace/agents/${agentId}/install`, {
+        method: "POST",
+        headers: { "x-workspace-id": workspaceId },
+        credentials: "include"
+      });
+
+      if (!response.ok) {
+        throw new Error("Não foi possível liberar o agente para o workspace.");
+      }
+
+      setMessage("Agente liberado para o workspace com sucesso.");
+      await loadAgents();
+    } catch (releaseError) {
+      setError(
+        releaseError instanceof Error
+          ? releaseError.message
+          : "Erro ao liberar agente para o workspace."
+      );
     }
   };
 
@@ -348,16 +218,17 @@ export default function SuperAdminMarketplacePage() {
             <SidebarNav variant="superadmin" />
             <p className="text-sm font-medium text-purple-600">Super Admin</p>
           </div>
-          <h1 className="text-2xl font-semibold text-slate-100">Marketplace do CRM</h1>
+          <h1 className="text-2xl font-semibold text-slate-100">Agentes do CRM</h1>
           <p className="text-sm text-slate-400">
-            Cadastre, edite e publique agentes com preços e descrições sob seu controle.
+            Cadastre agentes personalizados, defina o status e libere cada agente para um workspace
+            específico.
           </p>
           <div className="mt-3 flex flex-wrap gap-3">
             <Link href="/super-admin">
               <Button variant="outline">Voltar ao painel</Button>
             </Link>
             <Link href="/marketplace">
-              <Button variant="outline">Ver marketplace público</Button>
+              <Button variant="outline">Ver área de agentes</Button>
             </Link>
           </div>
         </div>
@@ -376,7 +247,7 @@ export default function SuperAdminMarketplacePage() {
           </div>
         ) : null}
 
-        <section className="grid gap-4 md:grid-cols-3">
+        <section className="grid gap-4 md:grid-cols-2">
           <div className="rounded-2xl border bg-slate-900 p-6 shadow-sm">
             <p className="text-sm font-medium text-slate-400">Agentes cadastrados</p>
             <p className="mt-2 text-3xl font-semibold text-slate-100">
@@ -384,100 +255,17 @@ export default function SuperAdminMarketplacePage() {
             </p>
           </div>
           <div className="rounded-2xl border bg-slate-900 p-6 shadow-sm">
-            <p className="text-sm font-medium text-slate-400">Categorias ativas</p>
-            <p className="mt-2 text-3xl font-semibold text-slate-100">
-              {loading ? "-" : categories.length}
-            </p>
-          </div>
-          <div className="rounded-2xl border bg-slate-900 p-6 shadow-sm">
             <p className="text-sm font-medium text-slate-400">Status</p>
             <p className="mt-2 text-sm text-slate-200">
-              {loading ? "Carregando..." : "Marketplace sob seu controle"}
+              {loading ? "Carregando..." : "Controle centralizado de agentes"}
             </p>
           </div>
         </section>
 
         <section className="rounded-2xl border bg-slate-900 p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-100">Criar nova categoria</h2>
+          <h2 className="text-lg font-semibold text-slate-100">Cadastrar novo agente</h2>
           <p className="text-sm text-slate-400">
-            Use categorias para organizar o marketplace por objetivo do agente.
-          </p>
-          <div className="mt-4 grid gap-4 md:grid-cols-3">
-            <input
-              className="rounded-lg border border-slate-800 px-3 py-2 text-sm"
-              placeholder="Nome da categoria"
-              value={formState.categoryName}
-              onChange={(event) => handleFormChange("categoryName", event.target.value)}
-            />
-            <input
-              className="rounded-lg border border-slate-800 px-3 py-2 text-sm"
-              placeholder="Descrição"
-              value={formState.categoryDescription}
-              onChange={(event) => handleFormChange("categoryDescription", event.target.value)}
-            />
-            <input
-              className="rounded-lg border border-slate-800 px-3 py-2 text-sm"
-              placeholder="Destaques (separados por vírgula)"
-              value={formState.categoryHighlights}
-              onChange={(event) => handleFormChange("categoryHighlights", event.target.value)}
-            />
-          </div>
-          <div className="mt-4">
-            <Button onClick={handleCreateCategory}>Salvar categoria</Button>
-          </div>
-        </section>
-
-        <section className="rounded-2xl border bg-slate-900 p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-100">Categorias publicadas</h2>
-          <div className="mt-4 space-y-4">
-            {loading ? (
-              <p className="text-sm text-slate-400">Carregando categorias...</p>
-            ) : categories.length === 0 ? (
-              <p className="text-sm text-slate-400">Nenhuma categoria cadastrada.</p>
-            ) : (
-              categories.map((category) => (
-                <div key={category.id} className="rounded-xl border border-slate-800 p-4">
-                  <div className="grid gap-3 md:grid-cols-[1.1fr_1.4fr_1.4fr_auto]">
-                    <input
-                      className="rounded-lg border border-slate-800 px-3 py-2 text-sm"
-                      value={category.name}
-                      onChange={(event) =>
-                        handleCategoryFieldChange(category.id, "name", event.target.value)
-                      }
-                    />
-                    <input
-                      className="rounded-lg border border-slate-800 px-3 py-2 text-sm"
-                      value={category.description}
-                      onChange={(event) =>
-                        handleCategoryFieldChange(category.id, "description", event.target.value)
-                      }
-                    />
-                    <input
-                      className="rounded-lg border border-slate-800 px-3 py-2 text-sm"
-                      value={category.highlights.join(", ")}
-                      onChange={(event) =>
-                        handleCategoryFieldChange(category.id, "highlights", event.target.value)
-                      }
-                    />
-                    <div className="flex flex-wrap gap-2">
-                      <Button variant="outline" onClick={() => handleUpdateCategory(category)}>
-                        Atualizar
-                      </Button>
-                      <Button variant="outline" onClick={() => handleDeleteCategory(category.id)}>
-                        Remover
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </section>
-
-        <section className="rounded-2xl border bg-slate-900 p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-100">Criar novo agente</h2>
-          <p className="text-sm text-slate-400">
-            Defina o preço, o SLA e a descrição que o cliente verá no marketplace.
+            Preencha a descrição, ping e JSON técnico para liberar o agente do cliente.
           </p>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <input
@@ -486,48 +274,6 @@ export default function SuperAdminMarketplacePage() {
               value={formState.agentName}
               onChange={(event) => handleFormChange("agentName", event.target.value)}
             />
-            <input
-              className="rounded-lg border border-slate-800 px-3 py-2 text-sm"
-              placeholder="Headline"
-              value={formState.agentHeadline}
-              onChange={(event) => handleFormChange("agentHeadline", event.target.value)}
-            />
-            <input
-              className="rounded-lg border border-slate-800 px-3 py-2 text-sm"
-              placeholder="Categoria (id)"
-              value={formState.agentCategoryId}
-              onChange={(event) => handleFormChange("agentCategoryId", event.target.value)}
-            />
-            <input
-              className="rounded-lg border border-slate-800 px-3 py-2 text-sm"
-              placeholder="Tags (separadas por vírgula)"
-              value={formState.agentTags}
-              onChange={(event) => handleFormChange("agentTags", event.target.value)}
-            />
-            <input
-              className="rounded-lg border border-slate-800 px-3 py-2 text-sm"
-              placeholder="Avaliação (ex: 4.8)"
-              value={formState.agentRating}
-              onChange={(event) => handleFormChange("agentRating", event.target.value)}
-            />
-            <input
-              className="rounded-lg border border-slate-800 px-3 py-2 text-sm"
-              placeholder="Instalações"
-              value={formState.agentInstalls}
-              onChange={(event) => handleFormChange("agentInstalls", event.target.value)}
-            />
-            <input
-              className="rounded-lg border border-slate-800 px-3 py-2 text-sm"
-              placeholder="SLA (segundos)"
-              value={formState.agentSla}
-              onChange={(event) => handleFormChange("agentSla", event.target.value)}
-            />
-            <input
-              className="rounded-lg border border-slate-800 px-3 py-2 text-sm"
-              placeholder="Preço exibido (ex: R$ 499/mês)"
-              value={formState.agentPrice}
-              onChange={(event) => handleFormChange("agentPrice", event.target.value)}
-            />
             <select
               className="rounded-lg border border-slate-800 px-3 py-2 text-sm"
               value={formState.agentStatus}
@@ -535,14 +281,26 @@ export default function SuperAdminMarketplacePage() {
                 handleFormChange("agentStatus", event.target.value as FormState["agentStatus"])
               }
             >
-              <option value="AVAILABLE">Disponível</option>
-              <option value="COMING_SOON">Em breve</option>
+              <option value="PENDING">Pendente</option>
+              <option value="APPROVED">Aprovado</option>
             </select>
+            <input
+              className="rounded-lg border border-slate-800 px-3 py-2 text-sm md:col-span-2"
+              placeholder="URL de ping"
+              value={formState.agentPingUrl}
+              onChange={(event) => handleFormChange("agentPingUrl", event.target.value)}
+            />
             <textarea
               className="min-h-[120px] rounded-lg border border-slate-800 px-3 py-2 text-sm md:col-span-2"
-              placeholder="Descrição completa"
+              placeholder="Descrição do agente"
               value={formState.agentDescription}
               onChange={(event) => handleFormChange("agentDescription", event.target.value)}
+            />
+            <textarea
+              className="min-h-[140px] rounded-lg border border-slate-800 px-3 py-2 text-sm md:col-span-2"
+              placeholder="JSON de configuração"
+              value={formState.agentConfigJson}
+              onChange={(event) => handleFormChange("agentConfigJson", event.target.value)}
             />
           </div>
           <div className="mt-4">
@@ -553,9 +311,9 @@ export default function SuperAdminMarketplacePage() {
         <section className="rounded-2xl border bg-slate-900 p-6 shadow-sm">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-slate-100">Agentes publicados</h2>
+              <h2 className="text-lg font-semibold text-slate-100">Agentes atribuídos</h2>
               <p className="text-sm text-slate-400">
-                Atualize o catálogo e os preços direto pelo painel do super admin.
+                Atualize a descrição, o status e a configuração conforme a solicitação do cliente.
               </p>
             </div>
           </div>
@@ -568,40 +326,12 @@ export default function SuperAdminMarketplacePage() {
             ) : (
               agents.map((agent) => (
                 <div key={agent.id} className="rounded-xl border border-slate-800 p-4">
-                  <div className="grid gap-3 md:grid-cols-3">
+                  <div className="grid gap-3 md:grid-cols-2">
                     <input
                       className="rounded-lg border border-slate-800 px-3 py-2 text-sm"
                       value={agent.name}
                       onChange={(event) =>
                         handleAgentFieldChange(agent.id, "name", event.target.value)
-                      }
-                    />
-                    <input
-                      className="rounded-lg border border-slate-800 px-3 py-2 text-sm"
-                      value={agent.headline}
-                      onChange={(event) =>
-                        handleAgentFieldChange(agent.id, "headline", event.target.value)
-                      }
-                    />
-                    <input
-                      className="rounded-lg border border-slate-800 px-3 py-2 text-sm"
-                      value={agent.categoryId}
-                      onChange={(event) =>
-                        handleAgentFieldChange(agent.id, "categoryId", event.target.value)
-                      }
-                    />
-                    <input
-                      className="rounded-lg border border-slate-800 px-3 py-2 text-sm"
-                      value={agent.tags.join(", ")}
-                      onChange={(event) =>
-                        handleAgentFieldChange(agent.id, "tags", event.target.value)
-                      }
-                    />
-                    <input
-                      className="rounded-lg border border-slate-800 px-3 py-2 text-sm"
-                      value={agent.priceLabel}
-                      onChange={(event) =>
-                        handleAgentFieldChange(agent.id, "priceLabel", event.target.value)
                       }
                     />
                     <select
@@ -615,28 +345,15 @@ export default function SuperAdminMarketplacePage() {
                         )
                       }
                     >
-                      <option value="AVAILABLE">Disponível</option>
-                      <option value="COMING_SOON">Em breve</option>
+                      <option value="PENDING">Pendente</option>
+                      <option value="APPROVED">Aprovado</option>
                     </select>
                     <input
-                      className="rounded-lg border border-slate-800 px-3 py-2 text-sm"
-                      value={agent.rating}
+                      className="rounded-lg border border-slate-800 px-3 py-2 text-sm md:col-span-2"
+                      value={agent.pingUrl ?? ""}
+                      placeholder="URL de ping"
                       onChange={(event) =>
-                        handleAgentFieldChange(agent.id, "rating", event.target.value)
-                      }
-                    />
-                    <input
-                      className="rounded-lg border border-slate-800 px-3 py-2 text-sm"
-                      value={agent.installs}
-                      onChange={(event) =>
-                        handleAgentFieldChange(agent.id, "installs", event.target.value)
-                      }
-                    />
-                    <input
-                      className="rounded-lg border border-slate-800 px-3 py-2 text-sm"
-                      value={agent.responseSlaSeconds}
-                      onChange={(event) =>
-                        handleAgentFieldChange(agent.id, "responseSlaSeconds", event.target.value)
+                        handleAgentFieldChange(agent.id, "pingUrl", event.target.value)
                       }
                     />
                   </div>
@@ -647,6 +364,14 @@ export default function SuperAdminMarketplacePage() {
                       handleAgentFieldChange(agent.id, "description", event.target.value)
                     }
                   />
+                  <textarea
+                    className="mt-3 min-h-[140px] w-full rounded-lg border border-slate-800 px-3 py-2 text-sm"
+                    value={agent.configJson ?? ""}
+                    placeholder="JSON de configuração"
+                    onChange={(event) =>
+                      handleAgentFieldChange(agent.id, "configJson", event.target.value)
+                    }
+                  />
                   <div className="mt-4 flex flex-wrap gap-2">
                     <Button variant="outline" onClick={() => handleUpdateAgent(agent)}>
                       Atualizar agente
@@ -654,6 +379,24 @@ export default function SuperAdminMarketplacePage() {
                     <Button variant="outline" onClick={() => handleDeleteAgent(agent.id)}>
                       Remover agente
                     </Button>
+                  </div>
+                  <div className="mt-4 rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
+                      Liberar para workspace
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-3">
+                      <input
+                        className="min-w-[220px] flex-1 rounded-lg border border-slate-800 px-3 py-2 text-sm"
+                        placeholder="ID do workspace"
+                        value={releaseWorkspaceIds[agent.id] ?? ""}
+                        onChange={(event) =>
+                          handleReleaseWorkspaceChange(agent.id, event.target.value)
+                        }
+                      />
+                      <Button onClick={() => handleReleaseAgent(agent.id)}>
+                        Liberar agente
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))

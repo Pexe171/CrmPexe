@@ -90,6 +90,7 @@ cp apps/web/.env.example apps/web/.env
 
 Variáveis usadas pela Web:
 - `NEXT_PUBLIC_API_URL` (opcional, padrão `http://localhost:3001`) — URL base da API.
+- `NEXT_PUBLIC_WHATSAPP_LINK` (opcional, padrão `https://wa.me/5511999999999`) — link direto para contato no WhatsApp.
 
 ###  4 — Gerar client Prisma e aplicar migrations
 **Objetivo:** preparar o banco e o client do Prisma.
@@ -142,6 +143,15 @@ pnpm dev
 - Lista cards das automações instaladas e exibe status, data e variáveis configuradas.
 - Botão **Ligar/Desligar** aciona os endpoints `POST /api/automations/:id/enable` e `POST /api/automations/:id/disable`.
 - Botão **Configurar** abre um modal para editar as variáveis específicas de cada instância.
+
+### Página "Agentes disponíveis" (Web)
+**Objetivo:** visualizar o catálogo de agentes e sinalizar interesse via WhatsApp.
+
+- Rota: `/marketplace`.
+- O cliente **nunca** compra ou libera acesso sozinho: apenas visualiza o catálogo e sinaliza interesse.
+- O super admin é o único que libera a automação para um workspace específico, sempre pelo painel do super admin.
+- Quando não há agentes, o botão **Contactar no WhatsApp** direciona para o link configurado em `NEXT_PUBLIC_WHATSAPP_LINK`.
+- O time admin configura os agentes, incluindo descrição, ping técnico e JSON de configuração, direto no painel do super admin.
 
 ### Funil de vendas (Kanban)
 **Objetivo:** visualizar leads por etapa e mover cards com atualização em tempo real.
