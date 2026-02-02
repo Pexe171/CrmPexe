@@ -64,6 +64,7 @@ enum NotificationType {
   CONVERSATION_ASSIGNED
   INBOUND_MESSAGE
   SLA_BREACH
+  MARKETPLACE_INTEREST
 }
 
 enum CustomFieldEntity {

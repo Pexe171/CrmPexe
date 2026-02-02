@@ -4,9 +4,12 @@ import {
   AutomationAccessStatus,
   AutomationInstanceStatus,
   MarketplaceTemplateStatus,
-  Prisma
+  NotificationType,
+  Prisma,
+  UserRole
 } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import { NotificationsService } from "../notifications/notifications.service";
 
 export type MarketplaceCategory = {
   id: string;
@@ -40,6 +43,7 @@ export type MarketplaceAgent = {
   status: MarketplaceTemplateStatus;
   pingUrl?: string;
   configJson?: Prisma.JsonValue | null;
+  canInstall?: boolean;
 };
 
 export type MarketplaceAgentInput = {
@@ -102,7 +106,10 @@ export type MarketplaceInterest = {
 
 @Injectable()
 export class MarketplaceService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService
+  ) {}
 
   async getSummary(): Promise<MarketplaceSummary> {
     const [activeAgents, totalTemplates, lastTemplate] = await Promise.all([
@@ -201,10 +208,16 @@ export class MarketplaceService {
     return true;
   }
 
-  async getAgents(params?: {
+  async getAgents(params: {
+    userId: string;
+    workspaceId?: string;
     category?: string;
     search?: string;
   }): Promise<MarketplaceAgent[]> {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      params.userId,
+      params.workspaceId
+    );
     const category = params?.category?.trim();
     const search = params?.search?.trim().toLowerCase();
 
@@ -227,8 +240,21 @@ export class MarketplaceService {
       orderBy: { updatedAt: "desc" }
     });
 
+    const accesses = await this.prisma.automationAccess.findMany({
+      where: {
+        workspaceId: resolvedWorkspaceId,
+        status: AutomationAccessStatus.APPROVED,
+        templateId: { in: templates.map((template) => template.id) }
+      },
+      select: { templateId: true }
+    });
+
+    const accessMap = new Set(accesses.map((access) => access.templateId));
+
     return templates.map((template) =>
-      this.mapTemplateToAgent(template, template._count.instances)
+      this.mapTemplateToAgent(template, template._count.instances, {
+        canInstall: accessMap.has(template.id)
+      })
     );
   }
 
@@ -364,67 +390,108 @@ export class MarketplaceService {
     });
   }
 
-  async requestInterest(
+  async registerInterest(
     userId: string,
-    agentId: string,
+    templateId: string,
     workspaceId?: string
   ) {
-    const resolvedWorkspaceId = workspaceId?.trim();
-    if (!resolvedWorkspaceId) {
-      throw new BadRequestException("Workspace não informado.");
-    }
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
 
     const template = await this.prisma.automationTemplate.findUnique({
-      where: { id: agentId }
+      where: { id: templateId },
+      select: { id: true, name: true }
     });
     if (!template) {
       throw new NotFoundException("Agente não encontrado no marketplace.");
     }
 
-    const [interest, accessRequest] = await this.prisma.$transaction([
+    const [requester, interest] = await Promise.all([
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, name: true, email: true }
+      }),
       this.prisma.marketplaceInterest.upsert({
         where: {
           workspaceId_templateId_requestedByUserId: {
             workspaceId: resolvedWorkspaceId,
-            templateId: agentId,
+            templateId,
             requestedByUserId: userId
           }
         },
-        update: {
-          status: AutomationAccessStatus.PENDING
-        },
+        update: { status: AutomationAccessStatus.PENDING },
         create: {
           workspaceId: resolvedWorkspaceId,
-          templateId: agentId,
-          requestedByUserId: userId,
-          status: AutomationAccessStatus.PENDING
-        }
-      }),
-      this.prisma.automationAccessRequest.upsert({
-        where: {
-          workspaceId_templateId: {
-            workspaceId: resolvedWorkspaceId,
-            templateId: agentId
-          }
-        },
-        update: {
-          status: AutomationAccessStatus.PENDING,
-          requestedByUserId: userId
-        },
-        create: {
-          workspaceId: resolvedWorkspaceId,
-          templateId: agentId,
+          templateId,
           requestedByUserId: userId,
           status: AutomationAccessStatus.PENDING
         }
       })
     ]);
 
+    const workspace = await this.prisma.workspace.findUnique({
+      where: { id: resolvedWorkspaceId },
+      select: { id: true, name: true }
+    });
+
+    await this.notifyAdminsAboutInterest({
+      workspaceId: resolvedWorkspaceId,
+      workspaceName: workspace?.name ?? "Workspace",
+      templateName: template.name,
+      requestedBy: requester
+        ? { id: requester.id, name: requester.name, email: requester.email }
+        : null
+    });
+
     return {
       interestId: interest.id,
-      accessRequestId: accessRequest.id,
-      status: accessRequest.status
+      status: interest.status
     };
+  }
+
+  async toggleAccess(
+    adminId: string,
+    targetWorkspaceId: string,
+    templateId: string,
+    status: boolean
+  ) {
+    const resolvedWorkspaceId = targetWorkspaceId.trim();
+    if (!resolvedWorkspaceId) {
+      throw new BadRequestException("Workspace inválido.");
+    }
+
+    const [workspace, template] = await Promise.all([
+      this.prisma.workspace.findUnique({ where: { id: resolvedWorkspaceId } }),
+      this.prisma.automationTemplate.findUnique({ where: { id: templateId } })
+    ]);
+
+    if (!workspace) {
+      throw new NotFoundException("Workspace não encontrado.");
+    }
+    if (!template) {
+      throw new NotFoundException("Agente não encontrado no marketplace.");
+    }
+
+    if (!status) {
+      await this.prisma.automationAccess.deleteMany({
+        where: { workspaceId: resolvedWorkspaceId, templateId }
+      });
+      return { enabled: false };
+    }
+
+    const access = await this.prisma.automationAccess.upsert({
+      where: {
+        workspaceId_templateId: { workspaceId: resolvedWorkspaceId, templateId }
+      },
+      update: { status: AutomationAccessStatus.APPROVED, grantedByAdminId: adminId },
+      create: {
+        workspaceId: resolvedWorkspaceId,
+        templateId,
+        status: AutomationAccessStatus.APPROVED,
+        grantedByAdminId: adminId
+      }
+    });
+
+    return { enabled: true, accessId: access.id };
   }
 
   async listInterests(): Promise<MarketplaceInterest[]> {
@@ -461,7 +528,8 @@ export class MarketplaceService {
       pingUrl: string | null;
       configJson: Prisma.JsonValue | null;
     },
-    installs: number
+    installs: number,
+    options?: { canInstall?: boolean }
   ): MarketplaceAgent {
     return {
       id: template.id,
@@ -479,7 +547,84 @@ export class MarketplaceService {
       priceLabel: template.priceLabel ?? undefined,
       status: template.status,
       pingUrl: template.pingUrl ?? undefined,
-      configJson: template.configJson ?? null
+      configJson: template.configJson ?? null,
+      canInstall: options?.canInstall
     };
+  }
+
+  private async resolveWorkspaceId(userId: string, workspaceId?: string) {
+    const normalized = workspaceId?.trim();
+    if (normalized) {
+      await this.ensureWorkspaceMembership(userId, normalized);
+      return normalized;
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { currentWorkspaceId: true }
+    });
+
+    if (!user?.currentWorkspaceId) {
+      throw new BadRequestException("Workspace atual não definido.");
+    }
+
+    await this.ensureWorkspaceMembership(userId, user.currentWorkspaceId);
+    return user.currentWorkspaceId;
+  }
+
+  private async ensureWorkspaceMembership(userId: string, workspaceId: string) {
+    const membership = await this.prisma.workspaceMember.findFirst({
+      where: { userId, workspaceId }
+    });
+
+    if (!membership) {
+      throw new BadRequestException("Workspace inválido.");
+    }
+  }
+
+  private async notifyAdminsAboutInterest(payload: {
+    workspaceId: string;
+    workspaceName: string;
+    templateName: string;
+    requestedBy: { id: string; name: string; email: string } | null;
+  }) {
+    const members = await this.prisma.workspaceMember.findMany({
+      where: { workspaceId: payload.workspaceId },
+      include: { user: { select: { id: true, role: true, isSuperAdmin: true } }, role: true }
+    });
+
+    const adminUserIds = members
+      .filter(
+        (member) =>
+          member.user?.isSuperAdmin ||
+          member.user?.role === UserRole.ADMIN ||
+          member.role?.name === "Owner"
+      )
+      .map((member) => member.userId);
+
+    if (adminUserIds.length === 0) {
+      return;
+    }
+
+    const requesterLabel = payload.requestedBy
+      ? `${payload.requestedBy.name} (${payload.requestedBy.email})`
+      : "Usuário";
+
+    await Promise.all(
+      adminUserIds.map((userId) =>
+        this.notificationsService.createNotification({
+          workspaceId: payload.workspaceId,
+          userId,
+          type: NotificationType.MARKETPLACE_INTEREST,
+          title: "Novo interesse no marketplace",
+          body: `${requesterLabel} solicitou acesso ao agente "${payload.templateName}" no workspace ${payload.workspaceName}.`,
+          data: {
+            templateName: payload.templateName,
+            requestedBy: payload.requestedBy,
+            workspaceId: payload.workspaceId
+          }
+        })
+      )
+    );
   }
 }
