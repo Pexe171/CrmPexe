@@ -1,9 +1,11 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException
 } from "@nestjs/common";
 import {
+  AutomationAccessStatus,
   AutomationInstanceStatus,
   IntegrationAccountStatus,
   IntegrationAccountType,
@@ -190,6 +192,8 @@ export class AutomationsService {
       throw new NotFoundException("Template de automação não encontrado.");
     }
 
+    await this.ensureTemplateAccess(userId, resolvedWorkspaceId, templateId);
+
     const templateVersion = await this.resolveTemplateVersion(
       template,
       payload.versionId,
@@ -258,6 +262,116 @@ export class AutomationsService {
       provisioning,
       workflow: installation.workflow
     };
+  }
+
+  async requestTemplateAccess(
+    userId: string,
+    templateId: string,
+    workspaceId?: string
+  ) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
+
+    const template = await this.prisma.automationTemplate.findUnique({
+      where: { id: templateId }
+    });
+
+    if (!template) {
+      throw new NotFoundException("Template de automação não encontrado.");
+    }
+
+    const existingAccess = await this.prisma.automationAccess.findFirst({
+      where: {
+        workspaceId: resolvedWorkspaceId,
+        templateId,
+        status: AutomationAccessStatus.APPROVED
+      }
+    });
+
+    if (existingAccess) {
+      return {
+        status: AutomationAccessStatus.APPROVED,
+        accessId: existingAccess.id
+      };
+    }
+
+    const request = await this.prisma.automationAccessRequest.upsert({
+      where: {
+        workspaceId_templateId: {
+          workspaceId: resolvedWorkspaceId,
+          templateId
+        }
+      },
+      update: {
+        status: AutomationAccessStatus.PENDING,
+        requestedByUserId: userId
+      },
+      create: {
+        workspaceId: resolvedWorkspaceId,
+        templateId,
+        requestedByUserId: userId,
+        status: AutomationAccessStatus.PENDING
+      }
+    });
+
+    return {
+      status: request.status,
+      requestId: request.id
+    };
+  }
+
+  async grantTemplateAccess(
+    adminId: string,
+    templateId: string,
+    workspaceId: string
+  ) {
+    const normalizedWorkspaceId = workspaceId.trim();
+    if (!normalizedWorkspaceId) {
+      throw new BadRequestException("Workspace não informado.");
+    }
+
+    const [template, workspace] = await Promise.all([
+      this.prisma.automationTemplate.findUnique({ where: { id: templateId } }),
+      this.prisma.workspace.findUnique({ where: { id: normalizedWorkspaceId } })
+    ]);
+
+    if (!template) {
+      throw new NotFoundException("Template de automação não encontrado.");
+    }
+
+    if (!workspace) {
+      throw new NotFoundException("Workspace não encontrado.");
+    }
+
+    return this.prisma.$transaction(async (transaction) => {
+      const access = await transaction.automationAccess.upsert({
+        where: {
+          workspaceId_templateId: {
+            workspaceId: normalizedWorkspaceId,
+            templateId
+          }
+        },
+        update: {
+          status: AutomationAccessStatus.APPROVED,
+          grantedByAdminId: adminId
+        },
+        create: {
+          workspaceId: normalizedWorkspaceId,
+          templateId,
+          status: AutomationAccessStatus.APPROVED,
+          grantedByAdminId: adminId
+        }
+      });
+
+      await transaction.automationAccessRequest.updateMany({
+        where: { workspaceId: normalizedWorkspaceId, templateId },
+        data: { status: AutomationAccessStatus.APPROVED }
+      });
+
+      return access;
+    });
   }
 
   async listInstances(
@@ -661,6 +775,35 @@ export class AutomationsService {
     const currentWorkspaceId = await this.getCurrentWorkspaceId(userId);
     await this.ensureWorkspaceMembership(userId, currentWorkspaceId);
     return currentWorkspaceId;
+  }
+
+  private async ensureTemplateAccess(
+    userId: string,
+    workspaceId: string,
+    templateId: string
+  ) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { isSuperAdmin: true }
+    });
+
+    if (user?.isSuperAdmin) {
+      return;
+    }
+
+    const access = await this.prisma.automationAccess.findFirst({
+      where: {
+        workspaceId,
+        templateId,
+        status: AutomationAccessStatus.APPROVED
+      }
+    });
+
+    if (!access) {
+      throw new ForbiddenException(
+        "Acesso ao template não liberado para este workspace."
+      );
+    }
   }
 
   private async getCurrentWorkspaceId(userId: string) {
