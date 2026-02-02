@@ -1,10 +1,11 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException
-} from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { randomUUID } from "crypto";
-import { AutomationInstanceStatus } from "@prisma/client";
+import {
+  AutomationAccessStatus,
+  AutomationInstanceStatus,
+  MarketplaceTemplateStatus,
+  Prisma
+} from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 
 export type MarketplaceCategory = {
@@ -36,9 +37,9 @@ export type MarketplaceAgent = {
   installs: number;
   responseSlaSeconds: number;
   priceLabel?: string;
-  status: "PENDING" | "APPROVED";
+  status: MarketplaceTemplateStatus;
   pingUrl?: string;
-  configJson?: string;
+  configJson?: Prisma.JsonValue | null;
 };
 
 export type MarketplaceAgentInput = {
@@ -54,9 +55,13 @@ export type MarketplaceAgentInput = {
   installs?: number;
   responseSlaSeconds?: number;
   priceLabel?: string;
-  status?: "PENDING" | "APPROVED";
+  status?: MarketplaceTemplateStatus;
   pingUrl?: string;
-  configJson?: string;
+  configJson?: Prisma.JsonValue;
+  version?: string;
+  changelog?: string;
+  definitionJson?: Record<string, unknown>;
+  requiredIntegrations?: string[];
 };
 
 export type MarketplaceSummary = {
@@ -70,72 +75,77 @@ export type MarketplaceSummary = {
 
 type StoredCategory = Omit<MarketplaceCategory, "agentsCount">;
 
+export type MarketplaceInterest = {
+  id: string;
+  templateId: string;
+  workspaceId: string;
+  requestedByUserId: string;
+  status: AutomationAccessStatus;
+  createdAt: string;
+  updatedAt: string;
+  template: {
+    id: string;
+    name: string;
+    headline: string | null;
+    category: string;
+  };
+  workspace: {
+    id: string;
+    name: string;
+  };
+  requestedByUser: {
+    id: string;
+    name: string;
+    email: string;
+  };
+};
+
 @Injectable()
 export class MarketplaceService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private categories: StoredCategory[] = [
-    {
-      id: "atendimento",
-      name: "Atendimento inteligente",
-      description: "Bots e agentes que resolvem tickets, triagem e follow-up com SLA otimizado.",
-      highlights: ["SLA em 30s", "Fila omnichannel", "LGPD by design"]
-    },
-    {
-      id: "vendas",
-      name: "Vendas e expansão",
-      description: "Agentes focados em qualificação, pipeline e automação de propostas.",
-      highlights: ["Lead scoring", "Resumo de calls", "Playbooks dinâmicos"]
-    },
-    {
-      id: "sucesso",
-      name: "Customer Success",
-      description: "Monitoramento de saúde, onboarding e planos de sucesso personalizados.",
-      highlights: ["Alertas proativos", "NPS em tempo real", "Planos de ação"]
-    }
-  ];
+  async getSummary(): Promise<MarketplaceSummary> {
+    const [activeAgents, totalTemplates, lastTemplate] = await Promise.all([
+      this.prisma.automationTemplate.count({
+        where: { status: MarketplaceTemplateStatus.APPROVED }
+      }),
+      this.prisma.automationTemplate.count(),
+      this.prisma.automationTemplate.findFirst({
+        orderBy: { updatedAt: "desc" },
+        select: { updatedAt: true }
+      })
+    ]);
 
-  private agents: MarketplaceAgent[] = [
-    {
-      id: "agent-exemplo",
-      name: "Agente Atlas",
-      headline: "Agente configurado pelo admin para esse cliente.",
-      description:
-        "Esse agente está em aprovação. Assim que o super admin aprovar, ele ficará ativo no seu workspace.",
-      categoryId: "personalizado",
-      tags: ["Cliente"],
-      capabilities: ["Resumo inteligente", "Follow-up ativo"],
-      requirements: ["WhatsApp", "Email"],
-      templateId: "template-exemplo",
-      rating: 0,
-      installs: 0,
-      responseSlaSeconds: 0,
-      priceLabel: "Sob consulta",
-      status: "PENDING",
-      pingUrl: "https://api.crmpexe.com.br/ping",
-      configJson: "{\"canal\":\"whatsapp\",\"prioridade\":\"alta\"}"
-    }
-  ];
-
-  getSummary(): MarketplaceSummary {
     return {
       headline: "Agentes personalizados configurados pelo time CrmPexe.",
-      activeAgents: this.agents.filter((agent) => agent.status === "APPROVED").length,
-      automationsAvailable: 0,
+      activeAgents,
+      automationsAvailable: totalTemplates,
       averageNps: 0,
       satisfactionRate: 0,
-      lastUpdatedAt: new Date().toISOString()
+      lastUpdatedAt: lastTemplate?.updatedAt.toISOString() ?? new Date().toISOString()
     };
   }
 
-  getCategories(): MarketplaceCategory[] {
-    return this.categories.map((category) => ({
+  async getCategories(): Promise<MarketplaceCategory[]> {
+    const [categories, agentsCount] = await Promise.all([
+      this.prisma.marketplaceCategory.findMany({ orderBy: { name: "asc" } }),
+      this.prisma.automationTemplate.groupBy({
+        by: ["category"],
+        _count: { _all: true }
+      })
+    ]);
+
+    const countsMap = new Map(
+      agentsCount.map((entry) => [entry.category, entry._count._all])
+    );
+
+    return categories.map((category) => ({
       ...category,
-      agentsCount: this.agents.filter((agent) => agent.categoryId === category.id).length
+      agentsCount: countsMap.get(category.id) ?? 0
     }));
   }
 
-  createCategory(input: MarketplaceCategoryInput): MarketplaceCategory {
+  async createCategory(input: MarketplaceCategoryInput): Promise<MarketplaceCategory> {
     const newCategory: StoredCategory = {
       id: input.id?.trim() || randomUUID(),
       name: input.name.trim(),
@@ -143,149 +153,190 @@ export class MarketplaceService {
       highlights: input.highlights ?? []
     };
 
-    this.categories.push(newCategory);
+    const created = await this.prisma.marketplaceCategory.create({
+      data: newCategory
+    });
 
     return {
-      ...newCategory,
-      agentsCount: this.agents.filter((agent) => agent.categoryId === newCategory.id).length
+      ...created,
+      agentsCount: 0
     };
   }
 
-  updateCategory(id: string, input: Partial<MarketplaceCategoryInput>): MarketplaceCategory | null {
-    const index = this.categories.findIndex((category) => category.id === id);
-    if (index === -1) return null;
+  async updateCategory(
+    id: string,
+    input: Partial<MarketplaceCategoryInput>
+  ): Promise<MarketplaceCategory | null> {
+    const existing = await this.prisma.marketplaceCategory.findUnique({
+      where: { id }
+    });
+    if (!existing) return null;
 
-    const current = this.categories[index];
-    const updated: StoredCategory = {
-      ...current,
-      ...("name" in input && input.name ? { name: input.name.trim() } : null),
-      ...("description" in input && input.description
-        ? { description: input.description.trim() }
-        : null),
-      ...("highlights" in input && input.highlights ? { highlights: input.highlights } : null)
-    };
+    const updated = await this.prisma.marketplaceCategory.update({
+      where: { id },
+      data: {
+        name: input.name?.trim(),
+        description: input.description?.trim(),
+        highlights: input.highlights
+      }
+    });
 
-    this.categories[index] = updated;
+    const agentsCount = await this.prisma.automationTemplate.count({
+      where: { category: updated.id }
+    });
 
     return {
       ...updated,
-      agentsCount: this.agents.filter((agent) => agent.categoryId === updated.id).length
+      agentsCount
     };
   }
 
-  removeCategory(id: string): boolean {
-    const index = this.categories.findIndex((category) => category.id === id);
-    if (index === -1) return false;
+  async removeCategory(id: string): Promise<boolean> {
+    const existing = await this.prisma.marketplaceCategory.findUnique({
+      where: { id }
+    });
+    if (!existing) return false;
 
-    this.categories.splice(index, 1);
+    await this.prisma.marketplaceCategory.delete({ where: { id } });
     return true;
   }
 
-  getAgents(params?: { category?: string; search?: string }): MarketplaceAgent[] {
+  async getAgents(params?: {
+    category?: string;
+    search?: string;
+  }): Promise<MarketplaceAgent[]> {
     const category = params?.category?.trim();
     const search = params?.search?.trim().toLowerCase();
 
-    return this.agents.filter((agent) => {
-      const matchesCategory = category ? agent.categoryId === category : true;
-      const matchesSearch = search
-        ? [
-            agent.name,
-            agent.headline,
-            agent.description,
-            ...agent.tags,
-            ...agent.capabilities,
-            ...agent.requirements
-          ]
-            .join(" ")
-            .toLowerCase()
-            .includes(search)
-        : true;
-
-      return matchesCategory && matchesSearch;
-    });
-  }
-
-  createAgent(input: MarketplaceAgentInput): MarketplaceAgent {
-    const newAgent: MarketplaceAgent = {
-      id: randomUUID(),
-      name: input.name.trim(),
-      headline: input.headline?.trim() || "Agente configurado pelo time CrmPexe.",
-      description: input.description.trim(),
-      categoryId: input.categoryId?.trim() || "personalizado",
-      tags: input.tags ?? [],
-      capabilities: input.capabilities ?? [],
-      requirements: input.requirements ?? [],
-      templateId: input.templateId?.trim() || "template-personalizado",
-      rating: Number.isFinite(input.rating) ? input.rating : 0,
-      installs: Number.isFinite(input.installs) ? input.installs : 0,
-      responseSlaSeconds: Number.isFinite(input.responseSlaSeconds)
-        ? input.responseSlaSeconds
-        : 0,
-      priceLabel: input.priceLabel?.trim(),
-      status: input.status ?? "PENDING",
-      pingUrl: input.pingUrl?.trim(),
-      configJson: input.configJson?.trim()
-    };
-
-    this.agents.push(newAgent);
-    return newAgent;
-  }
-
-  updateAgent(id: string, input: Partial<MarketplaceAgentInput>): MarketplaceAgent | null {
-    const index = this.agents.findIndex((agent) => agent.id === id);
-    if (index === -1) return null;
-
-    const current = this.agents[index];
-    const updated: MarketplaceAgent = {
-      ...current,
-      ...("name" in input && input.name ? { name: input.name.trim() } : null),
-      ...("headline" in input && input.headline ? { headline: input.headline.trim() } : null),
-      ...("description" in input && input.description
-        ? { description: input.description.trim() }
-        : null),
-      ...("categoryId" in input && input.categoryId
-        ? { categoryId: input.categoryId.trim() }
-        : null),
-      ...("tags" in input && input.tags ? { tags: input.tags } : null),
-      ...("capabilities" in input && input.capabilities
-        ? { capabilities: input.capabilities }
-        : null),
-      ...("requirements" in input && input.requirements
-        ? { requirements: input.requirements }
-        : null),
-      ...("templateId" in input && input.templateId
-        ? { templateId: input.templateId.trim() }
-        : null),
-      ...("rating" in input && Number.isFinite(input.rating)
-        ? { rating: input.rating }
-        : null),
-      ...("installs" in input && Number.isFinite(input.installs)
-        ? { installs: input.installs }
-        : null),
-      ...("responseSlaSeconds" in input && Number.isFinite(input.responseSlaSeconds)
-        ? { responseSlaSeconds: input.responseSlaSeconds }
-        : null),
-      ...("priceLabel" in input && input.priceLabel !== undefined
-        ? { priceLabel: input.priceLabel?.trim() }
-        : null),
-      ...("status" in input && input.status ? { status: input.status } : null),
-      ...("pingUrl" in input && input.pingUrl !== undefined
-        ? { pingUrl: input.pingUrl?.trim() }
-        : null),
-      ...("configJson" in input && input.configJson !== undefined
-        ? { configJson: input.configJson?.trim() }
+    const where: Prisma.AutomationTemplateWhereInput = {
+      ...(category ? { category } : null),
+      ...(search
+        ? {
+            OR: [
+              { name: { contains: search, mode: "insensitive" } },
+              { headline: { contains: search, mode: "insensitive" } },
+              { description: { contains: search, mode: "insensitive" } }
+            ]
+          }
         : null)
     };
 
-    this.agents[index] = updated;
-    return updated;
+    const templates = await this.prisma.automationTemplate.findMany({
+      where,
+      include: { _count: { select: { instances: true } } },
+      orderBy: { updatedAt: "desc" }
+    });
+
+    return templates.map((template) =>
+      this.mapTemplateToAgent(template, template._count.instances)
+    );
   }
 
-  removeAgent(id: string): boolean {
-    const index = this.agents.findIndex((agent) => agent.id === id);
-    if (index === -1) return false;
+  async createAgent(
+    adminId: string,
+    input: MarketplaceAgentInput
+  ): Promise<MarketplaceAgent> {
+    const name = input.name.trim();
+    const description = input.description.trim();
+    const version = input.version?.trim() || "1.0.0";
+    const category = input.categoryId?.trim() || "personalizado";
+    const definitionJson = input.definitionJson ?? {};
+    const requiredIntegrations = input.requiredIntegrations ?? [];
 
-    this.agents.splice(index, 1);
+    if (!name || !description) {
+      throw new BadRequestException("Nome e descrição são obrigatórios.");
+    }
+
+    return this.prisma.$transaction(async (transaction) => {
+      const template = await transaction.automationTemplate.create({
+        data: {
+          name,
+          headline: input.headline?.trim() || "Agente configurado pelo time CrmPexe.",
+          description,
+          version,
+          changelog: input.changelog?.trim(),
+          category,
+          definitionJson: definitionJson as Prisma.InputJsonValue,
+          requiredIntegrations,
+          tags: input.tags ?? [],
+          capabilities: input.capabilities ?? [],
+          requirements: input.requirements ?? [],
+          rating: Number.isFinite(input.rating) ? input.rating : 0,
+          responseSlaSeconds: Number.isFinite(input.responseSlaSeconds)
+            ? input.responseSlaSeconds
+            : 0,
+          priceLabel: input.priceLabel?.trim(),
+          status: input.status ?? MarketplaceTemplateStatus.PENDING,
+          pingUrl: input.pingUrl?.trim(),
+          configJson: input.configJson ?? undefined,
+          createdByAdminId: adminId
+        }
+      });
+
+      const versionEntry = await transaction.automationTemplateVersion.create({
+        data: {
+          templateId: template.id,
+          version,
+          changelog: input.changelog?.trim(),
+          definitionJson: definitionJson as Prisma.InputJsonValue,
+          requiredIntegrations,
+          createdByAdminId: adminId
+        }
+      });
+
+      const updated = await transaction.automationTemplate.update({
+        where: { id: template.id },
+        data: { currentVersionId: versionEntry.id }
+      });
+
+      return this.mapTemplateToAgent(updated, 0);
+    });
+  }
+
+  async updateAgent(
+    id: string,
+    input: Partial<MarketplaceAgentInput>
+  ): Promise<MarketplaceAgent | null> {
+    const existing = await this.prisma.automationTemplate.findUnique({
+      where: { id }
+    });
+    if (!existing) return null;
+
+    const updated = await this.prisma.automationTemplate.update({
+      where: { id },
+      data: {
+        name: input.name?.trim(),
+        headline: input.headline?.trim(),
+        description: input.description?.trim(),
+        category: input.categoryId?.trim(),
+        tags: input.tags,
+        capabilities: input.capabilities,
+        requirements: input.requirements,
+        rating: Number.isFinite(input.rating) ? input.rating : undefined,
+        responseSlaSeconds: Number.isFinite(input.responseSlaSeconds)
+          ? input.responseSlaSeconds
+          : undefined,
+        priceLabel: input.priceLabel?.trim(),
+        status: input.status,
+        pingUrl: input.pingUrl?.trim(),
+        configJson: input.configJson
+      }
+    });
+
+    const instancesCount = await this.prisma.automationInstance.count({
+      where: { templateId: updated.id }
+    });
+
+    return this.mapTemplateToAgent(updated, instancesCount);
+  }
+
+  async removeAgent(id: string): Promise<boolean> {
+    const existing = await this.prisma.automationTemplate.findUnique({
+      where: { id }
+    });
+    if (!existing) return false;
+
+    await this.prisma.automationTemplate.delete({ where: { id } });
     return true;
   }
 
@@ -295,7 +346,9 @@ export class MarketplaceService {
       throw new BadRequestException("Workspace não informado para a instalação.");
     }
 
-    const agent = this.agents.find((entry) => entry.id === agentId);
+    const agent = await this.prisma.automationTemplate.findUnique({
+      where: { id: agentId }
+    });
     if (!agent) {
       throw new NotFoundException("Agente não encontrado no marketplace.");
     }
@@ -303,11 +356,130 @@ export class MarketplaceService {
     return this.prisma.automationInstance.create({
       data: {
         workspaceId: resolvedWorkspaceId,
-        templateId: agent.templateId,
+        templateId: agent.id,
         status: AutomationInstanceStatus.PENDING_CONFIG,
         configJson: {},
         createdByUserId: userId
       }
     });
+  }
+
+  async requestInterest(
+    userId: string,
+    agentId: string,
+    workspaceId?: string
+  ) {
+    const resolvedWorkspaceId = workspaceId?.trim();
+    if (!resolvedWorkspaceId) {
+      throw new BadRequestException("Workspace não informado.");
+    }
+
+    const template = await this.prisma.automationTemplate.findUnique({
+      where: { id: agentId }
+    });
+    if (!template) {
+      throw new NotFoundException("Agente não encontrado no marketplace.");
+    }
+
+    const [interest, accessRequest] = await this.prisma.$transaction([
+      this.prisma.marketplaceInterest.upsert({
+        where: {
+          workspaceId_templateId_requestedByUserId: {
+            workspaceId: resolvedWorkspaceId,
+            templateId: agentId,
+            requestedByUserId: userId
+          }
+        },
+        update: {
+          status: AutomationAccessStatus.PENDING
+        },
+        create: {
+          workspaceId: resolvedWorkspaceId,
+          templateId: agentId,
+          requestedByUserId: userId,
+          status: AutomationAccessStatus.PENDING
+        }
+      }),
+      this.prisma.automationAccessRequest.upsert({
+        where: {
+          workspaceId_templateId: {
+            workspaceId: resolvedWorkspaceId,
+            templateId: agentId
+          }
+        },
+        update: {
+          status: AutomationAccessStatus.PENDING,
+          requestedByUserId: userId
+        },
+        create: {
+          workspaceId: resolvedWorkspaceId,
+          templateId: agentId,
+          requestedByUserId: userId,
+          status: AutomationAccessStatus.PENDING
+        }
+      })
+    ]);
+
+    return {
+      interestId: interest.id,
+      accessRequestId: accessRequest.id,
+      status: accessRequest.status
+    };
+  }
+
+  async listInterests(): Promise<MarketplaceInterest[]> {
+    const interests = await this.prisma.marketplaceInterest.findMany({
+      include: {
+        template: { select: { id: true, name: true, headline: true, category: true } },
+        workspace: { select: { id: true, name: true } },
+        requestedByUser: { select: { id: true, name: true, email: true } }
+      },
+      orderBy: { createdAt: "desc" }
+    });
+
+    return interests.map((interest) => ({
+      ...interest,
+      createdAt: interest.createdAt.toISOString(),
+      updatedAt: interest.updatedAt.toISOString()
+    }));
+  }
+
+  private mapTemplateToAgent(
+    template: {
+      id: string;
+      name: string;
+      headline: string | null;
+      description: string | null;
+      category: string;
+      tags: string[];
+      capabilities: string[];
+      requirements: string[];
+      rating: number;
+      responseSlaSeconds: number;
+      priceLabel: string | null;
+      status: MarketplaceTemplateStatus;
+      pingUrl: string | null;
+      configJson: Prisma.JsonValue | null;
+    },
+    installs: number
+  ): MarketplaceAgent {
+    return {
+      id: template.id,
+      name: template.name,
+      headline: template.headline ?? "Agente configurado pelo time CrmPexe.",
+      description: template.description ?? "",
+      categoryId: template.category,
+      tags: template.tags,
+      capabilities: template.capabilities,
+      requirements: template.requirements,
+      templateId: template.id,
+      rating: template.rating,
+      installs,
+      responseSlaSeconds: template.responseSlaSeconds,
+      priceLabel: template.priceLabel ?? undefined,
+      status: template.status,
+      pingUrl: template.pingUrl ?? undefined,
+      configJson: template.configJson ?? null
+    };
   }
 }
