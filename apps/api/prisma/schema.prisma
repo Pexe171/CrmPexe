@@ -35,6 +35,12 @@ enum AutomationInstanceStatus {
   FAILED
 }
 
+enum AutomationAccessStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 enum ConversationStatus {
   NEW
   CONTACTED
@@ -189,6 +195,8 @@ model Workspace {
   knowledgeBaseArticles KnowledgeBaseArticle[]
   cannedResponses CannedResponse[]
   automationInstances AutomationInstance[]
+  automationAccesses AutomationAccess[]
+  automationAccessRequests AutomationAccessRequest[]
   variables WorkspaceVariable[]
   subscriptions Subscription[]
   aiUsageLogs AiUsageLog[]
@@ -218,6 +226,8 @@ model User {
   automationTemplatesCreated AutomationTemplate[] @relation("AutomationTemplateAdmin")
   automationTemplateVersionsCreated AutomationTemplateVersion[] @relation("AutomationTemplateVersionAdmin")
   automationInstancesCreated AutomationInstance[] @relation("AutomationInstanceUser")
+  automationAccessGranted AutomationAccess[] @relation("AutomationAccessAdmin")
+  automationAccessRequests AutomationAccessRequest[] @relation("AutomationAccessRequester")
   currentWorkspace Workspace? @relation("UserCurrentWorkspace", fields: [currentWorkspaceId], references: [id])
 }
 
@@ -849,9 +859,49 @@ model AutomationTemplate {
   currentVersion AutomationTemplateVersion? @relation("AutomationTemplateCurrentVersion", fields: [currentVersionId], references: [id])
   versions      AutomationTemplateVersion[]
   instances     AutomationInstance[]
+  accessRequests AutomationAccessRequest[]
+  accesses     AutomationAccess[]
 
   @@index([category])
   @@index([createdByAdminId])
+}
+
+model AutomationAccess {
+  id               String                @id @default(uuid())
+  workspaceId      String
+  templateId       String
+  status           AutomationAccessStatus @default(APPROVED)
+  grantedByAdminId String
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  workspace      Workspace          @relation(fields: [workspaceId], references: [id])
+  template       AutomationTemplate @relation(fields: [templateId], references: [id])
+  grantedByAdmin User               @relation("AutomationAccessAdmin", fields: [grantedByAdminId], references: [id])
+
+  @@unique([workspaceId, templateId])
+  @@index([workspaceId])
+  @@index([templateId])
+  @@index([status])
+}
+
+model AutomationAccessRequest {
+  id                String                @id @default(uuid())
+  workspaceId       String
+  templateId        String
+  requestedByUserId String
+  status            AutomationAccessStatus @default(PENDING)
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+
+  workspace       Workspace          @relation(fields: [workspaceId], references: [id])
+  template        AutomationTemplate @relation(fields: [templateId], references: [id])
+  requestedByUser User               @relation("AutomationAccessRequester", fields: [requestedByUserId], references: [id])
+
+  @@unique([workspaceId, templateId])
+  @@index([workspaceId])
+  @@index([templateId])
+  @@index([status])
 }
 
 model AutomationTemplateVersion {

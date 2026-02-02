@@ -18,6 +18,7 @@ import { SuperAdminGuard } from "../auth/super-admin.guard";
 import { AutomationsService } from "./automations.service";
 import { CreateAutomationTemplateDto } from "./dto/create-automation-template.dto";
 import { CreateAutomationTemplateVersionDto } from "./dto/create-automation-template-version.dto";
+import { GrantAutomationAccessDto } from "./dto/grant-automation-access.dto";
 import { InstallAutomationTemplateDto } from "./dto/install-automation-template.dto";
 import { UpdateAutomationInstanceVersionDto } from "./dto/update-automation-instance-version.dto";
 
@@ -69,6 +70,33 @@ export class AutomationsController {
       templateId,
       body,
       workspaceId
+    );
+  }
+
+  @Post("automation-templates/:id/request-access")
+  async requestTemplateAccess(
+    @CurrentUser() user: AuthUser,
+    @Param("id") templateId: string,
+    @Headers("x-workspace-id") workspaceId?: string
+  ) {
+    return this.automationsService.requestTemplateAccess(
+      user.id,
+      templateId,
+      workspaceId
+    );
+  }
+
+  @Post("automation-templates/:id/grant-access")
+  @UseGuards(SuperAdminGuard)
+  async grantTemplateAccess(
+    @CurrentUser() user: AuthUser,
+    @Param("id") templateId: string,
+    @Body() body: GrantAutomationAccessDto
+  ) {
+    return this.automationsService.grantTemplateAccess(
+      user.id,
+      templateId,
+      body.workspaceId
     );
   }
 
