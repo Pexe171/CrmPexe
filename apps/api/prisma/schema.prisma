@@ -879,6 +879,7 @@ model AutomationTemplate {
   instances     AutomationInstance[]
   accessRequests AutomationAccessRequest[]
   accesses     AutomationAccess[]
+  marketplaceInterests MarketplaceInterest[]
 
   @@index([category])
   @@index([createdByAdminId])
