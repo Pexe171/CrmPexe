@@ -14,6 +14,7 @@ import { AccessTokenGuard } from "../auth/access-token.guard";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { AuthUser } from "../auth/auth.types";
 import { SuperAdminGuard } from "../auth/super-admin.guard";
+import { ToggleMarketplaceAccessDto } from "./marketplace.dto";
 import {
   MarketplaceAgent,
   MarketplaceAgentInput,
@@ -62,11 +63,19 @@ export class MarketplaceController {
   }
 
   @Get("agents")
+  @UseGuards(AccessTokenGuard)
   async getAgents(
+    @CurrentUser() user: AuthUser,
     @Query("category") category?: string,
-    @Query("search") search?: string
+    @Query("search") search?: string,
+    @Headers("x-workspace-id") workspaceId?: string
   ): Promise<MarketplaceAgent[]> {
-    return this.marketplaceService.getAgents({ category, search });
+    return this.marketplaceService.getAgents({
+      userId: user.id,
+      workspaceId,
+      category,
+      search
+    });
   }
 
   @Post("agents")
@@ -105,12 +114,27 @@ export class MarketplaceController {
 
   @Post("agents/:id/interest")
   @UseGuards(AccessTokenGuard)
-  async requestInterest(
+  async registerInterest(
     @CurrentUser() user: AuthUser,
     @Param("id") id: string,
     @Headers("x-workspace-id") workspaceId?: string
   ) {
-    return this.marketplaceService.requestInterest(user.id, id, workspaceId);
+    return this.marketplaceService.registerInterest(user.id, id, workspaceId);
+  }
+
+  @Patch("agents/:id/access")
+  @UseGuards(AccessTokenGuard, SuperAdminGuard)
+  async toggleAccess(
+    @CurrentUser() user: AuthUser,
+    @Param("id") id: string,
+    @Body() body: ToggleMarketplaceAccessDto
+  ) {
+    return this.marketplaceService.toggleAccess(
+      user.id,
+      body.workspaceId,
+      id,
+      body.status
+    );
   }
 
   @Get("interests")
