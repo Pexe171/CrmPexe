@@ -41,6 +41,11 @@ enum AutomationAccessStatus {
   REJECTED
 }
 
+enum MarketplaceTemplateStatus {
+  PENDING
+  APPROVED
+}
+
 enum ConversationStatus {
   NEW
   CONTACTED
@@ -197,6 +202,7 @@ model Workspace {
   automationInstances AutomationInstance[]
   automationAccesses AutomationAccess[]
   automationAccessRequests AutomationAccessRequest[]
+  marketplaceInterests MarketplaceInterest[]
   variables WorkspaceVariable[]
   subscriptions Subscription[]
   aiUsageLogs AiUsageLog[]
@@ -228,6 +234,7 @@ model User {
   automationInstancesCreated AutomationInstance[] @relation("AutomationInstanceUser")
   automationAccessGranted AutomationAccess[] @relation("AutomationAccessAdmin")
   automationAccessRequests AutomationAccessRequest[] @relation("AutomationAccessRequester")
+  marketplaceInterests MarketplaceInterest[] @relation("MarketplaceInterestRequester")
   currentWorkspace Workspace? @relation("UserCurrentWorkspace", fields: [currentWorkspaceId], references: [id])
 }
 
@@ -844,12 +851,22 @@ model Task {
 model AutomationTemplate {
   id                   String   @id @default(uuid())
   name                 String
+  headline             String?
   description          String?
   version              String
   changelog            String?
   category             String
   definitionJson       Json
   requiredIntegrations String[]
+  tags                 String[] @default([])
+  capabilities         String[] @default([])
+  requirements         String[] @default([])
+  rating               Float    @default(0)
+  responseSlaSeconds   Int      @default(0)
+  priceLabel           String?
+  status               MarketplaceTemplateStatus @default(PENDING)
+  pingUrl              String?
+  configJson           Json?
   currentVersionId     String? @unique
   createdByAdminId     String
   createdAt            DateTime @default(now())
@@ -864,6 +881,37 @@ model AutomationTemplate {
 
   @@index([category])
   @@index([createdByAdminId])
+  @@index([status])
+}
+
+model MarketplaceCategory {
+  id          String   @id
+  name        String
+  description String
+  highlights  String[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([name])
+}
+
+model MarketplaceInterest {
+  id                String                @id @default(uuid())
+  workspaceId       String
+  templateId        String
+  requestedByUserId String
+  status            AutomationAccessStatus @default(PENDING)
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+
+  workspace       Workspace          @relation(fields: [workspaceId], references: [id])
+  template        AutomationTemplate @relation(fields: [templateId], references: [id])
+  requestedByUser User               @relation("MarketplaceInterestRequester", fields: [requestedByUserId], references: [id])
+
+  @@unique([workspaceId, templateId, requestedByUserId])
+  @@index([workspaceId])
+  @@index([templateId])
+  @@index([status])
 }
 
 model AutomationAccess {
