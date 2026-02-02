@@ -6,7 +6,7 @@
 
 */
 -- DropForeignKey
-ALTER TABLE "AiUsageLog" DROP CONSTRAINT "AiUsageLog_workspaceId_fkey";
+ALTER TABLE IF EXISTS "AiUsageLog" DROP CONSTRAINT IF EXISTS "AiUsageLog_workspaceId_fkey";
 
 -- DropForeignKey
 ALTER TABLE "AutomationTemplateVersion" DROP CONSTRAINT "AutomationTemplateVersion_templateId_fkey";
@@ -30,7 +30,7 @@ ALTER TABLE "Notification" DROP CONSTRAINT "Notification_workspaceId_fkey";
 DROP INDEX "AutomationTemplate_currentVersionId_idx";
 
 -- AlterTable
-ALTER TABLE "AiUsageLog" ALTER COLUMN "id" DROP DEFAULT;
+ALTER TABLE IF EXISTS "AiUsageLog" ALTER COLUMN "id" DROP DEFAULT;
 
 -- AlterTable
 ALTER TABLE "AutomationTemplateVersion" ALTER COLUMN "id" DROP DEFAULT;
