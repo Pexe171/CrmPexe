@@ -345,7 +345,8 @@ export class MarketplaceService {
         priceLabel: input.priceLabel?.trim(),
         status: input.status,
         pingUrl: input.pingUrl?.trim(),
-        configJson: input.configJson
+        configJson:
+          input.configJson === null ? Prisma.JsonNull : input.configJson
       }
     });
 
