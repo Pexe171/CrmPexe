@@ -1,172 +1,192 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import {
+  QueryClient,
+  QueryClientProvider,
+  useMutation,
+  useQuery,
+  useQueryClient
+} from "@tanstack/react-query";
 import { SidebarNav } from "@/components/sidebar-nav";
 import { Button } from "@/components/ui/button";
+import { fetchSuperAdminWorkspaces } from "@/lib/super-admin";
 
-type AgentStatus = "Rascunho" | "Publicado";
-
-type CatalogAgent = {
+type MarketplaceTemplate = {
   id: string;
-  title: string;
-  description: string;
-  image: string;
-  status: AgentStatus;
+  name: string;
+  categoryId: string;
+  status?: "PENDING" | "APPROVED";
+  canInstall?: boolean;
 };
 
 type Workspace = {
   id: string;
   name: string;
-  segment: string;
-};
-
-type AutomationPermission = {
-  id: string;
-  title: string;
-  category: string;
-  enabled: boolean;
 };
 
 type LeadRequest = {
   id: string;
-  company: string;
-  contact: string;
-  automation: string;
-  workspace: string;
+  status: "PENDING" | "APPROVED" | "REJECTED";
   createdAt: string;
+  template: {
+    id: string;
+    name: string;
+  };
+  workspace: {
+    id: string;
+    name: string;
+  };
+  requestedByUser: {
+    id: string;
+    name: string;
+    email: string;
+  };
 };
 
-const initialCatalog: CatalogAgent[] = [
-  {
-    id: "crm-01",
-    title: "Agente de Vendas Ativo",
-    description: "Qualifica leads e sugere próximos passos com base no funil.",
-    image: "https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?q=80&w=400",
-    status: "Publicado"
-  },
-  {
-    id: "crm-02",
-    title: "Agente Pós-venda",
-    description: "Cria follow-ups automáticos e monitoramento de satisfação.",
-    image: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=400",
-    status: "Rascunho"
-  },
-  {
-    id: "crm-03",
-    title: "Agente de Retenção",
-    description: "Detecta risco de churn e dispara campanhas preventivas.",
-    image: "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?q=80&w=400",
-    status: "Publicado"
+const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+
+const statusLabels = {
+  PENDING: "Pendente",
+  APPROVED: "Aprovado",
+  REJECTED: "Rejeitado"
+} as const;
+
+const formatDate = (value: string) =>
+  new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short"
+  }).format(new Date(value));
+
+const fetchMarketplaceInterests = async (signal?: AbortSignal): Promise<LeadRequest[]> => {
+  const response = await fetch(`${apiUrl}/api/marketplace/interests`, {
+    credentials: "include",
+    signal
+  });
+
+  if (!response.ok) {
+    throw new Error("Não foi possível carregar as solicitações do marketplace.");
   }
-];
 
-const workspaces: Workspace[] = [
-  { id: "ws-100", name: "Grupo Sumaré", segment: "Varejo" },
-  { id: "ws-204", name: "Arco Finanças", segment: "Serviços financeiros" },
-  { id: "ws-309", name: "Nexa Educação", segment: "Educação" }
-];
+  return (await response.json()) as LeadRequest[];
+};
 
-const defaultPermissions: AutomationPermission[] = [
-  { id: "auto-01", title: "Auto Cadência de Follow-up", category: "Vendas", enabled: true },
-  { id: "auto-02", title: "Respostas WhatsApp Inteligentes", category: "Atendimento", enabled: false },
-  { id: "auto-03", title: "Análise de Sentimento", category: "Suporte", enabled: true },
-  { id: "auto-04", title: "Push de Meta Diária", category: "Gestão", enabled: false },
-  { id: "auto-05", title: "Recuperação de Inativos", category: "Marketing", enabled: true }
-];
+const fetchMarketplaceTemplates = async (
+  workspaceId: string,
+  signal?: AbortSignal
+): Promise<MarketplaceTemplate[]> => {
+  const response = await fetch(`${apiUrl}/api/marketplace/agents`, {
+    credentials: "include",
+    signal,
+    headers: { "x-workspace-id": workspaceId }
+  });
 
-const leadRequests: LeadRequest[] = [
-  {
-    id: "lead-01",
-    company: "Horizonte Tech",
-    contact: "Camila Prado",
-    automation: "Auto Cadência de Follow-up",
-    workspace: "ws-100",
-    createdAt: "Há 2h"
-  },
-  {
-    id: "lead-02",
-    company: "Nexus Serviços",
-    contact: "Bruno Martins",
-    automation: "Respostas WhatsApp Inteligentes",
-    workspace: "ws-204",
-    createdAt: "Há 6h"
-  },
-  {
-    id: "lead-03",
-    company: "Delta Saúde",
-    contact: "Ana Suárez",
-    automation: "Análise de Sentimento",
-    workspace: "ws-309",
-    createdAt: "Ontem"
+  if (!response.ok) {
+    throw new Error("Não foi possível carregar as automações do marketplace.");
   }
-];
 
-export default function SuperAdminMarketplacePage() {
-  const [catalogAgents, setCatalogAgents] = useState<CatalogAgent[]>(initialCatalog);
-  const [selectedWorkspace, setSelectedWorkspace] = useState(workspaces[0]?.id ?? "");
-  const [permissions, setPermissions] = useState<AutomationPermission[]>(defaultPermissions);
-  const [newAgent, setNewAgent] = useState({
-    title: "",
-    description: "",
-    image: "",
-    status: "Rascunho" as AgentStatus
+  return (await response.json()) as MarketplaceTemplate[];
+};
+
+const toggleMarketplaceAccess = async ({
+  templateId,
+  workspaceId,
+  enabled
+}: {
+  templateId: string;
+  workspaceId: string;
+  enabled: boolean;
+}) => {
+  const response = await fetch(`${apiUrl}/api/marketplace/agents/${templateId}/access`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ workspaceId, status: enabled })
+  });
+
+  if (!response.ok) {
+    throw new Error("Não foi possível atualizar o acesso da automação.");
+  }
+
+  return response.json();
+};
+
+const MarketplaceDashboard = () => {
+  const queryClient = useQueryClient();
+  const [selectedWorkspace, setSelectedWorkspace] = useState("");
+
+  const { data: workspacesData, isLoading: isLoadingWorkspaces } = useQuery({
+    queryKey: ["super-admin-workspaces"],
+    queryFn: ({ signal }) => fetchSuperAdminWorkspaces(signal)
+  });
+
+  const workspaces = useMemo(
+    () =>
+      (workspacesData?.data ?? []).map((workspace) => ({
+        id: workspace.id,
+        name: workspace.name
+      })),
+    [workspacesData]
+  );
+
+  useEffect(() => {
+    if (!selectedWorkspace && workspaces.length > 0) {
+      setSelectedWorkspace(workspaces[0].id);
+    }
+  }, [selectedWorkspace, workspaces]);
+
+  const {
+    data: templates = [],
+    isLoading: isLoadingTemplates,
+    isError: hasTemplatesError
+  } = useQuery({
+    queryKey: ["marketplace-templates", selectedWorkspace],
+    queryFn: ({ signal }) => fetchMarketplaceTemplates(selectedWorkspace, signal),
+    enabled: Boolean(selectedWorkspace)
+  });
+
+  const {
+    data: leadRequests = [],
+    isLoading: isLoadingLeads,
+    isError: hasLeadsError
+  } = useQuery({
+    queryKey: ["marketplace-interests"],
+    queryFn: ({ signal }) => fetchMarketplaceInterests(signal)
   });
 
   const publishedCount = useMemo(
-    () => catalogAgents.filter((agent) => agent.status === "Publicado").length,
-    [catalogAgents]
+    () => templates.filter((template) => template.status === "APPROVED").length,
+    [templates]
   );
 
-  const handleCatalogChange = (
-    agentId: string,
-    key: keyof CatalogAgent,
-    value: string
-  ) => {
-    setCatalogAgents((current) =>
-      current.map((agent) =>
-        agent.id === agentId
-          ? {
-              ...agent,
-              [key]: value
-            }
-          : agent
-      )
-    );
-  };
-
-  const handlePermissionToggle = (permissionId: string) => {
-    setPermissions((current) =>
-      current.map((permission) =>
-        permission.id === permissionId
-          ? { ...permission, enabled: !permission.enabled }
-          : permission
-      )
-    );
-  };
-
-  const handleCreateAgent = () => {
-    if (!newAgent.title.trim()) {
-      return;
+  const toggleAccessMutation = useMutation({
+    mutationFn: toggleMarketplaceAccess,
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ["marketplace-templates", variables.workspaceId]
+      });
     }
+  });
 
-    setCatalogAgents((current) => [
-      {
-        id: `crm-${Date.now()}`,
-        title: newAgent.title,
-        description: newAgent.description || "Descrição pendente.",
-        image: newAgent.image || "https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=400",
-        status: newAgent.status
-      },
-      ...current
-    ]);
-
-    setNewAgent({ title: "", description: "", image: "", status: "Rascunho" });
-  };
-
-  const handleDeleteAgent = (agentId: string) => {
-    setCatalogAgents((current) => current.filter((agent) => agent.id !== agentId));
-  };
+  const resolveLeadMutation = useMutation({
+    mutationFn: toggleMarketplaceAccess,
+    onSuccess: (_data, variables) => {
+      queryClient.setQueryData<LeadRequest[]>(
+        ["marketplace-interests"],
+        (current = []) =>
+          current.map((lead) =>
+            lead.template.id === variables.templateId &&
+            lead.workspace.id === variables.workspaceId
+              ? { ...lead, status: "APPROVED" }
+              : lead
+          )
+      );
+      queryClient.invalidateQueries({
+        queryKey: ["marketplace-templates", variables.workspaceId]
+      });
+    }
+  });
 
   return (
     <div className="min-h-screen bg-slate-950">
@@ -195,7 +215,7 @@ export default function SuperAdminMarketplacePage() {
         <section className="grid gap-4 md:grid-cols-3">
           <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-sm">
             <p className="text-sm font-medium text-slate-400">Agentes no catálogo</p>
-            <p className="mt-2 text-3xl font-semibold text-slate-100">{catalogAgents.length}</p>
+            <p className="mt-2 text-3xl font-semibold text-slate-100">{templates.length}</p>
           </div>
           <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-sm">
             <p className="text-sm font-medium text-slate-400">Publicados</p>
@@ -203,123 +223,9 @@ export default function SuperAdminMarketplacePage() {
           </div>
           <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-sm">
             <p className="text-sm font-medium text-slate-400">Solicitações pendentes</p>
-            <p className="mt-2 text-3xl font-semibold text-slate-100">{leadRequests.length}</p>
-          </div>
-        </section>
-
-        <section className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-sm">
-          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-slate-100">Gerenciar o catálogo</h2>
-              <p className="text-sm text-slate-400">
-                Crie, edite ou exclua agentes do marketplace com título, descrição e imagem.
-              </p>
-            </div>
-            <div className="rounded-full bg-slate-950 px-3 py-1 text-xs font-semibold text-slate-300">
-              {publishedCount} publicados
-            </div>
-          </div>
-
-          <div className="mt-6 grid gap-4 lg:grid-cols-[1.1fr_1fr]">
-            <div className="rounded-2xl border border-slate-800 bg-slate-950 p-5">
-              <h3 className="text-sm font-semibold uppercase tracking-widest text-slate-400">
-                Novo agente
-              </h3>
-              <div className="mt-4 grid gap-3">
-                <input
-                  className="rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-sm text-slate-100"
-                  placeholder="Título do agente"
-                  value={newAgent.title}
-                  onChange={(event) => setNewAgent({ ...newAgent, title: event.target.value })}
-                />
-                <textarea
-                  className="min-h-[100px] rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-sm text-slate-100"
-                  placeholder="Descrição curta"
-                  value={newAgent.description}
-                  onChange={(event) =>
-                    setNewAgent({ ...newAgent, description: event.target.value })
-                  }
-                />
-                <input
-                  className="rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-sm text-slate-100"
-                  placeholder="URL da imagem"
-                  value={newAgent.image}
-                  onChange={(event) => setNewAgent({ ...newAgent, image: event.target.value })}
-                />
-                <select
-                  className="rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-sm text-slate-100"
-                  value={newAgent.status}
-                  onChange={(event) =>
-                    setNewAgent({ ...newAgent, status: event.target.value as AgentStatus })
-                  }
-                >
-                  <option value="Rascunho">Rascunho</option>
-                  <option value="Publicado">Publicado</option>
-                </select>
-                <Button onClick={handleCreateAgent}>Cadastrar agente</Button>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              {catalogAgents.map((agent) => (
-                <div
-                  key={agent.id}
-                  className="flex flex-col gap-4 rounded-2xl border border-slate-800 bg-slate-950 p-4"
-                >
-                  <div className="flex items-center gap-4">
-                    <img
-                      src={agent.image}
-                      alt={agent.title}
-                      className="h-16 w-16 rounded-xl object-cover"
-                    />
-                    <div className="flex-1">
-                      <input
-                        className="w-full rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-sm text-slate-100"
-                        value={agent.title}
-                        onChange={(event) =>
-                          handleCatalogChange(agent.id, "title", event.target.value)
-                        }
-                      />
-                      <p className="mt-1 text-xs text-slate-400">ID: {agent.id}</p>
-                    </div>
-                    <select
-                      className="rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-xs text-slate-100"
-                      value={agent.status}
-                      onChange={(event) =>
-                        handleCatalogChange(
-                          agent.id,
-                          "status",
-                          event.target.value as AgentStatus
-                        )
-                      }
-                    >
-                      <option value="Rascunho">Rascunho</option>
-                      <option value="Publicado">Publicado</option>
-                    </select>
-                  </div>
-                  <textarea
-                    className="min-h-[90px] rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-sm text-slate-100"
-                    value={agent.description}
-                    onChange={(event) =>
-                      handleCatalogChange(agent.id, "description", event.target.value)
-                    }
-                  />
-                  <input
-                    className="rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-sm text-slate-100"
-                    value={agent.image}
-                    onChange={(event) =>
-                      handleCatalogChange(agent.id, "image", event.target.value)
-                    }
-                  />
-                  <div className="flex flex-wrap gap-2">
-                    <Button variant="outline">Salvar alterações</Button>
-                    <Button variant="outline" onClick={() => handleDeleteAgent(agent.id)}>
-                      Excluir agente
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <p className="mt-2 text-3xl font-semibold text-slate-100">
+              {leadRequests.filter((lead) => lead.status === "PENDING").length}
+            </p>
           </div>
         </section>
 
@@ -337,40 +243,66 @@ export default function SuperAdminMarketplacePage() {
               className="rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-100"
               value={selectedWorkspace}
               onChange={(event) => setSelectedWorkspace(event.target.value)}
+              disabled={isLoadingWorkspaces || workspaces.length === 0}
             >
               {workspaces.map((workspace) => (
                 <option key={workspace.id} value={workspace.id}>
-                  {workspace.name} · {workspace.segment}
+                  {workspace.name}
                 </option>
               ))}
             </select>
           </div>
 
           <div className="mt-6 grid gap-4 md:grid-cols-2">
-            {permissions.map((permission) => (
-              <div
-                key={permission.id}
-                className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950 p-4"
-              >
-                <div>
-                  <p className="text-sm font-semibold text-slate-100">{permission.title}</p>
-                  <p className="text-xs text-slate-400">{permission.category}</p>
-                </div>
-                <label className="flex items-center gap-2 text-xs text-slate-400">
-                  <span>{permission.enabled ? "Ativo" : "Inativo"}</span>
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 accent-purple-500"
-                    checked={permission.enabled}
-                    onChange={() => handlePermissionToggle(permission.id)}
-                  />
-                </label>
+            {isLoadingTemplates ? (
+              <div className="rounded-xl border border-slate-800 bg-slate-950 p-4 text-sm text-slate-400">
+                Carregando automações do marketplace...
               </div>
-            ))}
-          </div>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Button>Salvar permissões</Button>
-            <Button variant="outline">Aplicar a todos os workspaces</Button>
+            ) : null}
+            {hasTemplatesError ? (
+              <div className="rounded-xl border border-slate-800 bg-slate-950 p-4 text-sm text-rose-300">
+                Não foi possível carregar as automações. Verifique a conexão com a API.
+              </div>
+            ) : null}
+            {!isLoadingTemplates && !hasTemplatesError && templates.length === 0 ? (
+              <div className="rounded-xl border border-slate-800 bg-slate-950 p-4 text-sm text-slate-400">
+                Nenhuma automação encontrada para este workspace.
+              </div>
+            ) : null}
+            {templates.map((template) => {
+              const enabled = Boolean(template.canInstall);
+              const isToggling =
+                toggleAccessMutation.isPending &&
+                toggleAccessMutation.variables?.templateId === template.id;
+
+              return (
+                <div
+                  key={template.id}
+                  className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950 p-4"
+                >
+                  <div>
+                    <p className="text-sm font-semibold text-slate-100">{template.name}</p>
+                    <p className="text-xs text-slate-400">{template.categoryId}</p>
+                  </div>
+                  <label className="flex items-center gap-2 text-xs text-slate-400">
+                    <span>{enabled ? "Ativo" : "Inativo"}</span>
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 accent-purple-500"
+                      checked={enabled}
+                      onChange={() =>
+                        toggleAccessMutation.mutate({
+                          templateId: template.id,
+                          workspaceId: selectedWorkspace,
+                          enabled: !enabled
+                        })
+                      }
+                      disabled={isToggling || !selectedWorkspace}
+                    />
+                  </label>
+                </div>
+              );
+            })}
           </div>
           <p className="mt-3 text-xs text-slate-500">
             Workspace selecionado: <span className="text-slate-300">{selectedWorkspace}</span>
@@ -392,28 +324,98 @@ export default function SuperAdminMarketplacePage() {
             <table className="w-full text-left text-sm text-slate-200">
               <thead className="bg-slate-950 text-xs uppercase text-slate-500">
                 <tr>
-                  <th className="px-4 py-3">Cliente</th>
-                  <th className="px-4 py-3">Contato</th>
-                  <th className="px-4 py-3">Automação</th>
                   <th className="px-4 py-3">Workspace</th>
-                  <th className="px-4 py-3">Quando</th>
+                  <th className="px-4 py-3">Automação</th>
+                  <th className="px-4 py-3">Solicitante</th>
+                  <th className="px-4 py-3">Data do pedido</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800 bg-slate-900">
-                {leadRequests.map((lead) => (
-                  <tr key={lead.id}>
-                    <td className="px-4 py-3 font-semibold text-slate-100">{lead.company}</td>
-                    <td className="px-4 py-3 text-slate-300">{lead.contact}</td>
-                    <td className="px-4 py-3 text-slate-300">{lead.automation}</td>
-                    <td className="px-4 py-3 text-slate-300">{lead.workspace}</td>
-                    <td className="px-4 py-3 text-slate-400">{lead.createdAt}</td>
+                {isLoadingLeads ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-6 text-center text-slate-400">
+                      Carregando solicitações...
+                    </td>
                   </tr>
-                ))}
+                ) : null}
+                {hasLeadsError ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-6 text-center text-rose-300">
+                      Não foi possível carregar as solicitações. Verifique a API.
+                    </td>
+                  </tr>
+                ) : null}
+                {!isLoadingLeads && !hasLeadsError && leadRequests.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-6 text-center text-slate-400">
+                      Nenhuma solicitação encontrada no momento.
+                    </td>
+                  </tr>
+                ) : null}
+                {leadRequests.map((lead) => {
+                  const isResolving =
+                    resolveLeadMutation.isPending &&
+                    resolveLeadMutation.variables?.templateId === lead.template.id &&
+                    resolveLeadMutation.variables?.workspaceId === lead.workspace.id;
+
+                  return (
+                    <tr key={lead.id}>
+                      <td className="px-4 py-3 font-semibold text-slate-100">
+                        {lead.workspace.name}
+                      </td>
+                      <td className="px-4 py-3 text-slate-300">{lead.template.name}</td>
+                      <td className="px-4 py-3 text-slate-300">
+                        <div className="font-medium text-slate-100">
+                          {lead.requestedByUser.name}
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          {lead.requestedByUser.email}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-slate-400">
+                        {formatDate(lead.createdAt)}
+                      </td>
+                      <td className="px-4 py-3 text-slate-300">
+                        {statusLabels[lead.status]}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            resolveLeadMutation.mutate({
+                              templateId: lead.template.id,
+                              workspaceId: lead.workspace.id,
+                              enabled: true
+                            })
+                          }
+                          disabled={lead.status === "APPROVED" || isResolving}
+                        >
+                          {lead.status === "APPROVED"
+                            ? "Resolvido"
+                            : "Marcar como Resolvido/Contactado"}
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         </section>
       </main>
     </div>
+  );
+};
+
+export default function SuperAdminMarketplacePage() {
+  const [queryClient] = useState(() => new QueryClient());
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <MarketplaceDashboard />
+    </QueryClientProvider>
   );
 }
