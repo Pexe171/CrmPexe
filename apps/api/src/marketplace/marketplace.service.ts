@@ -438,6 +438,12 @@ export class MarketplaceService {
       select: { id: true, name: true }
     });
 
+    await this.notifySuperAdminsAboutLead({
+      workspaceId: resolvedWorkspaceId,
+      workspaceName: workspace?.name ?? "Workspace",
+      templateName: template.name
+    });
+
     await this.notifyAdminsAboutInterest({
       workspaceId: resolvedWorkspaceId,
       workspaceName: workspace?.name ?? "Workspace",
@@ -663,6 +669,39 @@ export class MarketplaceService {
           data: {
             templateName: payload.templateName,
             requestedBy: payload.requestedBy,
+            workspaceId: payload.workspaceId
+          }
+        })
+      )
+    );
+  }
+
+  private async notifySuperAdminsAboutLead(payload: {
+    workspaceId: string;
+    workspaceName: string;
+    templateName: string;
+  }) {
+    const superAdmins = await this.prisma.user.findMany({
+      where: { isSuperAdmin: true },
+      select: { id: true }
+    });
+
+    if (superAdmins.length === 0) {
+      return;
+    }
+
+    const message = `Novo Lead: O workspace ${payload.workspaceName} tem interesse na automação ${payload.templateName}.`;
+
+    await Promise.all(
+      superAdmins.map((admin) =>
+        this.notificationsService.createNotification({
+          workspaceId: payload.workspaceId,
+          userId: admin.id,
+          type: NotificationType.MARKETPLACE_INTEREST,
+          title: "Novo Lead",
+          body: message,
+          data: {
+            templateName: payload.templateName,
             workspaceId: payload.workspaceId
           }
         })
