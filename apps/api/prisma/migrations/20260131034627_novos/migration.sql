@@ -12,8 +12,6 @@ ALTER TABLE IF EXISTS "AiUsageLog" DROP CONSTRAINT IF EXISTS "AiUsageLog_workspa
 ALTER TABLE IF EXISTS "AutomationTemplateVersion"
     DROP CONSTRAINT IF EXISTS "AutomationTemplateVersion_templateId_fkey";
 
--- DropForeignKey
-ALTER TABLE "ConversationSummary" DROP CONSTRAINT "ConversationSummary_workspaceId_fkey";
 
 -- DropForeignKey
 ALTER TABLE "IntegrationAccount" DROP CONSTRAINT "IntegrationAccount_workspaceId_fkey";
@@ -39,8 +37,6 @@ ALTER TABLE IF EXISTS "AutomationTemplateVersion" ALTER COLUMN "id" DROP DEFAULT
 -- AlterTable
 ALTER TABLE "Conversation" ADD COLUMN     "queueId" TEXT;
 
--- AlterTable
-ALTER TABLE "ConversationSummary" ALTER COLUMN "id" DROP DEFAULT;
 
 -- AlterTable
 ALTER TABLE "Notification" ALTER COLUMN "id" DROP DEFAULT;
@@ -177,8 +173,6 @@ CREATE INDEX "Conversation_queueId_idx" ON "Conversation"("queueId");
 -- AddForeignKey
 ALTER TABLE "Conversation" ADD CONSTRAINT "Conversation_queueId_fkey" FOREIGN KEY ("queueId") REFERENCES "Queue"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
--- AddForeignKey
-ALTER TABLE "ConversationSummary" ADD CONSTRAINT "ConversationSummary_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "Workspace"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "IntegrationAccount" ADD CONSTRAINT "IntegrationAccount_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "Workspace"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
