@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -12,15 +15,11 @@ type MarketplaceAgent = {
   headline?: string;
   description: string;
   status?: "PENDING" | "APPROVED";
+  isUnlocked: boolean;
+  hasRequestedInterest: boolean;
 };
 
-type MarketplaceData = {
-  agents: MarketplaceAgent[];
-};
-
-const fallbackData: MarketplaceData = {
-  agents: []
-};
+const fallbackAgents: MarketplaceAgent[] = [];
 
 const statusLabels = {
   PENDING: "Em análise interna",
@@ -32,24 +31,106 @@ const statusStyles = {
   APPROVED: "bg-emerald-500/15 text-emerald-200"
 } as const;
 
-const getMarketplaceData = async (): Promise<MarketplaceData> => {
-  try {
-    const agentsResponse = await fetch(`${apiUrl}/api/marketplace/agents`, { cache: "no-store" });
+export default function MarketplacePage() {
+  const [agents, setAgents] = useState<MarketplaceAgent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedAgent, setSelectedAgent] = useState<MarketplaceAgent | null>(null);
+  const [submittingInterest, setSubmittingInterest] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-    if (!agentsResponse.ok) {
-      return fallbackData;
+  const hasAgents = agents.length > 0;
+
+  useEffect(() => {
+    const fetchAgents = async () => {
+      try {
+        const agentsResponse = await fetch(`${apiUrl}/api/marketplace/agents`, {
+          credentials: "include",
+          cache: "no-store"
+        });
+
+        if (!agentsResponse.ok) {
+          throw new Error("Não foi possível carregar os agentes.");
+        }
+
+        const data = (await agentsResponse.json()) as MarketplaceAgent[];
+        setAgents(data);
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Erro inesperado ao buscar os agentes.";
+        setErrorMessage(message);
+        setAgents(fallbackAgents);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void fetchAgents();
+  }, []);
+
+  const setupUrl = "/marketplace/instalacoes";
+
+  const modalCopy = useMemo(() => {
+    if (!selectedAgent) {
+      return null;
+    }
+    return {
+      title: `Confirmar interesse em ${selectedAgent.name}?`,
+      description:
+        "Vamos avisar o time do marketplace para liberar este agente no seu workspace assim que possível."
+    };
+  }, [selectedAgent]);
+
+  const handleOpenInterestModal = (agent: MarketplaceAgent) => {
+    setSelectedAgent(agent);
+    setErrorMessage(null);
+  };
+
+  const handleCloseModal = () => {
+    if (submittingInterest) {
+      return;
+    }
+    setSelectedAgent(null);
+  };
+
+  const handleConfirmInterest = async () => {
+    if (!selectedAgent) {
+      return;
     }
 
-    const agents = (await agentsResponse.json()) as MarketplaceAgent[];
-    return { agents };
-  } catch {
-    return fallbackData;
-  }
-};
+    setSubmittingInterest(true);
+    setErrorMessage(null);
 
-export default async function MarketplacePage() {
-  const { agents } = await getMarketplaceData();
-  const hasAgents = agents.length > 0;
+    try {
+      const response = await fetch(`${apiUrl}/api/marketplace/agents/${selectedAgent.id}/interest`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" }
+      });
+
+      if (!response.ok) {
+        throw new Error("Não foi possível registrar seu interesse.");
+      }
+
+      setAgents((prev) =>
+        prev.map((agent) =>
+          agent.id === selectedAgent.id
+            ? { ...agent, hasRequestedInterest: true }
+            : agent
+        )
+      );
+      setSelectedAgent(null);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Erro inesperado ao registrar o interesse.";
+      setErrorMessage(message);
+    } finally {
+      setSubmittingInterest(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -138,7 +219,11 @@ export default async function MarketplacePage() {
             </Link>
           </div>
 
-          {!hasAgents ? (
+          {loading ? (
+            <div className="mt-6 rounded-3xl border border-slate-800/80 bg-slate-900/60 p-8">
+              <p className="text-sm text-slate-300">Carregando agentes disponíveis...</p>
+            </div>
+          ) : !hasAgents ? (
             <div className="mt-6 rounded-3xl border border-slate-800/80 bg-slate-900/60 p-8">
               <p className="text-sm text-slate-300">
                 Ainda não há agentes disponíveis no catálogo. Fale com nosso time para iniciar a
@@ -176,20 +261,34 @@ export default async function MarketplacePage() {
                     <p className="text-sm text-slate-300">{agent.description}</p>
                   </div>
                   <div className="flex flex-wrap gap-3">
-                    <Link href={whatsappLink} target="_blank" rel="noreferrer">
-                      <Button>Solicitar este agente</Button>
-                    </Link>
-                    <Button
-                      className="bg-slate-800 text-slate-100 hover:bg-slate-700"
-                      variant="outline"
-                    >
-                      Detalhes em breve
-                    </Button>
+                    {agent.isUnlocked ? (
+                      <Link href={setupUrl}>
+                        <Button className="bg-emerald-500 text-slate-900 hover:bg-emerald-400">
+                          Configurar
+                        </Button>
+                      </Link>
+                    ) : agent.hasRequestedInterest ? (
+                      <Button className="bg-slate-700 text-slate-200" disabled>
+                        Solicitação Enviada
+                      </Button>
+                    ) : (
+                      <Button
+                        className="bg-sky-500 text-white hover:bg-sky-400"
+                        onClick={() => handleOpenInterestModal(agent)}
+                      >
+                        Tenho Interesse
+                      </Button>
+                    )}
                   </div>
                 </article>
               ))}
             </div>
           )}
+          {errorMessage ? (
+            <div className="mt-4 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+              {errorMessage}
+            </div>
+          ) : null}
         </section>
 
         <section className="mt-12 rounded-3xl border border-slate-800/80 bg-slate-900/60 p-8">
@@ -211,6 +310,32 @@ export default async function MarketplacePage() {
           </div>
         </section>
       </main>
+
+      {selectedAgent ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 px-6">
+          <div className="w-full max-w-lg rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-xl">
+            <h4 className="text-lg font-semibold text-white">{modalCopy?.title}</h4>
+            <p className="mt-2 text-sm text-slate-300">{modalCopy?.description}</p>
+            <div className="mt-6 flex flex-wrap justify-end gap-3">
+              <Button
+                className="bg-slate-800 text-slate-100 hover:bg-slate-700"
+                variant="outline"
+                onClick={handleCloseModal}
+                disabled={submittingInterest}
+              >
+                Cancelar
+              </Button>
+              <Button
+                className="bg-sky-500 text-white hover:bg-sky-400"
+                onClick={handleConfirmInterest}
+                disabled={submittingInterest}
+              >
+                {submittingInterest ? "Enviando..." : "Confirmar interesse"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

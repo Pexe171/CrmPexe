@@ -145,11 +145,14 @@ pnpm dev
 - Botão **Configurar** abre um modal para editar as variáveis específicas de cada instância.
 
 ### Página "Agentes disponíveis" (Web)
-**Objetivo:** visualizar o catálogo de agentes e sinalizar interesse via WhatsApp.
+**Objetivo:** visualizar o catálogo de agentes e gerenciar o fluxo de liberação por workspace.
 
 - Rota: `/marketplace`.
-- O cliente **nunca** compra ou libera acesso sozinho: apenas visualiza o catálogo e sinaliza interesse.
+- O cliente **nunca** compra ou libera acesso sozinho: apenas visualiza o catálogo e registra interesse.
 - O super admin é o único que libera a automação para um workspace específico, sempre pelo painel do super admin.
+- Quando o agente está liberado (`isUnlocked`), o botão **Configurar** direciona para o setup da automação.
+- Quando o agente ainda não foi liberado, o botão **Tenho Interesse** abre um modal de confirmação e registra o interesse via API.
+- Após registrar interesse (`hasRequestedInterest`), o botão fica desabilitado com o rótulo **Solicitação Enviada**.
 - Quando não há agentes, o botão **Contactar no WhatsApp** direciona para o link configurado em `NEXT_PUBLIC_WHATSAPP_LINK`.
 - O time admin configura os agentes, incluindo descrição, ping técnico e JSON de configuração, direto no painel do super admin.
 
