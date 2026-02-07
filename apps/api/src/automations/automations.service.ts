@@ -63,6 +63,7 @@ export class AutomationsService {
           changelog,
           category,
           definitionJson: definitionJson as Prisma.InputJsonValue,
+          workflowData: definitionJson as Prisma.InputJsonValue,
           requiredIntegrations,
           createdByAdminId: userId
         }
@@ -159,6 +160,7 @@ export class AutomationsService {
           version,
           changelog,
           definitionJson: definitionJson as Prisma.InputJsonValue,
+          workflowData: definitionJson as Prisma.InputJsonValue,
           requiredIntegrations,
           currentVersionId: versionEntry.id
         },
@@ -205,6 +207,11 @@ export class AutomationsService {
       payload.configJson ?? {},
       "configJson"
     );
+    const workflowDataSource =
+      template.workflowData ?? templateSnapshot.definitionJson;
+    const workflowData = this.cloneJson(
+      workflowDataSource as Prisma.JsonValue
+    );
 
     const instance = await this.prisma.automationInstance.create({
       data: {
@@ -213,6 +220,7 @@ export class AutomationsService {
         templateVersionId: templateVersion?.id ?? template.currentVersionId,
         status: AutomationInstanceStatus.PENDING_CONFIG,
         configJson: configJson as Prisma.InputJsonValue,
+        workflowData: workflowData as Prisma.InputJsonValue,
         createdByUserId: userId
       }
     });
@@ -599,6 +607,7 @@ export class AutomationsService {
       template: { name: string; definitionJson: Prisma.JsonValue; currentVersion?: { definitionJson: Prisma.JsonValue } | null };
       templateVersion?: { definitionJson: Prisma.JsonValue } | null;
       configJson: Prisma.JsonValue;
+      workflowData?: Prisma.JsonValue | null;
     },
     workspaceVariables: Record<string, string>
   ) {
@@ -630,9 +639,14 @@ export class AutomationsService {
   }
 
   private resolveDefinitionJson(instance: {
+    workflowData?: Prisma.JsonValue | null;
     template: { definitionJson: Prisma.JsonValue; currentVersion?: { definitionJson: Prisma.JsonValue } | null };
     templateVersion?: { definitionJson: Prisma.JsonValue } | null;
   }) {
+    if (instance.workflowData) {
+      return instance.workflowData;
+    }
+
     if (instance.templateVersion?.definitionJson) {
       return instance.templateVersion.definitionJson;
     }

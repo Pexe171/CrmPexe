@@ -287,6 +287,7 @@ export class MarketplaceService {
           changelog: input.changelog?.trim(),
           category,
           definitionJson: definitionJson as Prisma.InputJsonValue,
+          workflowData: definitionJson as Prisma.InputJsonValue,
           requiredIntegrations,
           tags: input.tags ?? [],
           capabilities: input.capabilities ?? [],
@@ -339,6 +340,12 @@ export class MarketplaceService {
         headline: input.headline?.trim(),
         description: input.description?.trim(),
         category: input.categoryId?.trim(),
+        definitionJson: input.definitionJson
+          ? (input.definitionJson as Prisma.InputJsonValue)
+          : undefined,
+        workflowData: input.definitionJson
+          ? (input.definitionJson as Prisma.InputJsonValue)
+          : undefined,
         tags: input.tags,
         capabilities: input.capabilities,
         requirements: input.requirements,
@@ -384,12 +391,16 @@ export class MarketplaceService {
       throw new NotFoundException("Agente não encontrado no marketplace.");
     }
 
+    const workflowData =
+      agent.workflowData ?? (agent.definitionJson as Prisma.InputJsonValue);
+
     return this.prisma.automationInstance.create({
       data: {
         workspaceId: resolvedWorkspaceId,
         templateId: agent.id,
         status: AutomationInstanceStatus.PENDING_CONFIG,
         configJson: {},
+        workflowData,
         createdByUserId: userId
       }
     });

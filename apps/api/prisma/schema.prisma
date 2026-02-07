@@ -852,12 +852,14 @@ model Task {
 model AutomationTemplate {
   id                   String   @id @default(uuid())
   name                 String
+  slug                 String?  @unique
   headline             String?
   description          String?
   version              String
   changelog            String?
   category             String
   definitionJson       Json
+  workflowData         Json?
   requiredIntegrations String[]
   tags                 String[] @default([])
   capabilities         String[] @default([])
@@ -865,6 +867,7 @@ model AutomationTemplate {
   rating               Float    @default(0)
   responseSlaSeconds   Int      @default(0)
   priceLabel           String?
+  isPublic             Boolean  @default(false)
   status               MarketplaceTemplateStatus @default(PENDING)
   pingUrl              String?
   configJson           Json?
@@ -983,6 +986,7 @@ model AutomationInstance {
   externalWorkflowId String?
   enabled         Boolean                   @default(false)
   configJson      Json
+  workflowData    Json?
   createdByUserId String
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
