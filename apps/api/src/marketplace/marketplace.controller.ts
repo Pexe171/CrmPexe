@@ -14,7 +14,7 @@ import { AccessTokenGuard } from "../auth/access-token.guard";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { AuthUser } from "../auth/auth.types";
 import { SuperAdminGuard } from "../auth/super-admin.guard";
-import { ToggleMarketplaceAccessDto } from "./marketplace.dto";
+import { MarketplaceAccessDto, ToggleMarketplaceAccessDto } from "./marketplace.dto";
 import {
   MarketplaceAgent,
   MarketplaceAgentInput,
@@ -122,6 +122,20 @@ export class MarketplaceController {
     return this.marketplaceService.registerInterest(user.id, id, workspaceId);
   }
 
+  @Post("access")
+  @UseGuards(AccessTokenGuard, SuperAdminGuard)
+  async toggleAccessByTemplate(
+    @CurrentUser() user: AuthUser,
+    @Body() body: MarketplaceAccessDto
+  ) {
+    return this.marketplaceService.toggleAccess(
+      user.id,
+      body.workspaceId,
+      body.templateId,
+      body.enabled
+    );
+  }
+
   @Patch("agents/:id/access")
   @UseGuards(AccessTokenGuard, SuperAdminGuard)
   async toggleAccess(
@@ -133,13 +147,31 @@ export class MarketplaceController {
       user.id,
       body.workspaceId,
       id,
-      body.status
+      body.enabled
     );
+  }
+
+  @Get("storefront")
+  @UseGuards(AccessTokenGuard)
+  async getStorefront(
+    @CurrentUser() user: AuthUser,
+    @Headers("x-workspace-id") workspaceId?: string
+  ) {
+    return this.marketplaceService.getStorefront({
+      userId: user.id,
+      workspaceId
+    });
   }
 
   @Get("interests")
   @UseGuards(AccessTokenGuard, SuperAdminGuard)
   async listInterests(): Promise<MarketplaceInterest[]> {
+    return this.marketplaceService.listInterests();
+  }
+
+  @Get("leads")
+  @UseGuards(AccessTokenGuard, SuperAdminGuard)
+  async listLeads(): Promise<MarketplaceInterest[]> {
     return this.marketplaceService.listInterests();
   }
 }
