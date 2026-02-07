@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException
+} from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateMessageTemplateDto } from "./dto/create-message-template.dto";
 
@@ -7,7 +11,10 @@ export class MessageTemplatesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async listTemplates(userId: string, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
 
     return this.prisma.messageTemplate.findMany({
       where: { workspaceId: resolvedWorkspaceId },
@@ -15,8 +22,15 @@ export class MessageTemplatesService {
     });
   }
 
-  async createTemplate(userId: string, payload: CreateMessageTemplateDto, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+  async createTemplate(
+    userId: string,
+    payload: CreateMessageTemplateDto,
+    workspaceId?: string
+  ) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
     const name = this.normalizeRequiredString(payload.name, "name");
     const language = this.normalizeRequiredString(payload.language, "language");
     const content = this.normalizeRequiredString(payload.content, "content");
@@ -35,8 +49,15 @@ export class MessageTemplatesService {
     });
   }
 
-  async deleteTemplate(userId: string, templateId: string, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+  async deleteTemplate(
+    userId: string,
+    templateId: string,
+    workspaceId?: string
+  ) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
 
     const template = await this.prisma.messageTemplate.findFirst({
       where: { id: templateId, workspaceId: resolvedWorkspaceId }
@@ -87,7 +108,10 @@ export class MessageTemplatesService {
     }
   }
 
-  private normalizeRequiredString(value: string | undefined | null, field: string) {
+  private normalizeRequiredString(
+    value: string | undefined | null,
+    field: string
+  ) {
     const trimmed = value?.trim();
     if (!trimmed) {
       throw new BadRequestException(`${field} é obrigatório.`);

@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException
+} from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateTagDto } from "./dto/create-tag.dto";
 import { UpdateTagDto } from "./dto/update-tag.dto";
@@ -8,7 +12,10 @@ export class TagsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async listTags(userId: string, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
 
     return this.prisma.tag.findMany({
       where: { workspaceId: resolvedWorkspaceId },
@@ -17,7 +24,10 @@ export class TagsService {
   }
 
   async createTag(userId: string, payload: CreateTagDto, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
     const name = this.normalizeRequiredString(payload.name, "name");
     const color = this.normalizeOptionalString(payload.color);
 
@@ -30,8 +40,16 @@ export class TagsService {
     });
   }
 
-  async updateTag(userId: string, tagId: string, payload: UpdateTagDto, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+  async updateTag(
+    userId: string,
+    tagId: string,
+    payload: UpdateTagDto,
+    workspaceId?: string
+  ) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
 
     const tag = await this.prisma.tag.findFirst({
       where: { id: tagId, workspaceId: resolvedWorkspaceId }
@@ -41,8 +59,14 @@ export class TagsService {
       throw new NotFoundException("Tag não encontrada.");
     }
 
-    const name = payload.name !== undefined ? this.normalizeRequiredString(payload.name, "name") : undefined;
-    const color = payload.color !== undefined ? this.normalizeOptionalString(payload.color) : undefined;
+    const name =
+      payload.name !== undefined
+        ? this.normalizeRequiredString(payload.name, "name")
+        : undefined;
+    const color =
+      payload.color !== undefined
+        ? this.normalizeOptionalString(payload.color)
+        : undefined;
 
     return this.prisma.tag.update({
       where: { id: tag.id },
@@ -54,7 +78,10 @@ export class TagsService {
   }
 
   async deleteTag(userId: string, tagId: string, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
 
     const tag = await this.prisma.tag.findFirst({
       where: { id: tagId, workspaceId: resolvedWorkspaceId }
@@ -105,7 +132,10 @@ export class TagsService {
     }
   }
 
-  private normalizeRequiredString(value: string | undefined | null, field: string) {
+  private normalizeRequiredString(
+    value: string | undefined | null,
+    field: string
+  ) {
     const trimmed = value?.trim();
     if (!trimmed) {
       throw new BadRequestException(`${field} é obrigatório.`);

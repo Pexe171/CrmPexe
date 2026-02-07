@@ -1,18 +1,32 @@
-import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from "@nestjs/common";
+import {
+  CallHandler,
+  ExecutionContext,
+  Injectable,
+  NestInterceptor
+} from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { Observable } from "rxjs";
 import { mergeMap } from "rxjs/operators";
 import { AuthenticatedRequest } from "../auth/auth.types";
-import { AuditEntityMetadata, AUDIT_ENTITY_METADATA } from "./audit-log.decorator";
+import {
+  AuditEntityMetadata,
+  AUDIT_ENTITY_METADATA
+} from "./audit-log.decorator";
 import { AuditLogsService } from "./audit-logs.service";
 import { AuditLogAction } from "./audit-log.types";
 
 @Injectable()
 export class AuditLogInterceptor implements NestInterceptor {
-  constructor(private readonly reflector: Reflector, private readonly auditLogsService: AuditLogsService) {}
+  constructor(
+    private readonly reflector: Reflector,
+    private readonly auditLogsService: AuditLogsService
+  ) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
-    const metadata = this.reflector.get<AuditEntityMetadata>(AUDIT_ENTITY_METADATA, context.getHandler());
+    const metadata = this.reflector.get<AuditEntityMetadata>(
+      AUDIT_ENTITY_METADATA,
+      context.getHandler()
+    );
 
     if (!metadata) {
       return next.handle();
@@ -27,7 +41,11 @@ export class AuditLogInterceptor implements NestInterceptor {
 
     return next.handle().pipe(
       mergeMap(async (data) => {
-        const workspaceId = await this.resolveWorkspaceId(metadata, request, data);
+        const workspaceId = await this.resolveWorkspaceId(
+          metadata,
+          request,
+          data
+        );
         const entityId = this.resolveValue(metadata.entityId, request, data);
 
         if (!workspaceId || !entityId) {
@@ -72,7 +90,10 @@ export class AuditLogInterceptor implements NestInterceptor {
     }
 
     if (metadata.workspaceId.source === "user") {
-      return this.auditLogsService.resolveWorkspaceId(request.user.id, this.getWorkspaceHeader(request));
+      return this.auditLogsService.resolveWorkspaceId(
+        request.user.id,
+        this.getWorkspaceHeader(request)
+      );
     }
 
     return this.resolveValue(metadata.workspaceId, request, response);

@@ -13,10 +13,15 @@ export class AutomationEngineService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async dispatch<TTrigger extends AutomationTrigger>(trigger: TTrigger, payload: AutomationPayloadMap[TTrigger]) {
+  async dispatch<TTrigger extends AutomationTrigger>(
+    trigger: TTrigger,
+    payload: AutomationPayloadMap[TTrigger]
+  ) {
     switch (trigger) {
       case "message.inbound.created":
-        await this.handleMessageInbound(payload as MessageInboundCreatedPayload);
+        await this.handleMessageInbound(
+          payload as MessageInboundCreatedPayload
+        );
         break;
       case "deal.stage.changed":
         await this.handleDealStageChanged(payload as DealStageChangedPayload);
@@ -28,7 +33,11 @@ export class AutomationEngineService {
 
   private async handleMessageInbound(payload: MessageInboundCreatedPayload) {
     const tag = await this.ensureTag(payload.workspaceId, "Inbound");
-    await this.ensureTagOnContact(payload.workspaceId, tag.id, payload.contactId);
+    await this.ensureTagOnContact(
+      payload.workspaceId,
+      tag.id,
+      payload.contactId
+    );
 
     await this.prisma.task.create({
       data: {
@@ -45,7 +54,10 @@ export class AutomationEngineService {
   }
 
   private async handleDealStageChanged(payload: DealStageChangedPayload) {
-    const tag = await this.ensureTag(payload.workspaceId, `Etapa: ${payload.stage}`);
+    const tag = await this.ensureTag(
+      payload.workspaceId,
+      `Etapa: ${payload.stage}`
+    );
     await this.ensureTagOnDeal(payload.workspaceId, tag.id, payload.dealId);
 
     await this.prisma.task.create({
@@ -79,7 +91,11 @@ export class AutomationEngineService {
     });
   }
 
-  private async ensureTagOnContact(workspaceId: string, tagId: string, contactId: string) {
+  private async ensureTagOnContact(
+    workspaceId: string,
+    tagId: string,
+    contactId: string
+  ) {
     const existing = await this.prisma.tagOnContact.findFirst({
       where: { workspaceId, tagId, contactId }
     });
@@ -97,7 +113,11 @@ export class AutomationEngineService {
     });
   }
 
-  private async ensureTagOnDeal(workspaceId: string, tagId: string, dealId: string) {
+  private async ensureTagOnDeal(
+    workspaceId: string,
+    tagId: string,
+    dealId: string
+  ) {
     const existing = await this.prisma.tagOnDeal.findFirst({
       where: { workspaceId, tagId, dealId }
     });

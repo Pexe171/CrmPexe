@@ -25,6 +25,10 @@ export class RateLimitService {
 
     entry.count += 1;
     this.store.set(key, entry);
-    return { allowed: true, remaining: limit - entry.count, resetAt: entry.resetAt };
+    return {
+      allowed: true,
+      remaining: limit - entry.count,
+      resetAt: entry.resetAt
+    };
   }
 }

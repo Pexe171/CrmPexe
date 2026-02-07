@@ -3,7 +3,9 @@ import { UserRole } from "@prisma/client";
 import { AccessTokenGuard } from "./access-token.guard";
 import { AuthenticatedRequest } from "./auth.types";
 
-const createExecutionContext = (request: Partial<AuthenticatedRequest>): ExecutionContext =>
+const createExecutionContext = (
+  request: Partial<AuthenticatedRequest>
+): ExecutionContext =>
   ({
     getHandler: () => ({}),
     getClass: () => ({}),
@@ -45,8 +47,13 @@ describe("AccessTokenGuard", () => {
       headers: { authorization: "Bearer access-token" }
     } as Partial<AuthenticatedRequest>;
 
-    const guard = new AccessTokenGuard(jwtServiceMock as any, prismaMock as any);
-    const canActivate = await guard.canActivate(createExecutionContext(request));
+    const guard = new AccessTokenGuard(
+      jwtServiceMock as any,
+      prismaMock as any
+    );
+    const canActivate = await guard.canActivate(
+      createExecutionContext(request)
+    );
 
     expect(canActivate).toBe(true);
     expect(request.user).toEqual({
@@ -79,10 +86,13 @@ describe("AccessTokenGuard", () => {
       headers: { authorization: "Bearer access-token" }
     } as Partial<AuthenticatedRequest>;
 
-    const guard = new AccessTokenGuard(jwtServiceMock as any, prismaMock as any);
-
-    await expect(guard.canActivate(createExecutionContext(request))).rejects.toBeInstanceOf(
-      UnauthorizedException
+    const guard = new AccessTokenGuard(
+      jwtServiceMock as any,
+      prismaMock as any
     );
+
+    await expect(
+      guard.canActivate(createExecutionContext(request))
+    ).rejects.toBeInstanceOf(UnauthorizedException);
   });
 });

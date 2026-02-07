@@ -19,7 +19,10 @@ export class IntegrationCryptoService {
     const iv = randomBytes(12);
     const cipher = createCipheriv("aes-256-gcm", this.key, iv);
     const plaintext = JSON.stringify(payload);
-    const encrypted = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
+    const encrypted = Buffer.concat([
+      cipher.update(plaintext, "utf8"),
+      cipher.final()
+    ]);
     const tag = cipher.getAuthTag();
 
     const result: EncryptedPayload = {
@@ -60,6 +63,8 @@ export class IntegrationCryptoService {
       return hexKey;
     }
 
-    throw new Error("INTEGRATION_ENCRYPTION_KEY deve ter 32 bytes em base64 ou hex.");
+    throw new Error(
+      "INTEGRATION_ENCRYPTION_KEY deve ter 32 bytes em base64 ou hex."
+    );
   }
 }

@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException
+} from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateQueueDto } from "./dto/create-queue.dto";
@@ -9,7 +13,10 @@ export class QueuesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async listQueues(userId: string, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
 
     return this.prisma.queue.findMany({
       where: { workspaceId: resolvedWorkspaceId },
@@ -30,8 +37,15 @@ export class QueuesService {
     });
   }
 
-  async createQueue(userId: string, payload: CreateQueueDto, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+  async createQueue(
+    userId: string,
+    payload: CreateQueueDto,
+    workspaceId?: string
+  ) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
     const name = this.normalizeRequiredString(payload.name, "name");
     const channel = this.normalizeRequiredString(payload.channel, "channel");
     const team = await this.prisma.team.findFirst({
@@ -58,8 +72,16 @@ export class QueuesService {
     });
   }
 
-  async updateQueue(userId: string, queueId: string, payload: UpdateQueueDto, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+  async updateQueue(
+    userId: string,
+    queueId: string,
+    payload: UpdateQueueDto,
+    workspaceId?: string
+  ) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
     const queue = await this.prisma.queue.findFirst({
       where: { id: queueId, workspaceId: resolvedWorkspaceId }
     });
@@ -80,8 +102,12 @@ export class QueuesService {
     }
 
     const data: Prisma.QueueUpdateInput = {
-      name: payload.name ? this.normalizeRequiredString(payload.name, "name") : undefined,
-      channel: payload.channel ? this.normalizeRequiredString(payload.channel, "channel") : undefined,
+      name: payload.name
+        ? this.normalizeRequiredString(payload.name, "name")
+        : undefined,
+      channel: payload.channel
+        ? this.normalizeRequiredString(payload.channel, "channel")
+        : undefined,
       team: { connect: { id: teamId } },
       isActive: payload.isActive
     };
@@ -106,7 +132,10 @@ export class QueuesService {
   }
 
   async deleteQueue(userId: string, queueId: string, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
     const queue = await this.prisma.queue.findFirst({
       where: { id: queueId, workspaceId: resolvedWorkspaceId }
     });
@@ -162,7 +191,8 @@ export class QueuesService {
       ? members.findIndex((member) => member.id === queue.lastAssignedMemberId)
       : -1;
 
-    const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % members.length : 0;
+    const nextIndex =
+      currentIndex >= 0 ? (currentIndex + 1) % members.length : 0;
     const nextMember = members[nextIndex];
 
     await tx.queue.update({
@@ -227,7 +257,10 @@ export class QueuesService {
     }
   }
 
-  private normalizeRequiredString(value: string | undefined | null, field: string) {
+  private normalizeRequiredString(
+    value: string | undefined | null,
+    field: string
+  ) {
     const trimmed = value?.trim();
     if (!trimmed) {
       throw new BadRequestException(`${field} é obrigatório.`);

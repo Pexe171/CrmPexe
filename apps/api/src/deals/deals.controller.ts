@@ -1,4 +1,12 @@
-import { Body, Controller, Headers, Param, Patch, Post, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Headers,
+  Param,
+  Patch,
+  Post,
+  UseGuards
+} from "@nestjs/common";
 import { AuditEntity } from "../audit-logs/audit-log.decorator";
 import { AccessTokenGuard } from "../auth/access-token.guard";
 import { CurrentUser } from "../auth/current-user.decorator";
@@ -45,6 +53,11 @@ export class DealsController {
     @Body() body: UpdateDealStageDto,
     @Headers("x-workspace-id") workspaceId?: string
   ) {
-    return this.dealsService.updateDealStage(user.id, dealId, body, workspaceId);
+    return this.dealsService.updateDealStage(
+      user.id,
+      dealId,
+      body,
+      workspaceId
+    );
   }
 }

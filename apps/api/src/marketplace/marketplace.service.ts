@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException
+} from "@nestjs/common";
 import { randomUUID } from "crypto";
 import {
   AutomationAccessStatus,
@@ -129,7 +133,8 @@ export class MarketplaceService {
       automationsAvailable: totalTemplates,
       averageNps: 0,
       satisfactionRate: 0,
-      lastUpdatedAt: lastTemplate?.updatedAt.toISOString() ?? new Date().toISOString()
+      lastUpdatedAt:
+        lastTemplate?.updatedAt.toISOString() ?? new Date().toISOString()
     };
   }
 
@@ -152,7 +157,9 @@ export class MarketplaceService {
     }));
   }
 
-  async createCategory(input: MarketplaceCategoryInput): Promise<MarketplaceCategory> {
+  async createCategory(
+    input: MarketplaceCategoryInput
+  ): Promise<MarketplaceCategory> {
     const newCategory: StoredCategory = {
       id: input.id?.trim() || randomUUID(),
       name: input.name.trim(),
@@ -277,7 +284,8 @@ export class MarketplaceService {
       const template = await transaction.automationTemplate.create({
         data: {
           name,
-          headline: input.headline?.trim() || "Agente configurado pelo time CrmPexe.",
+          headline:
+            input.headline?.trim() || "Agente configurado pelo time CrmPexe.",
           description,
           version,
           changelog: input.changelog?.trim(),
@@ -370,7 +378,9 @@ export class MarketplaceService {
   async installAgent(userId: string, agentId: string, workspaceId?: string) {
     const resolvedWorkspaceId = workspaceId?.trim();
     if (!resolvedWorkspaceId) {
-      throw new BadRequestException("Workspace não informado para a instalação.");
+      throw new BadRequestException(
+        "Workspace não informado para a instalação."
+      );
     }
 
     const agent = await this.prisma.automationTemplate.findUnique({
@@ -396,7 +406,10 @@ export class MarketplaceService {
     templateId: string,
     workspaceId?: string
   ) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
 
     const template = await this.prisma.automationTemplate.findUnique({
       where: { id: templateId },
@@ -483,7 +496,10 @@ export class MarketplaceService {
       where: {
         workspaceId_templateId: { workspaceId: resolvedWorkspaceId, templateId }
       },
-      update: { status: AutomationAccessStatus.APPROVED, grantedByAdminId: adminId },
+      update: {
+        status: AutomationAccessStatus.APPROVED,
+        grantedByAdminId: adminId
+      },
       create: {
         workspaceId: resolvedWorkspaceId,
         templateId,
@@ -498,7 +514,9 @@ export class MarketplaceService {
   async listInterests(): Promise<MarketplaceInterest[]> {
     const interests = await this.prisma.marketplaceInterest.findMany({
       include: {
-        template: { select: { id: true, name: true, headline: true, category: true } },
+        template: {
+          select: { id: true, name: true, headline: true, category: true }
+        },
         workspace: { select: { id: true, name: true } },
         requestedByUser: { select: { id: true, name: true, email: true } }
       },
@@ -591,7 +609,10 @@ export class MarketplaceService {
   }) {
     const members = await this.prisma.workspaceMember.findMany({
       where: { workspaceId: payload.workspaceId },
-      include: { user: { select: { id: true, role: true, isSuperAdmin: true } }, role: true }
+      include: {
+        user: { select: { id: true, role: true, isSuperAdmin: true } },
+        role: true
+      }
     });
 
     const adminUserIds = members

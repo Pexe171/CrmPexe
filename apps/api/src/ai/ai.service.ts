@@ -26,21 +26,39 @@ export class AiService {
     workspaceId: string,
     input: SummarizeConversationInput
   ): Promise<SummarizeConversationResult> {
-    return this.execute(AiUsageAction.SUMMARIZE_CONVERSATION, workspaceId, input, () =>
-      this.provider.summarizeConversation(input)
+    return this.execute(
+      AiUsageAction.SUMMARIZE_CONVERSATION,
+      workspaceId,
+      input,
+      () => this.provider.summarizeConversation(input)
     );
   }
 
-  async classifyLead(workspaceId: string, input: LeadClassificationInput): Promise<LeadClassificationResult> {
-    return this.execute(AiUsageAction.CLASSIFY_LEAD, workspaceId, input, () => this.provider.classifyLead(input));
+  async classifyLead(
+    workspaceId: string,
+    input: LeadClassificationInput
+  ): Promise<LeadClassificationResult> {
+    return this.execute(AiUsageAction.CLASSIFY_LEAD, workspaceId, input, () =>
+      this.provider.classifyLead(input)
+    );
   }
 
-  async suggestReply(workspaceId: string, input: SuggestReplyInput): Promise<SuggestReplyResult> {
-    return this.execute(AiUsageAction.SUGGEST_REPLY, workspaceId, input, () => this.provider.suggestReply(input));
+  async suggestReply(
+    workspaceId: string,
+    input: SuggestReplyInput
+  ): Promise<SuggestReplyResult> {
+    return this.execute(AiUsageAction.SUGGEST_REPLY, workspaceId, input, () =>
+      this.provider.suggestReply(input)
+    );
   }
 
-  async extractFields(workspaceId: string, input: ExtractFieldsInput): Promise<ExtractFieldsResult> {
-    return this.execute(AiUsageAction.EXTRACT_FIELDS, workspaceId, input, () => this.provider.extractFields(input));
+  async extractFields(
+    workspaceId: string,
+    input: ExtractFieldsInput
+  ): Promise<ExtractFieldsResult> {
+    return this.execute(AiUsageAction.EXTRACT_FIELDS, workspaceId, input, () =>
+      this.provider.extractFields(input)
+    );
   }
 
   private async execute<TInput, TOutput>(
@@ -65,7 +83,8 @@ export class AiService {
         action,
         input,
         status: AiUsageStatus.ERROR,
-        errorMessage: error instanceof Error ? error.message : "Erro desconhecido"
+        errorMessage:
+          error instanceof Error ? error.message : "Erro desconhecido"
       });
       throw error;
     }

@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException
+} from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuthService } from "../auth/auth.service";
 import { AuditLogsService } from "../audit-logs/audit-logs.service";
@@ -30,7 +34,9 @@ export class SupportService {
     });
 
     if (!membership) {
-      throw new NotFoundException("Usuário não pertence ao workspace informado.");
+      throw new NotFoundException(
+        "Usuário não pertence ao workspace informado."
+      );
     }
 
     const tokenPayload = await this.authService.issueImpersonationToken({

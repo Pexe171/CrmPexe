@@ -15,7 +15,11 @@ export type AuditEntityMetadata = {
     source: "param" | "body" | "response" | "user";
     key?: string;
   };
-  metadata?: (request: AuthenticatedRequest, response: unknown) => Record<string, unknown> | undefined;
+  metadata?: (
+    request: AuthenticatedRequest,
+    response: unknown
+  ) => Record<string, unknown> | undefined;
 };
 
-export const AuditEntity = (metadata: AuditEntityMetadata) => SetMetadata(AUDIT_ENTITY_METADATA, metadata);
+export const AuditEntity = (metadata: AuditEntityMetadata) =>
+  SetMetadata(AUDIT_ENTITY_METADATA, metadata);

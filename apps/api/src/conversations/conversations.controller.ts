@@ -1,4 +1,14 @@
-import { Body, Controller, Get, Headers, Param, Patch, Post, Query, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards
+} from "@nestjs/common";
 import { AccessTokenGuard } from "../auth/access-token.guard";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { AuthUser } from "../auth/auth.types";
@@ -20,7 +30,11 @@ export class ConversationsController {
     @Query("page") page?: string,
     @Query("limit") limit?: string
   ) {
-    return this.conversationsService.listConversations(user.id, { page, limit }, workspaceId);
+    return this.conversationsService.listConversations(
+      user.id,
+      { page, limit },
+      workspaceId
+    );
   }
 
   @Get(":id")
@@ -29,7 +43,11 @@ export class ConversationsController {
     @Param("id") conversationId: string,
     @Headers("x-workspace-id") workspaceId?: string
   ) {
-    return this.conversationsService.getConversation(user.id, conversationId, workspaceId);
+    return this.conversationsService.getConversation(
+      user.id,
+      conversationId,
+      workspaceId
+    );
   }
 
   @Post(":id/messages")
@@ -39,7 +57,12 @@ export class ConversationsController {
     @Body() body: CreateOutgoingMessageDto,
     @Headers("x-workspace-id") workspaceId?: string
   ) {
-    return this.conversationsService.postOutgoingMessage(user.id, conversationId, body, workspaceId);
+    return this.conversationsService.postOutgoingMessage(
+      user.id,
+      conversationId,
+      body,
+      workspaceId
+    );
   }
 
   @Post(":id/send")
@@ -49,7 +72,12 @@ export class ConversationsController {
     @Body() body: SendConversationMessageDto,
     @Headers("x-workspace-id") workspaceId?: string
   ) {
-    return this.conversationsService.sendMessage(user.id, conversationId, body, workspaceId);
+    return this.conversationsService.sendMessage(
+      user.id,
+      conversationId,
+      body,
+      workspaceId
+    );
   }
 
   @Patch(":id/assign")
@@ -59,7 +87,12 @@ export class ConversationsController {
     @Body() body: AssignConversationDto,
     @Headers("x-workspace-id") workspaceId?: string
   ) {
-    return this.conversationsService.assignConversation(user.id, conversationId, body, workspaceId);
+    return this.conversationsService.assignConversation(
+      user.id,
+      conversationId,
+      body,
+      workspaceId
+    );
   }
 
   @Patch(":id/close")
@@ -68,7 +101,11 @@ export class ConversationsController {
     @Param("id") conversationId: string,
     @Headers("x-workspace-id") workspaceId?: string
   ) {
-    return this.conversationsService.closeConversation(user.id, conversationId, workspaceId);
+    return this.conversationsService.closeConversation(
+      user.id,
+      conversationId,
+      workspaceId
+    );
   }
 
   @Patch(":id/status")
@@ -78,6 +115,11 @@ export class ConversationsController {
     @Body() body: UpdateConversationStatusDto,
     @Headers("x-workspace-id") workspaceId?: string
   ) {
-    return this.conversationsService.updateConversationStatus(user.id, conversationId, body, workspaceId);
+    return this.conversationsService.updateConversationStatus(
+      user.id,
+      conversationId,
+      body,
+      workspaceId
+    );
   }
 }

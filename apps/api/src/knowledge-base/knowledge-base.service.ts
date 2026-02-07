@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException
+} from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateKnowledgeBaseArticleDto } from "./dto/create-knowledge-base-article.dto";
@@ -13,7 +17,10 @@ export class KnowledgeBaseService {
     params: { search?: string; isActive?: string },
     workspaceId?: string
   ) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
     const search = params.search?.trim();
     const where: Prisma.KnowledgeBaseArticleWhereInput = {
       workspaceId: resolvedWorkspaceId
@@ -37,8 +44,15 @@ export class KnowledgeBaseService {
     });
   }
 
-  async createArticle(userId: string, payload: CreateKnowledgeBaseArticleDto, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+  async createArticle(
+    userId: string,
+    payload: CreateKnowledgeBaseArticleDto,
+    workspaceId?: string
+  ) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
     const title = this.normalizeRequiredString(payload.title, "title");
     const content = this.normalizeRequiredString(payload.content, "content");
     const tags = payload.tags?.map((tag) => tag.trim()).filter(Boolean) ?? [];
@@ -60,7 +74,10 @@ export class KnowledgeBaseService {
     payload: UpdateKnowledgeBaseArticleDto,
     workspaceId?: string
   ) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
     const article = await this.prisma.knowledgeBaseArticle.findFirst({
       where: { id: articleId, workspaceId: resolvedWorkspaceId }
     });
@@ -70,9 +87,15 @@ export class KnowledgeBaseService {
     }
 
     const data: Prisma.KnowledgeBaseArticleUpdateInput = {
-      title: payload.title ? this.normalizeRequiredString(payload.title, "title") : undefined,
-      content: payload.content ? this.normalizeRequiredString(payload.content, "content") : undefined,
-      tags: payload.tags ? payload.tags.map((tag) => tag.trim()).filter(Boolean) : undefined,
+      title: payload.title
+        ? this.normalizeRequiredString(payload.title, "title")
+        : undefined,
+      content: payload.content
+        ? this.normalizeRequiredString(payload.content, "content")
+        : undefined,
+      tags: payload.tags
+        ? payload.tags.map((tag) => tag.trim()).filter(Boolean)
+        : undefined,
       isActive: payload.isActive
     };
 
@@ -83,7 +106,10 @@ export class KnowledgeBaseService {
   }
 
   async deleteArticle(userId: string, articleId: string, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
     const article = await this.prisma.knowledgeBaseArticle.findFirst({
       where: { id: articleId, workspaceId: resolvedWorkspaceId }
     });
@@ -133,7 +159,10 @@ export class KnowledgeBaseService {
     }
   }
 
-  private normalizeRequiredString(value: string | undefined | null, field: string) {
+  private normalizeRequiredString(
+    value: string | undefined | null,
+    field: string
+  ) {
     const trimmed = value?.trim();
     if (!trimmed) {
       throw new BadRequestException(`${field} é obrigatório.`);

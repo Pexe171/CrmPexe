@@ -10,7 +10,9 @@ export class MockAutomationConnector implements AutomationConnector {
   key = "mock";
   label = "Conector Mock";
 
-  async provision(payload: AutomationConnectorPayload): Promise<AutomationProvisioningResult> {
+  async provision(
+    payload: AutomationConnectorPayload
+  ): Promise<AutomationProvisioningResult> {
     const now = new Date();
 
     return {

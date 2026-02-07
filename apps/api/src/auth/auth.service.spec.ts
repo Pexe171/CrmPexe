@@ -66,7 +66,11 @@ describe("AuthService", () => {
             isBlocked: jest.fn().mockReturnValue(false),
             registerFailure: jest.fn(),
             reset: jest.fn(),
-            getSummary: jest.fn().mockReturnValue({ maxAttempts: 5, windowMs: 900000, blockMs: 900000 })
+            getSummary: jest.fn().mockReturnValue({
+              maxAttempts: 5,
+              windowMs: 900000,
+              blockMs: 900000
+            })
           }
         }
       ]

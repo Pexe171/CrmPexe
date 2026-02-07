@@ -46,7 +46,8 @@ export class LeadScoringService {
         }
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      const message =
+        error instanceof Error ? error.message : "Erro desconhecido";
       this.logger.warn(
         `Falha ao classificar lead inbound (contactId=${payload.contactId}). ${message}`
       );

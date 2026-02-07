@@ -1,5 +1,15 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { ConversationStatus, MessageDirection, NotificationType, Prisma, UserRole } from "@prisma/client";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException
+} from "@nestjs/common";
+import {
+  ConversationStatus,
+  MessageDirection,
+  NotificationType,
+  Prisma,
+  UserRole
+} from "@prisma/client";
 import { ChannelsService } from "../channels/channels.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { PrismaService } from "../prisma/prisma.service";
@@ -22,8 +32,14 @@ export class ConversationsService {
     pagination: { page?: string; limit?: string } = {},
     workspaceId?: string
   ) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
-    const accessFilter = await this.buildConversationAccessFilter(userId, resolvedWorkspaceId);
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
+    const accessFilter = await this.buildConversationAccessFilter(
+      userId,
+      resolvedWorkspaceId
+    );
     const page = this.parsePositiveInt(pagination.page, 1);
     const limit = this.clampLimit(this.parsePositiveInt(pagination.limit, 20));
     const skip = (page - 1) * limit;
@@ -71,9 +87,19 @@ export class ConversationsService {
     return Math.min(limit, maxLimit);
   }
 
-  async getConversation(userId: string, conversationId: string, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
-    const accessFilter = await this.buildConversationAccessFilter(userId, resolvedWorkspaceId);
+  async getConversation(
+    userId: string,
+    conversationId: string,
+    workspaceId?: string
+  ) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
+    const accessFilter = await this.buildConversationAccessFilter(
+      userId,
+      resolvedWorkspaceId
+    );
 
     const conversation = await this.prisma.conversation.findFirst({
       where: { AND: [accessFilter, { id: conversationId }] },
@@ -114,8 +140,14 @@ export class ConversationsService {
     payload: CreateOutgoingMessageDto,
     workspaceId?: string
   ) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
-    const accessFilter = await this.buildConversationAccessFilter(userId, resolvedWorkspaceId);
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
+    const accessFilter = await this.buildConversationAccessFilter(
+      userId,
+      resolvedWorkspaceId
+    );
     const conversation = await this.prisma.conversation.findFirst({
       where: { AND: [accessFilter, { id: conversationId }] }
     });
@@ -129,8 +161,12 @@ export class ConversationsService {
       throw new BadRequestException("Texto da mensagem é obrigatório.");
     }
 
-    const providerMessageId = this.normalizeOptionalString(payload.providerMessageId);
-    const sentAt = payload.sentAt ? this.parseDate(payload.sentAt, "sentAt") : new Date();
+    const providerMessageId = this.normalizeOptionalString(
+      payload.providerMessageId
+    );
+    const sentAt = payload.sentAt
+      ? this.parseDate(payload.sentAt, "sentAt")
+      : new Date();
     const meta = payload.meta ?? undefined;
 
     const result = await this.storeOutgoingMessage({
@@ -148,7 +184,11 @@ export class ConversationsService {
       result.firstResponseTimeSeconds !== undefined &&
       result.firstResponseTimeSeconds > this.slaResponseSeconds
     ) {
-      await this.notifySlaBreach(resolvedWorkspaceId, conversation.id, conversation.assignedToUserId);
+      await this.notifySlaBreach(
+        resolvedWorkspaceId,
+        conversation.id,
+        conversation.assignedToUserId
+      );
     }
 
     return result.message;
@@ -160,8 +200,14 @@ export class ConversationsService {
     payload: SendConversationMessageDto,
     workspaceId?: string
   ) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
-    const accessFilter = await this.buildConversationAccessFilter(userId, resolvedWorkspaceId);
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
+    const accessFilter = await this.buildConversationAccessFilter(
+      userId,
+      resolvedWorkspaceId
+    );
     const conversation = await this.prisma.conversation.findFirst({
       where: { AND: [accessFilter, { id: conversationId }] },
       include: {
@@ -235,7 +281,11 @@ export class ConversationsService {
       result.firstResponseTimeSeconds !== undefined &&
       result.firstResponseTimeSeconds > this.slaResponseSeconds
     ) {
-      await this.notifySlaBreach(resolvedWorkspaceId, conversation.id, conversation.assignedToUserId);
+      await this.notifySlaBreach(
+        resolvedWorkspaceId,
+        conversation.id,
+        conversation.assignedToUserId
+      );
     }
 
     return result.message;
@@ -247,8 +297,14 @@ export class ConversationsService {
     payload: AssignConversationDto,
     workspaceId?: string
   ) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
-    const accessFilter = await this.buildConversationAccessFilter(userId, resolvedWorkspaceId);
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
+    const accessFilter = await this.buildConversationAccessFilter(
+      userId,
+      resolvedWorkspaceId
+    );
     const conversation = await this.prisma.conversation.findFirst({
       where: { AND: [accessFilter, { id: conversationId }] },
       include: {
@@ -279,10 +335,15 @@ export class ConversationsService {
     }
 
     const requestedAssignee =
-      payload.assignedToUserId === undefined ? userId : payload.assignedToUserId;
+      payload.assignedToUserId === undefined
+        ? userId
+        : payload.assignedToUserId;
 
     if (requestedAssignee) {
-      await this.ensureWorkspaceMembership(requestedAssignee, resolvedWorkspaceId);
+      await this.ensureWorkspaceMembership(
+        requestedAssignee,
+        resolvedWorkspaceId
+      );
     }
 
     const updated = await this.prisma.conversation.update({
@@ -326,9 +387,19 @@ export class ConversationsService {
     return updated;
   }
 
-  async closeConversation(userId: string, conversationId: string, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
-    const accessFilter = await this.buildConversationAccessFilter(userId, resolvedWorkspaceId);
+  async closeConversation(
+    userId: string,
+    conversationId: string,
+    workspaceId?: string
+  ) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
+    const accessFilter = await this.buildConversationAccessFilter(
+      userId,
+      resolvedWorkspaceId
+    );
     const conversation = await this.prisma.conversation.findFirst({
       where: { AND: [accessFilter, { id: conversationId }] },
       include: {
@@ -357,13 +428,19 @@ export class ConversationsService {
     const closedAt = new Date();
     const resolutionTimeSeconds =
       conversation.resolutionTimeSeconds ??
-      Math.max(0, Math.floor((closedAt.getTime() - conversation.createdAt.getTime()) / 1000));
+      Math.max(
+        0,
+        Math.floor(
+          (closedAt.getTime() - conversation.createdAt.getTime()) / 1000
+        )
+      );
 
     return this.prisma.conversation.update({
       where: { id: conversation.id },
       data: {
         status: ConversationStatus.CLOSED,
-        resolutionTimeSeconds: conversation.resolutionTimeSeconds ?? resolutionTimeSeconds
+        resolutionTimeSeconds:
+          conversation.resolutionTimeSeconds ?? resolutionTimeSeconds
       },
       include: {
         contact: {
@@ -391,8 +468,14 @@ export class ConversationsService {
     payload: { status: ConversationStatus },
     workspaceId?: string
   ) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
-    const accessFilter = await this.buildConversationAccessFilter(userId, resolvedWorkspaceId);
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
+    const accessFilter = await this.buildConversationAccessFilter(
+      userId,
+      resolvedWorkspaceId
+    );
     const conversation = await this.prisma.conversation.findFirst({
       where: { AND: [accessFilter, { id: conversationId }] },
       include: {
@@ -422,8 +505,13 @@ export class ConversationsService {
     const closedAt = new Date();
     const resolutionTimeSeconds =
       targetStatus === ConversationStatus.CLOSED
-        ? conversation.resolutionTimeSeconds ??
-          Math.max(0, Math.floor((closedAt.getTime() - conversation.createdAt.getTime()) / 1000))
+        ? (conversation.resolutionTimeSeconds ??
+          Math.max(
+            0,
+            Math.floor(
+              (closedAt.getTime() - conversation.createdAt.getTime()) / 1000
+            )
+          ))
         : conversation.resolutionTimeSeconds;
 
     return this.prisma.conversation.update({
@@ -461,7 +549,11 @@ export class ConversationsService {
     meta
   }: {
     workspaceId: string;
-    conversation: { id: string; createdAt: Date; firstResponseTimeSeconds?: number | null };
+    conversation: {
+      id: string;
+      createdAt: Date;
+      firstResponseTimeSeconds?: number | null;
+    };
     text: string;
     providerMessageId?: string;
     sentAt: Date;
@@ -480,7 +572,8 @@ export class ConversationsService {
         }
       });
 
-      const isFirstResponse = conversation.firstResponseTimeSeconds === null ||
+      const isFirstResponse =
+        conversation.firstResponseTimeSeconds === null ||
         conversation.firstResponseTimeSeconds === undefined;
       const computedFirstResponseTimeSeconds = Math.max(
         0,
@@ -494,7 +587,8 @@ export class ConversationsService {
         where: { id: conversation.id },
         data: {
           lastMessageAt: sentAt,
-          firstResponseTimeSeconds: conversation.firstResponseTimeSeconds ?? firstResponseTimeSeconds
+          firstResponseTimeSeconds:
+            conversation.firstResponseTimeSeconds ?? firstResponseTimeSeconds
         }
       });
 
@@ -536,7 +630,10 @@ export class ConversationsService {
     }
   }
 
-  private async buildConversationAccessFilter(userId: string, workspaceId: string) {
+  private async buildConversationAccessFilter(
+    userId: string,
+    workspaceId: string
+  ) {
     const [membership, user] = await Promise.all([
       this.prisma.workspaceMember.findFirst({
         where: { userId, workspaceId },
@@ -552,7 +649,8 @@ export class ConversationsService {
       throw new BadRequestException("Workspace inválido.");
     }
 
-    const isAdmin = user?.role === UserRole.ADMIN ||
+    const isAdmin =
+      user?.role === UserRole.ADMIN ||
       user?.isSuperAdmin ||
       membership.role?.name === "Owner";
 

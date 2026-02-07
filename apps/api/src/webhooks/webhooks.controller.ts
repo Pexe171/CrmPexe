@@ -21,6 +21,11 @@ export class WebhooksController {
     @Headers() headers: Record<string, string>,
     @Headers("x-workspace-id") workspaceId?: string
   ) {
-    return this.channelsService.receiveWebhook("whatsapp", body, headers, workspaceId);
+    return this.channelsService.receiveWebhook(
+      "whatsapp",
+      body,
+      headers,
+      workspaceId
+    );
   }
 }

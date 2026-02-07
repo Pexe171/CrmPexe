@@ -1,4 +1,9 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException
+} from "@nestjs/common";
 import { CustomFieldEntity, CustomFieldType, Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateCompanyDto } from "./dto/create-company.dto";
@@ -9,7 +14,10 @@ export class CompaniesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async listCompanies(userId: string, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
 
     return this.prisma.company.findMany({
       where: { workspaceId: resolvedWorkspaceId },
@@ -18,7 +26,10 @@ export class CompaniesService {
   }
 
   async getCompany(userId: string, companyId: string, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
 
     const company = await this.prisma.company.findFirst({
       where: { id: companyId, workspaceId: resolvedWorkspaceId }
@@ -31,8 +42,15 @@ export class CompaniesService {
     return company;
   }
 
-  async createCompany(userId: string, payload: CreateCompanyDto, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+  async createCompany(
+    userId: string,
+    payload: CreateCompanyDto,
+    workspaceId?: string
+  ) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
     const name = payload.name?.trim();
 
     if (!name) {
@@ -55,8 +73,16 @@ export class CompaniesService {
     });
   }
 
-  async updateCompany(userId: string, companyId: string, payload: UpdateCompanyDto, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+  async updateCompany(
+    userId: string,
+    companyId: string,
+    payload: UpdateCompanyDto,
+    workspaceId?: string
+  ) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
 
     if (payload.version === undefined) {
       throw new BadRequestException("Versão da empresa é obrigatória.");
@@ -83,15 +109,28 @@ export class CompaniesService {
       name = trimmedName;
     }
 
-    const domain = payload.domain !== undefined ? this.normalizeOptionalString(payload.domain) : undefined;
-    const phone = payload.phone !== undefined ? this.normalizeOptionalString(payload.phone) : undefined;
+    const domain =
+      payload.domain !== undefined
+        ? this.normalizeOptionalString(payload.domain)
+        : undefined;
+    const phone =
+      payload.phone !== undefined
+        ? this.normalizeOptionalString(payload.phone)
+        : undefined;
     if (payload.customFields !== undefined) {
-      await this.validateCustomFields(resolvedWorkspaceId, payload.customFields);
+      await this.validateCustomFields(
+        resolvedWorkspaceId,
+        payload.customFields
+      );
     }
     const customFields = payload.customFields ?? undefined;
 
     const updated = await this.prisma.company.updateMany({
-      where: { id: company.id, workspaceId: resolvedWorkspaceId, version: payload.version },
+      where: {
+        id: company.id,
+        workspaceId: resolvedWorkspaceId,
+        version: payload.version
+      },
       data: {
         name,
         domain,
@@ -117,7 +156,10 @@ export class CompaniesService {
   }
 
   async deleteCompany(userId: string, companyId: string, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
 
     const result = await this.prisma.company.updateMany({
       where: { id: companyId, workspaceId: resolvedWorkspaceId },
@@ -173,12 +215,18 @@ export class CompaniesService {
     return trimmed ? trimmed : null;
   }
 
-  private async validateCustomFields(workspaceId: string, customFields?: Record<string, unknown> | null) {
+  private async validateCustomFields(
+    workspaceId: string,
+    customFields?: Record<string, unknown> | null
+  ) {
     if (customFields === undefined) {
       return;
     }
 
-    if (customFields !== null && (Array.isArray(customFields) || typeof customFields !== "object")) {
+    if (
+      customFields !== null &&
+      (Array.isArray(customFields) || typeof customFields !== "object")
+    ) {
       throw new BadRequestException("customFields deve ser um objeto.");
     }
 
@@ -186,25 +234,39 @@ export class CompaniesService {
       where: { workspaceId, entity: CustomFieldEntity.COMPANY }
     });
 
-    const definitionMap = new Map(definitions.map((definition) => [definition.key, definition]));
+    const definitionMap = new Map(
+      definitions.map((definition) => [definition.key, definition])
+    );
     const payloadFields = customFields ?? {};
 
     for (const key of Object.keys(payloadFields)) {
       if (!definitionMap.has(key)) {
-        throw new BadRequestException(`Campo customizado '${key}' não configurado.`);
+        throw new BadRequestException(
+          `Campo customizado '${key}' não configurado.`
+        );
       }
     }
 
     for (const definition of definitions) {
       const value = (payloadFields as Record<string, unknown>)[definition.key];
-      if (definition.required && (value === undefined || value === null || value === "")) {
-        throw new BadRequestException(`Campo customizado '${definition.key}' é obrigatório.`);
+      if (
+        definition.required &&
+        (value === undefined || value === null || value === "")
+      ) {
+        throw new BadRequestException(
+          `Campo customizado '${definition.key}' é obrigatório.`
+        );
       }
       if (value === undefined || value === null) {
         continue;
       }
 
-      this.validateCustomFieldValue(definition.key, definition.type, definition.options, value);
+      this.validateCustomFieldValue(
+        definition.key,
+        definition.type,
+        definition.options,
+        value
+      );
     }
   }
 
@@ -217,47 +279,65 @@ export class CompaniesService {
     switch (type) {
       case CustomFieldType.TEXT:
         if (typeof value !== "string") {
-          throw new BadRequestException(`Campo customizado '${key}' deve ser texto.`);
+          throw new BadRequestException(
+            `Campo customizado '${key}' deve ser texto.`
+          );
         }
         return;
       case CustomFieldType.NUMBER:
         if (typeof value !== "number" || Number.isNaN(value)) {
-          throw new BadRequestException(`Campo customizado '${key}' deve ser número.`);
+          throw new BadRequestException(
+            `Campo customizado '${key}' deve ser número.`
+          );
         }
         return;
       case CustomFieldType.BOOLEAN:
         if (typeof value !== "boolean") {
-          throw new BadRequestException(`Campo customizado '${key}' deve ser booleano.`);
+          throw new BadRequestException(
+            `Campo customizado '${key}' deve ser booleano.`
+          );
         }
         return;
       case CustomFieldType.DATE: {
         const date = new Date(value as string);
         if (Number.isNaN(date.getTime())) {
-          throw new BadRequestException(`Campo customizado '${key}' deve ser data válida.`);
+          throw new BadRequestException(
+            `Campo customizado '${key}' deve ser data válida.`
+          );
         }
         return;
       }
       case CustomFieldType.SELECT: {
         if (typeof value !== "string") {
-          throw new BadRequestException(`Campo customizado '${key}' deve ser texto.`);
+          throw new BadRequestException(
+            `Campo customizado '${key}' deve ser texto.`
+          );
         }
         const optionsList = Array.isArray(options) ? options : [];
         if (optionsList.length > 0 && !optionsList.includes(value)) {
-          throw new BadRequestException(`Campo customizado '${key}' possui valor inválido.`);
+          throw new BadRequestException(
+            `Campo customizado '${key}' possui valor inválido.`
+          );
         }
         return;
       }
       case CustomFieldType.MULTI_SELECT: {
         if (!Array.isArray(value)) {
-          throw new BadRequestException(`Campo customizado '${key}' deve ser lista.`);
+          throw new BadRequestException(
+            `Campo customizado '${key}' deve ser lista.`
+          );
         }
         const optionsList = Array.isArray(options) ? options : [];
         for (const entry of value) {
           if (typeof entry !== "string") {
-            throw new BadRequestException(`Campo customizado '${key}' deve conter textos.`);
+            throw new BadRequestException(
+              `Campo customizado '${key}' deve conter textos.`
+            );
           }
           if (optionsList.length > 0 && !optionsList.includes(entry)) {
-            throw new BadRequestException(`Campo customizado '${key}' possui valor inválido.`);
+            throw new BadRequestException(
+              `Campo customizado '${key}' possui valor inválido.`
+            );
           }
         }
         return;

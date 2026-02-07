@@ -1,4 +1,14 @@
-import { Body, Controller, Delete, Get, Headers, Param, Patch, Post, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Headers,
+  Param,
+  Patch,
+  Post,
+  UseGuards
+} from "@nestjs/common";
 import { AccessTokenGuard } from "../auth/access-token.guard";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { AuthUser } from "../auth/auth.types";
@@ -12,7 +22,10 @@ export class QueuesController {
   constructor(private readonly queuesService: QueuesService) {}
 
   @Get()
-  async listQueues(@CurrentUser() user: AuthUser, @Headers("x-workspace-id") workspaceId?: string) {
+  async listQueues(
+    @CurrentUser() user: AuthUser,
+    @Headers("x-workspace-id") workspaceId?: string
+  ) {
     return this.queuesService.listQueues(user.id, workspaceId);
   }
 

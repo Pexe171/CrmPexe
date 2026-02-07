@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException
+} from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { AutomationEngineService } from "../automation-engine/automation-engine.service";
 import { CreateDealDto } from "./dto/create-deal.dto";
@@ -11,8 +15,15 @@ export class DealsService {
     private readonly automationEngineService: AutomationEngineService
   ) {}
 
-  async createDeal(userId: string, payload: CreateDealDto, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+  async createDeal(
+    userId: string,
+    payload: CreateDealDto,
+    workspaceId?: string
+  ) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
     const title = this.normalizeRequiredString(payload.title, "title");
     const stage = this.normalizeOptionalString(payload.stage);
     const contactId = this.normalizeOptionalString(payload.contactId);
@@ -39,8 +50,16 @@ export class DealsService {
     });
   }
 
-  async updateDealStage(userId: string, dealId: string, payload: UpdateDealStageDto, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+  async updateDealStage(
+    userId: string,
+    dealId: string,
+    payload: UpdateDealStageDto,
+    workspaceId?: string
+  ) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
     const stage = this.normalizeRequiredString(payload.stage, "stage");
 
     const deal = await this.prisma.deal.findFirst({
@@ -104,7 +123,10 @@ export class DealsService {
     }
   }
 
-  private normalizeRequiredString(value: string | undefined | null, field: string) {
+  private normalizeRequiredString(
+    value: string | undefined | null,
+    field: string
+  ) {
     const trimmed = value?.trim();
     if (!trimmed) {
       throw new BadRequestException(`${field} é obrigatório.`);

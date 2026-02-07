@@ -31,7 +31,9 @@ export class MercadoPagoBillingProvider implements IBillingProvider {
     private readonly externalCallLogger: ExternalCallLoggerService
   ) {}
 
-  async createCustomer(input: BillingCustomerInput): Promise<BillingCustomerResult> {
+  async createCustomer(
+    input: BillingCustomerInput
+  ): Promise<BillingCustomerResult> {
     const start = Date.now();
     const safeEmail = input.email.trim().toLowerCase();
     const result = {
@@ -50,7 +52,9 @@ export class MercadoPagoBillingProvider implements IBillingProvider {
     return result;
   }
 
-  async processPayment(input: BillingPaymentInput): Promise<BillingCheckoutResult> {
+  async processPayment(
+    input: BillingPaymentInput
+  ): Promise<BillingCheckoutResult> {
     const start = Date.now();
     const result = {
       checkoutUrl: MERCADO_PAGO_SANDBOX_CHECKOUT_URL,
@@ -75,7 +79,10 @@ export class MercadoPagoBillingProvider implements IBillingProvider {
     const start = Date.now();
     const payloadType = notification.payload.type;
 
-    if (payloadType !== "payment" && payloadType !== "subscription_authorized") {
+    if (
+      payloadType !== "payment" &&
+      payloadType !== "subscription_authorized"
+    ) {
       const result = {
         handled: false,
         reason: "Tipo de notificação não suportado pelo Mercado Pago."
@@ -146,7 +153,10 @@ export class MercadoPagoBillingProvider implements IBillingProvider {
     return String(dataId);
   }
 
-  private resolveStatus(payload: MercadoPagoWebhookPayload, payloadType?: string): string {
+  private resolveStatus(
+    payload: MercadoPagoWebhookPayload,
+    payloadType?: string
+  ): string {
     if (payload.status) {
       return payload.status;
     }

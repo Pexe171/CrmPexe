@@ -1,5 +1,12 @@
 import { CustomFieldEntity, CustomFieldType } from "@prisma/client";
-import { IsArray, IsBoolean, IsEnum, IsNotEmpty, IsOptional, IsString } from "class-validator";
+import {
+  IsArray,
+  IsBoolean,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString
+} from "class-validator";
 
 export class UpdateCustomFieldDefinitionDto {
   @IsOptional()

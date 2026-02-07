@@ -10,7 +10,14 @@ import { ChannelsService } from "./channels.service";
 import { WhatsappProvider } from "./providers/whatsapp.provider";
 
 @Module({
-  imports: [PrismaModule, NotificationsModule, IntegrationAccountsModule, AutomationEngineModule, AiModule, QueuesModule],
+  imports: [
+    PrismaModule,
+    NotificationsModule,
+    IntegrationAccountsModule,
+    AutomationEngineModule,
+    AiModule,
+    QueuesModule
+  ],
   controllers: [ChannelsController],
   providers: [ChannelsService, WhatsappProvider],
   exports: [ChannelsService]

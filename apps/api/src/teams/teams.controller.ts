@@ -1,4 +1,14 @@
-import { Body, Controller, Delete, Get, Headers, Param, Patch, Post, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Headers,
+  Param,
+  Patch,
+  Post,
+  UseGuards
+} from "@nestjs/common";
 import { AccessTokenGuard } from "../auth/access-token.guard";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { AuthUser } from "../auth/auth.types";
@@ -14,7 +24,10 @@ export class TeamsController {
   constructor(private readonly teamsService: TeamsService) {}
 
   @Get()
-  async listTeams(@CurrentUser() user: AuthUser, @Headers("x-workspace-id") workspaceId?: string) {
+  async listTeams(
+    @CurrentUser() user: AuthUser,
+    @Headers("x-workspace-id") workspaceId?: string
+  ) {
     return this.teamsService.listTeams(user.id, workspaceId);
   }
 
@@ -64,7 +77,13 @@ export class TeamsController {
     @Body() body: UpdateTeamMemberDto,
     @Headers("x-workspace-id") workspaceId?: string
   ) {
-    return this.teamsService.updateMember(user.id, teamId, memberId, body, workspaceId);
+    return this.teamsService.updateMember(
+      user.id,
+      teamId,
+      memberId,
+      body,
+      workspaceId
+    );
   }
 
   @Delete(":id/members/:memberId")
@@ -74,6 +93,11 @@ export class TeamsController {
     @Param("memberId") memberId: string,
     @Headers("x-workspace-id") workspaceId?: string
   ) {
-    return this.teamsService.removeMember(user.id, teamId, memberId, workspaceId);
+    return this.teamsService.removeMember(
+      user.id,
+      teamId,
+      memberId,
+      workspaceId
+    );
   }
 }

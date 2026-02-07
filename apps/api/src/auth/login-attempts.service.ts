@@ -9,8 +9,12 @@ type LoginAttemptEntry = {
 @Injectable()
 export class LoginAttemptsService {
   private readonly maxAttempts = Number(process.env.LOGIN_MAX_ATTEMPTS || 5);
-  private readonly windowMs = Number(process.env.LOGIN_WINDOW_MS || 15 * 60 * 1000);
-  private readonly blockMs = Number(process.env.LOGIN_BLOCK_MS || 15 * 60 * 1000);
+  private readonly windowMs = Number(
+    process.env.LOGIN_WINDOW_MS || 15 * 60 * 1000
+  );
+  private readonly blockMs = Number(
+    process.env.LOGIN_BLOCK_MS || 15 * 60 * 1000
+  );
   private readonly attempts = new Map<string, LoginAttemptEntry>();
 
   isBlocked(key: string) {

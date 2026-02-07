@@ -19,8 +19,14 @@ export class WorkspaceVariablesService {
     private readonly integrationCryptoService: IntegrationCryptoService
   ) {}
 
-  async listVariables(userId: string, workspaceId?: string): Promise<WorkspaceVariableSummary[]> {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+  async listVariables(
+    userId: string,
+    workspaceId?: string
+  ): Promise<WorkspaceVariableSummary[]> {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
 
     const variables = await this.prisma.workspaceVariable.findMany({
       where: { workspaceId: resolvedWorkspaceId },
@@ -30,17 +36,27 @@ export class WorkspaceVariablesService {
     return variables.map((variable) => this.toSummary(variable));
   }
 
-  async upsertVariable(userId: string, payload: UpsertWorkspaceVariableDto, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+  async upsertVariable(
+    userId: string,
+    payload: UpsertWorkspaceVariableDto,
+    workspaceId?: string
+  ) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
     const key = this.normalizeRequiredString(payload.key, "key");
     const isSensitive = Boolean(payload.isSensitive);
     const value = this.normalizeOptionalString(payload.value);
 
     if (isSensitive && !value) {
-      throw new BadRequestException("value é obrigatório para variáveis sensíveis.");
+      throw new BadRequestException(
+        "value é obrigatório para variáveis sensíveis."
+      );
     }
 
-    const encryptedValue = isSensitive && value ? this.encryptValue(value) : null;
+    const encryptedValue =
+      isSensitive && value ? this.encryptValue(value) : null;
 
     const variable = await this.prisma.workspaceVariable.upsert({
       where: {
@@ -66,7 +82,9 @@ export class WorkspaceVariablesService {
     return this.toSummary(variable);
   }
 
-  async getWorkspaceVariablesMap(workspaceId: string): Promise<Record<string, string>> {
+  async getWorkspaceVariablesMap(
+    workspaceId: string
+  ): Promise<Record<string, string>> {
     const variables = await this.prisma.workspaceVariable.findMany({
       where: { workspaceId }
     });
@@ -127,7 +145,10 @@ export class WorkspaceVariablesService {
     }
   }
 
-  private normalizeRequiredString(value: string | undefined | null, field: string) {
+  private normalizeRequiredString(
+    value: string | undefined | null,
+    field: string
+  ) {
     const trimmed = value?.trim();
     if (!trimmed) {
       throw new BadRequestException(`${field} é obrigatório.`);
@@ -154,7 +175,7 @@ export class WorkspaceVariablesService {
     return {
       id: variable.id,
       key: variable.key,
-      value: variable.isSensitive ? null : variable.value ?? null,
+      value: variable.isSensitive ? null : (variable.value ?? null),
       isSensitive: variable.isSensitive,
       createdAt: variable.createdAt,
       updatedAt: variable.updatedAt

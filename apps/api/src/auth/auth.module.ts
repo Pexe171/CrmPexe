@@ -17,6 +17,12 @@ import { SuperAdminGuard } from "./super-admin.guard";
     SuperAdminGuard,
     LoginAttemptsService
   ],
-  exports: [JwtModule, AuthService, AccessTokenGuard, RolesGuard, SuperAdminGuard]
+  exports: [
+    JwtModule,
+    AuthService,
+    AccessTokenGuard,
+    RolesGuard,
+    SuperAdminGuard
+  ]
 })
 export class AuthModule {}

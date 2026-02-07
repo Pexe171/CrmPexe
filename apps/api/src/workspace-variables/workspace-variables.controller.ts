@@ -1,4 +1,11 @@
-import { Body, Controller, Get, Headers, Post, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  Post,
+  UseGuards
+} from "@nestjs/common";
 import { AccessTokenGuard } from "../auth/access-token.guard";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { AuthUser } from "../auth/auth.types";
@@ -8,10 +15,15 @@ import { WorkspaceVariablesService } from "./workspace-variables.service";
 @Controller("workspace-variables")
 @UseGuards(AccessTokenGuard)
 export class WorkspaceVariablesController {
-  constructor(private readonly workspaceVariablesService: WorkspaceVariablesService) {}
+  constructor(
+    private readonly workspaceVariablesService: WorkspaceVariablesService
+  ) {}
 
   @Get()
-  async listVariables(@CurrentUser() user: AuthUser, @Headers("x-workspace-id") workspaceId?: string) {
+  async listVariables(
+    @CurrentUser() user: AuthUser,
+    @Headers("x-workspace-id") workspaceId?: string
+  ) {
     return this.workspaceVariablesService.listVariables(user.id, workspaceId);
   }
 
@@ -21,6 +33,10 @@ export class WorkspaceVariablesController {
     @Body() body: UpsertWorkspaceVariableDto,
     @Headers("x-workspace-id") workspaceId?: string
   ) {
-    return this.workspaceVariablesService.upsertVariable(user.id, body, workspaceId);
+    return this.workspaceVariablesService.upsertVariable(
+      user.id,
+      body,
+      workspaceId
+    );
   }
 }

@@ -12,6 +12,11 @@ export class ChannelsController {
     @Headers() headers: Record<string, string>,
     @Headers("x-workspace-id") workspaceId?: string
   ) {
-    return this.channelsService.receiveWebhook(channel, body, headers, workspaceId);
+    return this.channelsService.receiveWebhook(
+      channel,
+      body,
+      headers,
+      workspaceId
+    );
   }
 }

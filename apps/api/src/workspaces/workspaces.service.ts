@@ -1,4 +1,9 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException
+} from "@nestjs/common";
 import { Prisma, UserRole } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 
@@ -85,7 +90,10 @@ export class WorkspacesService {
   }
 
   async getCurrentWorkspace(userId: string, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
     const workspace = await this.prisma.workspace.findFirst({
       where: { id: resolvedWorkspaceId, deletedAt: null },
       select: {
@@ -123,15 +131,21 @@ export class WorkspacesService {
   ) {
     await this.ensureWorkspaceAdmin(userId, workspaceId);
     const resolvedLocale =
-      payload.locale === undefined ? undefined : this.normalizeOptionalString(payload.locale) ?? "pt-BR";
+      payload.locale === undefined
+        ? undefined
+        : (this.normalizeOptionalString(payload.locale) ?? "pt-BR");
 
     const updated = await this.prisma.workspace.update({
       where: { id: workspaceId },
       data: {
         brandName: this.normalizeOptionalString(payload.brandName),
         brandLogoUrl: this.normalizeOptionalString(payload.brandLogoUrl),
-        brandPrimaryColor: this.normalizeOptionalString(payload.brandPrimaryColor),
-        brandSecondaryColor: this.normalizeOptionalString(payload.brandSecondaryColor),
+        brandPrimaryColor: this.normalizeOptionalString(
+          payload.brandPrimaryColor
+        ),
+        brandSecondaryColor: this.normalizeOptionalString(
+          payload.brandSecondaryColor
+        ),
         customDomain: this.normalizeOptionalString(payload.customDomain),
         locale: resolvedLocale
       },
@@ -322,7 +336,11 @@ export class WorkspacesService {
     };
   }
 
-  async requestWorkspaceDeletion(userId: string, workspaceId: string, reason?: string) {
+  async requestWorkspaceDeletion(
+    userId: string,
+    workspaceId: string,
+    reason?: string
+  ) {
     await this.ensureWorkspaceAdmin(userId, workspaceId);
 
     const workspace = await this.prisma.workspace.findUnique({
@@ -344,7 +362,9 @@ export class WorkspacesService {
 
     const now = new Date();
     const retentionDays = this.getRetentionDays();
-    const retentionEndsAt = new Date(now.getTime() + retentionDays * 24 * 60 * 60 * 1000);
+    const retentionEndsAt = new Date(
+      now.getTime() + retentionDays * 24 * 60 * 60 * 1000
+    );
 
     await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       await tx.workspace.update({

@@ -27,7 +27,12 @@ export class JsonLoggerService implements LoggerService {
     this.write("verbose", message, context);
   }
 
-  private write(level: LogLevel, message: unknown, context?: string, trace?: string) {
+  private write(
+    level: LogLevel,
+    message: unknown,
+    context?: string,
+    trace?: string
+  ) {
     const correlationId = this.correlationIdService.getId();
     const payload: Record<string, unknown> = {
       timestamp: new Date().toISOString(),

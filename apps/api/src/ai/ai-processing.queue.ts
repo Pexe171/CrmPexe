@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit
+} from "@nestjs/common";
 import { Queue, Worker } from "bullmq";
 import { LeadScoringService, LeadScorePayload } from "./lead-scoring.service";
 
@@ -65,8 +70,11 @@ export class AiProcessingQueueService implements OnModuleInit, OnModuleDestroy {
 
     this.worker.on("failed", (job, error) => {
       const jobId = job?.id ?? "desconhecido";
-      const message = error instanceof Error ? error.message : "Erro desconhecido";
-      this.logger.warn(`Job ${jobId} falhou no lead scoring inbound. ${message}`);
+      const message =
+        error instanceof Error ? error.message : "Erro desconhecido";
+      this.logger.warn(
+        `Job ${jobId} falhou no lead scoring inbound. ${message}`
+      );
     });
   }
 

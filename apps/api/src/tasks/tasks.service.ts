@@ -1,4 +1,9 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException
+} from "@nestjs/common";
 import { Prisma, TaskStatus } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateTaskDto } from "./dto/create-task.dto";
@@ -18,7 +23,10 @@ export class TasksService {
     },
     workspaceId?: string
   ) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
     const where: Prisma.TaskWhereInput = { workspaceId: resolvedWorkspaceId };
 
     if (filters.status) {
@@ -56,20 +64,31 @@ export class TasksService {
     });
   }
 
-  async createTask(userId: string, payload: CreateTaskDto, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+  async createTask(
+    userId: string,
+    payload: CreateTaskDto,
+    workspaceId?: string
+  ) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
     const title = payload.title?.trim();
 
     if (!title) {
       throw new BadRequestException("Título da task é obrigatório.");
     }
 
-    const dueAt = payload.dueAt ? this.parseDate(payload.dueAt, "dueAt") : undefined;
+    const dueAt = payload.dueAt
+      ? this.parseDate(payload.dueAt, "dueAt")
+      : undefined;
     const relatedType = this.normalizeOptionalString(payload.relatedType);
     const relatedId = this.normalizeOptionalString(payload.relatedId);
 
     if ((relatedType && !relatedId) || (!relatedType && relatedId)) {
-      throw new BadRequestException("relatedType e relatedId devem ser enviados juntos.");
+      throw new BadRequestException(
+        "relatedType e relatedId devem ser enviados juntos."
+      );
     }
 
     const assignedToId = this.normalizeOptionalString(payload.assignedToId);
@@ -100,8 +119,16 @@ export class TasksService {
     });
   }
 
-  async updateTask(userId: string, taskId: string, payload: UpdateTaskDto, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+  async updateTask(
+    userId: string,
+    taskId: string,
+    payload: UpdateTaskDto,
+    workspaceId?: string
+  ) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
 
     if (payload.version === undefined) {
       throw new BadRequestException("Versão da task é obrigatória.");
@@ -128,37 +155,50 @@ export class TasksService {
       title = trimmedTitle;
     }
 
-    const dueAt = payload.dueAt !== undefined
-      ? payload.dueAt
-        ? this.parseDate(payload.dueAt, "dueAt")
-        : null
-      : undefined;
+    const dueAt =
+      payload.dueAt !== undefined
+        ? payload.dueAt
+          ? this.parseDate(payload.dueAt, "dueAt")
+          : null
+        : undefined;
 
-    const assignedToId = payload.assignedToId !== undefined
-      ? this.normalizeOptionalString(payload.assignedToId)
-      : undefined;
+    const assignedToId =
+      payload.assignedToId !== undefined
+        ? this.normalizeOptionalString(payload.assignedToId)
+        : undefined;
 
     if (assignedToId) {
       await this.ensureAssigneeInWorkspace(resolvedWorkspaceId, assignedToId);
     }
 
-    const relatedType = payload.relatedType !== undefined
-      ? this.normalizeOptionalString(payload.relatedType)
-      : undefined;
-    const relatedId = payload.relatedId !== undefined
-      ? this.normalizeOptionalString(payload.relatedId)
-      : undefined;
+    const relatedType =
+      payload.relatedType !== undefined
+        ? this.normalizeOptionalString(payload.relatedType)
+        : undefined;
+    const relatedId =
+      payload.relatedId !== undefined
+        ? this.normalizeOptionalString(payload.relatedId)
+        : undefined;
 
-    if ((relatedType !== undefined || relatedId !== undefined)) {
+    if (relatedType !== undefined || relatedId !== undefined) {
       const nextRelatedType = relatedType ?? task.relatedType;
       const nextRelatedId = relatedId ?? task.relatedId;
-      if ((nextRelatedType && !nextRelatedId) || (!nextRelatedType && nextRelatedId)) {
-        throw new BadRequestException("relatedType e relatedId devem ser enviados juntos.");
+      if (
+        (nextRelatedType && !nextRelatedId) ||
+        (!nextRelatedType && nextRelatedId)
+      ) {
+        throw new BadRequestException(
+          "relatedType e relatedId devem ser enviados juntos."
+        );
       }
     }
 
     const updated = await this.prisma.task.updateMany({
-      where: { id: task.id, workspaceId: resolvedWorkspaceId, version: payload.version },
+      where: {
+        id: task.id,
+        workspaceId: resolvedWorkspaceId,
+        version: payload.version
+      },
       data: {
         title,
         dueAt,
@@ -195,7 +235,10 @@ export class TasksService {
   }
 
   async deleteTask(userId: string, taskId: string, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
 
     const result = await this.prisma.task.updateMany({
       where: { id: taskId, workspaceId: resolvedWorkspaceId },
@@ -265,7 +308,9 @@ export class TasksService {
     });
 
     if (!membership) {
-      throw new BadRequestException("Usuário atribuído não pertence ao workspace.");
+      throw new BadRequestException(
+        "Usuário atribuído não pertence ao workspace."
+      );
     }
   }
 }

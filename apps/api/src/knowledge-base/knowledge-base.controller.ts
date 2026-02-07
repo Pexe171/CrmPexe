@@ -1,4 +1,15 @@
-import { Body, Controller, Delete, Get, Headers, Param, Patch, Post, Query, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Headers,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards
+} from "@nestjs/common";
 import { AccessTokenGuard } from "../auth/access-token.guard";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { AuthUser } from "../auth/auth.types";
@@ -18,7 +29,11 @@ export class KnowledgeBaseController {
     @Query("isActive") isActive?: string,
     @Headers("x-workspace-id") workspaceId?: string
   ) {
-    return this.knowledgeBaseService.listArticles(user.id, { search, isActive }, workspaceId);
+    return this.knowledgeBaseService.listArticles(
+      user.id,
+      { search, isActive },
+      workspaceId
+    );
   }
 
   @Post()
@@ -37,7 +52,12 @@ export class KnowledgeBaseController {
     @Body() body: UpdateKnowledgeBaseArticleDto,
     @Headers("x-workspace-id") workspaceId?: string
   ) {
-    return this.knowledgeBaseService.updateArticle(user.id, articleId, body, workspaceId);
+    return this.knowledgeBaseService.updateArticle(
+      user.id,
+      articleId,
+      body,
+      workspaceId
+    );
   }
 
   @Delete(":id")
@@ -46,6 +66,10 @@ export class KnowledgeBaseController {
     @Param("id") articleId: string,
     @Headers("x-workspace-id") workspaceId?: string
   ) {
-    return this.knowledgeBaseService.deleteArticle(user.id, articleId, workspaceId);
+    return this.knowledgeBaseService.deleteArticle(
+      user.id,
+      articleId,
+      workspaceId
+    );
   }
 }

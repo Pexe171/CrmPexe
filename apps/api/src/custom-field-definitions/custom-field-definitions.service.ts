@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException
+} from "@nestjs/common";
 import { CustomFieldEntity, CustomFieldType, Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateCustomFieldDefinitionDto } from "./dto/create-custom-field-definition.dto";
@@ -9,7 +13,10 @@ export class CustomFieldDefinitionsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async listDefinitions(userId: string, entity?: string, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
 
     const where = {
       workspaceId: resolvedWorkspaceId,
@@ -22,8 +29,15 @@ export class CustomFieldDefinitionsService {
     });
   }
 
-  async createDefinition(userId: string, payload: CreateCustomFieldDefinitionDto, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+  async createDefinition(
+    userId: string,
+    payload: CreateCustomFieldDefinitionDto,
+    workspaceId?: string
+  ) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
     const key = this.normalizeRequiredString(payload.key, "key");
     const label = this.normalizeRequiredString(payload.label, "label");
     const entity = this.parseEntity(payload.entity);
@@ -50,7 +64,10 @@ export class CustomFieldDefinitionsService {
     payload: UpdateCustomFieldDefinitionDto,
     workspaceId?: string
   ) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
 
     const definition = await this.prisma.customFieldDefinition.findFirst({
       where: { id: definitionId, workspaceId: resolvedWorkspaceId }
@@ -60,14 +77,26 @@ export class CustomFieldDefinitionsService {
       throw new NotFoundException("Campo customizado não encontrado.");
     }
 
-    const key = payload.key !== undefined ? this.normalizeRequiredString(payload.key, "key") : undefined;
-    const label = payload.label !== undefined ? this.normalizeRequiredString(payload.label, "label") : undefined;
-    const entity = payload.entity !== undefined ? this.parseEntity(payload.entity) : undefined;
-    const type = payload.type !== undefined ? this.parseType(payload.type) : undefined;
-    const required = payload.required !== undefined ? Boolean(payload.required) : undefined;
-    const options = payload.options !== undefined
-      ? this.normalizeOptions(payload.options, type ?? definition.type)
-      : undefined;
+    const key =
+      payload.key !== undefined
+        ? this.normalizeRequiredString(payload.key, "key")
+        : undefined;
+    const label =
+      payload.label !== undefined
+        ? this.normalizeRequiredString(payload.label, "label")
+        : undefined;
+    const entity =
+      payload.entity !== undefined
+        ? this.parseEntity(payload.entity)
+        : undefined;
+    const type =
+      payload.type !== undefined ? this.parseType(payload.type) : undefined;
+    const required =
+      payload.required !== undefined ? Boolean(payload.required) : undefined;
+    const options =
+      payload.options !== undefined
+        ? this.normalizeOptions(payload.options, type ?? definition.type)
+        : undefined;
 
     return this.prisma.customFieldDefinition.update({
       where: { id: definition.id },
@@ -82,8 +111,15 @@ export class CustomFieldDefinitionsService {
     });
   }
 
-  async deleteDefinition(userId: string, definitionId: string, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+  async deleteDefinition(
+    userId: string,
+    definitionId: string,
+    workspaceId?: string
+  ) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
 
     const definition = await this.prisma.customFieldDefinition.findFirst({
       where: { id: definitionId, workspaceId: resolvedWorkspaceId }
@@ -135,7 +171,9 @@ export class CustomFieldDefinitionsService {
   }
 
   private parseEntity(entity: CustomFieldEntity | string) {
-    if (!Object.values(CustomFieldEntity).includes(entity as CustomFieldEntity)) {
+    if (
+      !Object.values(CustomFieldEntity).includes(entity as CustomFieldEntity)
+    ) {
       throw new BadRequestException("Entidade inválida.");
     }
     return entity as CustomFieldEntity;
@@ -148,7 +186,10 @@ export class CustomFieldDefinitionsService {
     return type as CustomFieldType;
   }
 
-  private normalizeRequiredString(value: string | undefined | null, field: string) {
+  private normalizeRequiredString(
+    value: string | undefined | null,
+    field: string
+  ) {
     const trimmed = value?.trim();
     if (!trimmed) {
       throw new BadRequestException(`${field} é obrigatório.`);
@@ -156,13 +197,21 @@ export class CustomFieldDefinitionsService {
     return trimmed;
   }
 
-  private normalizeOptions(options: string[] | null | undefined, type: CustomFieldType) {
+  private normalizeOptions(
+    options: string[] | null | undefined,
+    type: CustomFieldType
+  ) {
     if (options === undefined) {
       return undefined;
     }
     if (!options || options.length === 0) {
-      if (type === CustomFieldType.SELECT || type === CustomFieldType.MULTI_SELECT) {
-        throw new BadRequestException("Opções são obrigatórias para campos de seleção.");
+      if (
+        type === CustomFieldType.SELECT ||
+        type === CustomFieldType.MULTI_SELECT
+      ) {
+        throw new BadRequestException(
+          "Opções são obrigatórias para campos de seleção."
+        );
       }
       return Prisma.JsonNull;
     }
@@ -170,8 +219,13 @@ export class CustomFieldDefinitionsService {
       .map((option) => option.trim())
       .filter((option) => option.length > 0);
     if (normalized.length === 0) {
-      if (type === CustomFieldType.SELECT || type === CustomFieldType.MULTI_SELECT) {
-        throw new BadRequestException("Opções são obrigatórias para campos de seleção.");
+      if (
+        type === CustomFieldType.SELECT ||
+        type === CustomFieldType.MULTI_SELECT
+      ) {
+        throw new BadRequestException(
+          "Opções são obrigatórias para campos de seleção."
+        );
       }
       return Prisma.JsonNull;
     }

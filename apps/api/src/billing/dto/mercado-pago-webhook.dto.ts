@@ -1,4 +1,7 @@
-export type MercadoPagoWebhookType = "payment" | "subscription_authorized" | string;
+export type MercadoPagoWebhookType =
+  | "payment"
+  | "subscription_authorized"
+  | string;
 
 export interface MercadoPagoWebhookPayload {
   id?: number | string;

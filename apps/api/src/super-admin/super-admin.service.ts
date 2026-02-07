@@ -44,10 +44,14 @@ export type ErrorLogSummary = {
 export class SuperAdminService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async listWorkspaces(params: { page?: number; perPage?: number; search?: string })
-    : Promise<PaginatedResponse<WorkspaceOverview>> {
+  async listWorkspaces(params: {
+    page?: number;
+    perPage?: number;
+    search?: string;
+  }): Promise<PaginatedResponse<WorkspaceOverview>> {
     const page = params.page && params.page > 0 ? params.page : DEFAULT_PAGE;
-    const perPage = params.perPage && params.perPage > 0 ? params.perPage : DEFAULT_PER_PAGE;
+    const perPage =
+      params.perPage && params.perPage > 0 ? params.perPage : DEFAULT_PER_PAGE;
     const skip = (page - 1) * perPage;
 
     const where: Prisma.WorkspaceWhereInput = params.search
@@ -70,25 +74,26 @@ export class SuperAdminService {
 
     const workspaceIds = workspaces.map((workspace) => workspace.id);
 
-    const [messageCounts, automationCounts, subscriptions] = await this.prisma.$transaction([
-      this.prisma.message.groupBy({
-        by: ["workspaceId"],
-        where: { workspaceId: { in: workspaceIds } },
-        orderBy: { workspaceId: "asc" },
-        _count: { _all: true }
-      }),
-      this.prisma.automationInstance.groupBy({
-        by: ["workspaceId"],
-        where: { workspaceId: { in: workspaceIds } },
-        orderBy: { workspaceId: "asc" },
-        _count: { _all: true }
-      }),
-      this.prisma.subscription.findMany({
-        where: { workspaceId: { in: workspaceIds } },
-        orderBy: { updatedAt: "desc" },
-        distinct: ["workspaceId"]
-      })
-    ]);
+    const [messageCounts, automationCounts, subscriptions] =
+      await this.prisma.$transaction([
+        this.prisma.message.groupBy({
+          by: ["workspaceId"],
+          where: { workspaceId: { in: workspaceIds } },
+          orderBy: { workspaceId: "asc" },
+          _count: { _all: true }
+        }),
+        this.prisma.automationInstance.groupBy({
+          by: ["workspaceId"],
+          where: { workspaceId: { in: workspaceIds } },
+          orderBy: { workspaceId: "asc" },
+          _count: { _all: true }
+        }),
+        this.prisma.subscription.findMany({
+          where: { workspaceId: { in: workspaceIds } },
+          orderBy: { updatedAt: "desc" },
+          distinct: ["workspaceId"]
+        })
+      ]);
 
     const messageMap = new Map(
       messageCounts.map((entry) => [
@@ -107,7 +112,10 @@ export class SuperAdminService {
       ])
     );
     const subscriptionMap = new Map(
-      subscriptions.map((subscription) => [subscription.workspaceId, subscription])
+      subscriptions.map((subscription) => [
+        subscription.workspaceId,
+        subscription
+      ])
     );
 
     const data = workspaces.map((workspace) => {
@@ -139,10 +147,14 @@ export class SuperAdminService {
     };
   }
 
-  async listErrorLogs(params: { page?: number; perPage?: number; workspaceId?: string })
-    : Promise<PaginatedResponse<ErrorLogSummary>> {
+  async listErrorLogs(params: {
+    page?: number;
+    perPage?: number;
+    workspaceId?: string;
+  }): Promise<PaginatedResponse<ErrorLogSummary>> {
     const page = params.page && params.page > 0 ? params.page : DEFAULT_PAGE;
-    const perPage = params.perPage && params.perPage > 0 ? params.perPage : DEFAULT_PER_PAGE;
+    const perPage =
+      params.perPage && params.perPage > 0 ? params.perPage : DEFAULT_PER_PAGE;
     const skip = (page - 1) * perPage;
 
     const where: Prisma.AiUsageLogWhereInput = {

@@ -1,5 +1,11 @@
 import { TaskStatus } from "@prisma/client";
-import { IsDateString, IsEnum, IsNotEmpty, IsOptional, IsString } from "class-validator";
+import {
+  IsDateString,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString
+} from "class-validator";
 
 export class CreateTaskDto {
   @IsString()

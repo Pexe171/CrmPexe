@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException
+} from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateCannedResponseDto } from "./dto/create-canned-response.dto";
@@ -13,7 +17,10 @@ export class CannedResponsesService {
     params: { search?: string; isActive?: string },
     workspaceId?: string
   ) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
     const search = params.search?.trim();
     const where: Prisma.CannedResponseWhereInput = {
       workspaceId: resolvedWorkspaceId
@@ -38,8 +45,15 @@ export class CannedResponsesService {
     });
   }
 
-  async createResponse(userId: string, payload: CreateCannedResponseDto, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+  async createResponse(
+    userId: string,
+    payload: CreateCannedResponseDto,
+    workspaceId?: string
+  ) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
     const title = this.normalizeRequiredString(payload.title, "title");
     const content = this.normalizeRequiredString(payload.content, "content");
     const tags = payload.tags?.map((tag) => tag.trim()).filter(Boolean) ?? [];
@@ -63,7 +77,10 @@ export class CannedResponsesService {
     payload: UpdateCannedResponseDto,
     workspaceId?: string
   ) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
     const response = await this.prisma.cannedResponse.findFirst({
       where: { id: responseId, workspaceId: resolvedWorkspaceId }
     });
@@ -73,10 +90,19 @@ export class CannedResponsesService {
     }
 
     const data: Prisma.CannedResponseUpdateInput = {
-      title: payload.title ? this.normalizeRequiredString(payload.title, "title") : undefined,
-      content: payload.content ? this.normalizeRequiredString(payload.content, "content") : undefined,
-      tags: payload.tags ? payload.tags.map((tag) => tag.trim()).filter(Boolean) : undefined,
-      shortcut: payload.shortcut !== undefined ? this.normalizeOptionalString(payload.shortcut) : undefined,
+      title: payload.title
+        ? this.normalizeRequiredString(payload.title, "title")
+        : undefined,
+      content: payload.content
+        ? this.normalizeRequiredString(payload.content, "content")
+        : undefined,
+      tags: payload.tags
+        ? payload.tags.map((tag) => tag.trim()).filter(Boolean)
+        : undefined,
+      shortcut:
+        payload.shortcut !== undefined
+          ? this.normalizeOptionalString(payload.shortcut)
+          : undefined,
       isActive: payload.isActive
     };
 
@@ -86,8 +112,15 @@ export class CannedResponsesService {
     });
   }
 
-  async deleteResponse(userId: string, responseId: string, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+  async deleteResponse(
+    userId: string,
+    responseId: string,
+    workspaceId?: string
+  ) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
     const response = await this.prisma.cannedResponse.findFirst({
       where: { id: responseId, workspaceId: resolvedWorkspaceId }
     });
@@ -137,7 +170,10 @@ export class CannedResponsesService {
     }
   }
 
-  private normalizeRequiredString(value: string | undefined | null, field: string) {
+  private normalizeRequiredString(
+    value: string | undefined | null,
+    field: string
+  ) {
     const trimmed = value?.trim();
     if (!trimmed) {
       throw new BadRequestException(`${field} é obrigatório.`);

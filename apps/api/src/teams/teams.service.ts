@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException
+} from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { AddTeamMemberDto } from "./dto/add-team-member.dto";
 import { CreateTeamDto } from "./dto/create-team.dto";
@@ -10,7 +14,10 @@ export class TeamsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async listTeams(userId: string, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
 
     return this.prisma.team.findMany({
       where: { workspaceId: resolvedWorkspaceId },
@@ -28,8 +35,15 @@ export class TeamsService {
     });
   }
 
-  async createTeam(userId: string, payload: CreateTeamDto, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+  async createTeam(
+    userId: string,
+    payload: CreateTeamDto,
+    workspaceId?: string
+  ) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
     const name = this.normalizeRequiredString(payload.name, "name");
     const description = this.normalizeOptionalString(payload.description);
 
@@ -42,8 +56,16 @@ export class TeamsService {
     });
   }
 
-  async updateTeam(userId: string, teamId: string, payload: UpdateTeamDto, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+  async updateTeam(
+    userId: string,
+    teamId: string,
+    payload: UpdateTeamDto,
+    workspaceId?: string
+  ) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
     const team = await this.prisma.team.findFirst({
       where: { id: teamId, workspaceId: resolvedWorkspaceId }
     });
@@ -67,7 +89,10 @@ export class TeamsService {
   }
 
   async deleteTeam(userId: string, teamId: string, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
     const team = await this.prisma.team.findFirst({
       where: { id: teamId, workspaceId: resolvedWorkspaceId }
     });
@@ -83,8 +108,16 @@ export class TeamsService {
     return { success: true };
   }
 
-  async addMember(userId: string, teamId: string, payload: AddTeamMemberDto, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+  async addMember(
+    userId: string,
+    teamId: string,
+    payload: AddTeamMemberDto,
+    workspaceId?: string
+  ) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
     const team = await this.prisma.team.findFirst({
       where: { id: teamId, workspaceId: resolvedWorkspaceId }
     });
@@ -117,7 +150,10 @@ export class TeamsService {
     payload: UpdateTeamMemberDto,
     workspaceId?: string
   ) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
 
     const member = await this.prisma.teamMember.findFirst({
       where: {
@@ -157,8 +193,16 @@ export class TeamsService {
     });
   }
 
-  async removeMember(userId: string, teamId: string, memberId: string, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+  async removeMember(
+    userId: string,
+    teamId: string,
+    memberId: string,
+    workspaceId?: string
+  ) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
 
     const member = await this.prisma.teamMember.findFirst({
       where: {
@@ -215,7 +259,10 @@ export class TeamsService {
     }
   }
 
-  private normalizeRequiredString(value: string | undefined | null, field: string) {
+  private normalizeRequiredString(
+    value: string | undefined | null,
+    field: string
+  ) {
     const trimmed = value?.trim();
     if (!trimmed) {
       throw new BadRequestException(`${field} é obrigatório.`);

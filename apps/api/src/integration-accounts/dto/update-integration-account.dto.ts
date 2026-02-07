@@ -1,4 +1,7 @@
-import { IntegrationAccountStatus, IntegrationAccountType } from "@prisma/client";
+import {
+  IntegrationAccountStatus,
+  IntegrationAccountType
+} from "@prisma/client";
 import { IsEnum, IsNotEmpty, IsOptional, IsString } from "class-validator";
 
 export class UpdateIntegrationAccountDto {

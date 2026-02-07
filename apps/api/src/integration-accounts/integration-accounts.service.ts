@@ -1,5 +1,12 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { IntegrationAccountStatus, IntegrationAccountType } from "@prisma/client";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException
+} from "@nestjs/common";
+import {
+  IntegrationAccountStatus,
+  IntegrationAccountType
+} from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateIntegrationAccountDto } from "./dto/create-integration-account.dto";
 import { UpdateIntegrationAccountDto } from "./dto/update-integration-account.dto";
@@ -13,7 +20,10 @@ export class IntegrationAccountsService {
   ) {}
 
   async listAccounts(userId: string, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
 
     const accounts = await this.prisma.integrationAccount.findMany({
       where: { workspaceId: resolvedWorkspaceId },
@@ -33,11 +43,20 @@ export class IntegrationAccountsService {
     }));
   }
 
-  async createAccount(userId: string, payload: CreateIntegrationAccountDto, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+  async createAccount(
+    userId: string,
+    payload: CreateIntegrationAccountDto,
+    workspaceId?: string
+  ) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
     const name = this.normalizeRequiredString(payload.name, "name");
     const type = this.parseType(payload.type);
-    const status = payload.status ? this.parseStatus(payload.status) : IntegrationAccountStatus.ACTIVE;
+    const status = payload.status
+      ? this.parseStatus(payload.status)
+      : IntegrationAccountStatus.ACTIVE;
 
     return this.prisma.integrationAccount.create({
       data: {
@@ -49,8 +68,16 @@ export class IntegrationAccountsService {
     });
   }
 
-  async updateAccount(userId: string, accountId: string, payload: UpdateIntegrationAccountDto, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+  async updateAccount(
+    userId: string,
+    accountId: string,
+    payload: UpdateIntegrationAccountDto,
+    workspaceId?: string
+  ) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
 
     const account = await this.prisma.integrationAccount.findFirst({
       where: { id: accountId, workspaceId: resolvedWorkspaceId }
@@ -60,9 +87,16 @@ export class IntegrationAccountsService {
       throw new NotFoundException("Integração não encontrada.");
     }
 
-    const name = payload.name !== undefined ? this.normalizeRequiredString(payload.name, "name") : undefined;
-    const type = payload.type !== undefined ? this.parseType(payload.type) : undefined;
-    const status = payload.status !== undefined ? this.parseStatus(payload.status) : undefined;
+    const name =
+      payload.name !== undefined
+        ? this.normalizeRequiredString(payload.name, "name")
+        : undefined;
+    const type =
+      payload.type !== undefined ? this.parseType(payload.type) : undefined;
+    const status =
+      payload.status !== undefined
+        ? this.parseStatus(payload.status)
+        : undefined;
 
     return this.prisma.integrationAccount.update({
       where: { id: account.id },
@@ -75,7 +109,10 @@ export class IntegrationAccountsService {
   }
 
   async deleteAccount(userId: string, accountId: string, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
 
     const account = await this.prisma.integrationAccount.findFirst({
       where: { id: accountId, workspaceId: resolvedWorkspaceId }
@@ -92,8 +129,16 @@ export class IntegrationAccountsService {
     return { success: true };
   }
 
-  async upsertSecret(userId: string, accountId: string, payload: Record<string, string>, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+  async upsertSecret(
+    userId: string,
+    accountId: string,
+    payload: Record<string, string>,
+    workspaceId?: string
+  ) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
 
     const account = await this.prisma.integrationAccount.findFirst({
       where: { id: accountId, workspaceId: resolvedWorkspaceId }
@@ -104,7 +149,8 @@ export class IntegrationAccountsService {
     }
 
     const normalizedPayload = this.normalizePayload(payload);
-    const encryptedPayload = this.integrationCryptoService.encrypt(normalizedPayload);
+    const encryptedPayload =
+      this.integrationCryptoService.encrypt(normalizedPayload);
 
     await this.prisma.integrationSecret.upsert({
       where: { integrationAccountId: account.id },
@@ -120,28 +166,63 @@ export class IntegrationAccountsService {
     return { success: true };
   }
 
-  async requestWhatsappQr(userId: string, accountId: string, workspaceId?: string) {
-    const { account, secrets } = await this.getAccountWithSecrets(userId, accountId, workspaceId);
+  async requestWhatsappQr(
+    userId: string,
+    accountId: string,
+    workspaceId?: string
+  ) {
+    const { account, secrets } = await this.getAccountWithSecrets(
+      userId,
+      accountId,
+      workspaceId
+    );
 
     if (account.type !== IntegrationAccountType.WHATSAPP) {
       throw new BadRequestException("Integração não é do tipo WhatsApp.");
     }
 
-    return this.callWhatsappGateway(account.id, secrets, "qrEndpoint", "/whatsapp/qr");
+    return this.callWhatsappGateway(
+      account.id,
+      secrets,
+      "qrEndpoint",
+      "/whatsapp/qr"
+    );
   }
 
-  async getWhatsappStatus(userId: string, accountId: string, workspaceId?: string) {
-    const { account, secrets } = await this.getAccountWithSecrets(userId, accountId, workspaceId);
+  async getWhatsappStatus(
+    userId: string,
+    accountId: string,
+    workspaceId?: string
+  ) {
+    const { account, secrets } = await this.getAccountWithSecrets(
+      userId,
+      accountId,
+      workspaceId
+    );
 
     if (account.type !== IntegrationAccountType.WHATSAPP) {
       throw new BadRequestException("Integração não é do tipo WhatsApp.");
     }
 
-    return this.callWhatsappGateway(account.id, secrets, "statusEndpoint", "/whatsapp/status");
+    return this.callWhatsappGateway(
+      account.id,
+      secrets,
+      "statusEndpoint",
+      "/whatsapp/status"
+    );
   }
 
-  async requestWhatsappSmsCode(userId: string, accountId: string, phone: string, workspaceId?: string) {
-    const { account, secrets } = await this.getAccountWithSecrets(userId, accountId, workspaceId);
+  async requestWhatsappSmsCode(
+    userId: string,
+    accountId: string,
+    phone: string,
+    workspaceId?: string
+  ) {
+    const { account, secrets } = await this.getAccountWithSecrets(
+      userId,
+      accountId,
+      workspaceId
+    );
 
     if (account.type !== IntegrationAccountType.WHATSAPP) {
       throw new BadRequestException("Integração não é do tipo WhatsApp.");
@@ -165,7 +246,11 @@ export class IntegrationAccountsService {
     code: string,
     workspaceId?: string
   ) {
-    const { account, secrets } = await this.getAccountWithSecrets(userId, accountId, workspaceId);
+    const { account, secrets } = await this.getAccountWithSecrets(
+      userId,
+      accountId,
+      workspaceId
+    );
 
     if (account.type !== IntegrationAccountType.WHATSAPP) {
       throw new BadRequestException("Integração não é do tipo WhatsApp.");
@@ -183,8 +268,15 @@ export class IntegrationAccountsService {
     );
   }
 
-  private async getAccountWithSecrets(userId: string, accountId: string, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+  private async getAccountWithSecrets(
+    userId: string,
+    accountId: string,
+    workspaceId?: string
+  ) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
 
     const account = await this.prisma.integrationAccount.findFirst({
       where: { id: accountId, workspaceId: resolvedWorkspaceId }
@@ -206,7 +298,9 @@ export class IntegrationAccountsService {
       throw new BadRequestException("Segredos da integração não configurados.");
     }
 
-    const secrets = this.integrationCryptoService.decrypt(secret.encryptedPayload);
+    const secrets = this.integrationCryptoService.decrypt(
+      secret.encryptedPayload
+    );
 
     return { account, secrets };
   }
@@ -232,10 +326,15 @@ export class IntegrationAccountsService {
 
     if (!response.ok) {
       const errorBody = await response.text();
-      throw new BadRequestException(`Falha ao consultar gateway do WhatsApp: ${errorBody}`);
+      throw new BadRequestException(
+        `Falha ao consultar gateway do WhatsApp: ${errorBody}`
+      );
     }
 
-    const data = (await response.json()) as { qr?: string | null; status?: string | null };
+    const data = (await response.json()) as {
+      qr?: string | null;
+      status?: string | null;
+    };
 
     return {
       qr: data.qr ?? null,
@@ -267,7 +366,9 @@ export class IntegrationAccountsService {
 
     if (!response.ok) {
       const errorBody = await response.text();
-      throw new BadRequestException(`Falha ao consultar gateway do WhatsApp: ${errorBody}`);
+      throw new BadRequestException(
+        `Falha ao consultar gateway do WhatsApp: ${errorBody}`
+      );
     }
 
     try {
@@ -282,15 +383,18 @@ export class IntegrationAccountsService {
       throw new BadRequestException("Payload inválido.");
     }
 
-    const entries = Object.entries(payload).reduce<Record<string, string>>((acc, [key, value]) => {
-      const normalizedKey = key.trim();
-      const normalizedValue = value?.toString().trim();
-      if (!normalizedKey || !normalizedValue) {
+    const entries = Object.entries(payload).reduce<Record<string, string>>(
+      (acc, [key, value]) => {
+        const normalizedKey = key.trim();
+        const normalizedValue = value?.toString().trim();
+        if (!normalizedKey || !normalizedValue) {
+          return acc;
+        }
+        acc[normalizedKey] = normalizedValue;
         return acc;
-      }
-      acc[normalizedKey] = normalizedValue;
-      return acc;
-    }, {});
+      },
+      {}
+    );
 
     if (Object.keys(entries).length === 0) {
       throw new BadRequestException("Payload inválido.");
@@ -334,20 +438,31 @@ export class IntegrationAccountsService {
   }
 
   private parseType(type: IntegrationAccountType | string) {
-    if (!Object.values(IntegrationAccountType).includes(type as IntegrationAccountType)) {
+    if (
+      !Object.values(IntegrationAccountType).includes(
+        type as IntegrationAccountType
+      )
+    ) {
       throw new BadRequestException("Tipo de integração inválido.");
     }
     return type as IntegrationAccountType;
   }
 
   private parseStatus(status: IntegrationAccountStatus | string) {
-    if (!Object.values(IntegrationAccountStatus).includes(status as IntegrationAccountStatus)) {
+    if (
+      !Object.values(IntegrationAccountStatus).includes(
+        status as IntegrationAccountStatus
+      )
+    ) {
       throw new BadRequestException("Status de integração inválido.");
     }
     return status as IntegrationAccountStatus;
   }
 
-  private normalizeRequiredString(value: string | undefined | null, field: string) {
+  private normalizeRequiredString(
+    value: string | undefined | null,
+    field: string
+  ) {
     const trimmed = value?.trim();
     if (!trimmed) {
       throw new BadRequestException(`${field} é obrigatório.`);

@@ -5,8 +5,15 @@ import { PrismaService } from "../prisma/prisma.service";
 export class GlobalSearchService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async search(userId: string, query: string | undefined, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+  async search(
+    userId: string,
+    query: string | undefined,
+    workspaceId?: string
+  ) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
     const normalizedQuery = query?.trim();
 
     if (!normalizedQuery) {
@@ -22,76 +29,90 @@ export class GlobalSearchService {
       };
     }
 
-    const [contacts, conversations, messages, deals, tasks] = await Promise.all([
-      this.prisma.contact.findMany({
-        where: {
-          workspaceId: resolvedWorkspaceId,
-          OR: [
-            { name: { contains: normalizedQuery, mode: "insensitive" } },
-            { email: { contains: normalizedQuery, mode: "insensitive" } },
-            { phone: { contains: normalizedQuery, mode: "insensitive" } }
-          ]
-        },
-        orderBy: { updatedAt: "desc" },
-        take: 5
-      }),
-      this.prisma.conversation.findMany({
-        where: {
-          workspaceId: resolvedWorkspaceId,
-          OR: [
-            { channel: { contains: normalizedQuery, mode: "insensitive" } },
-            { contact: { name: { contains: normalizedQuery, mode: "insensitive" } } },
-            { contact: { email: { contains: normalizedQuery, mode: "insensitive" } } },
-            { contact: { phone: { contains: normalizedQuery, mode: "insensitive" } } }
-          ]
-        },
-        include: {
-          contact: {
-            select: { id: true, name: true, email: true, phone: true }
+    const [contacts, conversations, messages, deals, tasks] = await Promise.all(
+      [
+        this.prisma.contact.findMany({
+          where: {
+            workspaceId: resolvedWorkspaceId,
+            OR: [
+              { name: { contains: normalizedQuery, mode: "insensitive" } },
+              { email: { contains: normalizedQuery, mode: "insensitive" } },
+              { phone: { contains: normalizedQuery, mode: "insensitive" } }
+            ]
           },
-          assignedToUser: {
-            select: { id: true, name: true, email: true }
-          }
-        },
-        orderBy: [{ lastMessageAt: "desc" }, { createdAt: "desc" }],
-        take: 5
-      }),
-      this.prisma.message.findMany({
-        where: {
-          workspaceId: resolvedWorkspaceId,
-          text: { contains: normalizedQuery, mode: "insensitive" }
-        },
-        include: {
-          conversation: {
-            select: {
-              id: true,
-              channel: true,
-              contact: {
-                select: { id: true, name: true, email: true, phone: true }
+          orderBy: { updatedAt: "desc" },
+          take: 5
+        }),
+        this.prisma.conversation.findMany({
+          where: {
+            workspaceId: resolvedWorkspaceId,
+            OR: [
+              { channel: { contains: normalizedQuery, mode: "insensitive" } },
+              {
+                contact: {
+                  name: { contains: normalizedQuery, mode: "insensitive" }
+                }
+              },
+              {
+                contact: {
+                  email: { contains: normalizedQuery, mode: "insensitive" }
+                }
+              },
+              {
+                contact: {
+                  phone: { contains: normalizedQuery, mode: "insensitive" }
+                }
+              }
+            ]
+          },
+          include: {
+            contact: {
+              select: { id: true, name: true, email: true, phone: true }
+            },
+            assignedToUser: {
+              select: { id: true, name: true, email: true }
+            }
+          },
+          orderBy: [{ lastMessageAt: "desc" }, { createdAt: "desc" }],
+          take: 5
+        }),
+        this.prisma.message.findMany({
+          where: {
+            workspaceId: resolvedWorkspaceId,
+            text: { contains: normalizedQuery, mode: "insensitive" }
+          },
+          include: {
+            conversation: {
+              select: {
+                id: true,
+                channel: true,
+                contact: {
+                  select: { id: true, name: true, email: true, phone: true }
+                }
               }
             }
-          }
-        },
-        orderBy: { sentAt: "desc" },
-        take: 5
-      }),
-      this.prisma.deal.findMany({
-        where: {
-          workspaceId: resolvedWorkspaceId,
-          title: { contains: normalizedQuery, mode: "insensitive" }
-        },
-        orderBy: { updatedAt: "desc" },
-        take: 5
-      }),
-      this.prisma.task.findMany({
-        where: {
-          workspaceId: resolvedWorkspaceId,
-          title: { contains: normalizedQuery, mode: "insensitive" }
-        },
-        orderBy: { updatedAt: "desc" },
-        take: 5
-      })
-    ]);
+          },
+          orderBy: { sentAt: "desc" },
+          take: 5
+        }),
+        this.prisma.deal.findMany({
+          where: {
+            workspaceId: resolvedWorkspaceId,
+            title: { contains: normalizedQuery, mode: "insensitive" }
+          },
+          orderBy: { updatedAt: "desc" },
+          take: 5
+        }),
+        this.prisma.task.findMany({
+          where: {
+            workspaceId: resolvedWorkspaceId,
+            title: { contains: normalizedQuery, mode: "insensitive" }
+          },
+          orderBy: { updatedAt: "desc" },
+          take: 5
+        })
+      ]
+    );
 
     return {
       query: normalizedQuery,

@@ -1,4 +1,15 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Res, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Res,
+  UseGuards
+} from "@nestjs/common";
 import { Response } from "express";
 import { AuditEntity } from "../audit-logs/audit-log.decorator";
 import { AccessTokenGuard } from "../auth/access-token.guard";
@@ -25,7 +36,10 @@ export class WorkspacesController {
       name: request.body?.name
     })
   })
-  async createWorkspace(@CurrentUser() user: AuthUser, @Body() body: CreateWorkspaceDto) {
+  async createWorkspace(
+    @CurrentUser() user: AuthUser,
+    @Body() body: CreateWorkspaceDto
+  ) {
     return this.workspacesService.createWorkspace(user.id, body.name);
   }
 
@@ -40,7 +54,10 @@ export class WorkspacesController {
   }
 
   @Post(":id/switch")
-  async switchWorkspace(@CurrentUser() user: AuthUser, @Param("id") workspaceId: string) {
+  async switchWorkspace(
+    @CurrentUser() user: AuthUser,
+    @Param("id") workspaceId: string
+  ) {
     return this.workspacesService.switchWorkspace(user.id, workspaceId);
   }
 
@@ -64,7 +81,11 @@ export class WorkspacesController {
     @Param("id") workspaceId: string,
     @Body() body: UpdateWorkspaceBrandingDto
   ) {
-    return this.workspacesService.updateWorkspaceBranding(user.id, workspaceId, body);
+    return this.workspacesService.updateWorkspaceBranding(
+      user.id,
+      workspaceId,
+      body
+    );
   }
 
   @Patch(":id/members/:memberId/policies")
@@ -109,7 +130,10 @@ export class WorkspacesController {
     @Query() query: ExportWorkspaceQueryDto,
     @Res({ passthrough: true }) res: Response
   ) {
-    const exportData = await this.workspacesService.exportWorkspaceData(user.id, workspaceId);
+    const exportData = await this.workspacesService.exportWorkspaceData(
+      user.id,
+      workspaceId
+    );
     const format = query.format ?? "json";
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
 
@@ -119,14 +143,19 @@ export class WorkspacesController {
       const filename = `workspace-${workspaceId}-export-${timestamp}.zip`;
 
       res.setHeader("Content-Type", "application/zip");
-      res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${filename}"`
+      );
 
       return new Promise<void>((resolve, reject) => {
         const archive = archiver("zip", { zlib: { level: 9 } });
         archive.on("error", (error) => reject(error));
         res.on("close", () => resolve());
         archive.pipe(res);
-        archive.append(JSON.stringify(exportData, null, 2), { name: "workspace-export.json" });
+        archive.append(JSON.stringify(exportData, null, 2), {
+          name: "workspace-export.json"
+        });
         archive.finalize();
       });
     }
@@ -145,7 +174,9 @@ export class WorkspacesController {
     workspaceId: { source: "param", key: "id" },
     metadata: (request, response) => ({
       motivo: request.body?.reason,
-      retentionEndsAt: (response as { retentionEndsAt?: string | null } | undefined)?.retentionEndsAt ?? null
+      retentionEndsAt:
+        (response as { retentionEndsAt?: string | null } | undefined)
+          ?.retentionEndsAt ?? null
     })
   })
   async requestWorkspaceDeletion(
@@ -153,6 +184,10 @@ export class WorkspacesController {
     @Param("id") workspaceId: string,
     @Body() body: RequestWorkspaceDeletionDto
   ) {
-    return this.workspacesService.requestWorkspaceDeletion(user.id, workspaceId, body.reason);
+    return this.workspacesService.requestWorkspaceDeletion(
+      user.id,
+      workspaceId,
+      body.reason
+    );
   }
 }

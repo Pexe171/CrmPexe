@@ -1,4 +1,12 @@
-import { BadRequestException, Controller, Headers, NotFoundException, Param, Post, UseGuards } from "@nestjs/common";
+import {
+  BadRequestException,
+  Controller,
+  Headers,
+  NotFoundException,
+  Param,
+  Post,
+  UseGuards
+} from "@nestjs/common";
 import { MessageDirection } from "@prisma/client";
 import { AccessTokenGuard } from "../auth/access-token.guard";
 import { CurrentUser } from "../auth/current-user.decorator";
@@ -23,7 +31,10 @@ export class AiController {
     @Param("id") conversationId: string,
     @Headers("x-workspace-id") workspaceId?: string
   ) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(user.id, workspaceId);
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      user.id,
+      workspaceId
+    );
 
     const conversation = await this.prisma.conversation.findFirst({
       where: { id: conversationId, workspaceId: resolvedWorkspaceId },
@@ -54,11 +65,14 @@ export class AiController {
       }))
       .filter((message) => message.content.trim().length > 0);
 
-    const summaryResult = await this.aiService.summarizeConversation(resolvedWorkspaceId, {
-      conversationId,
-      messages,
-      locale: "pt-BR"
-    });
+    const summaryResult = await this.aiService.summarizeConversation(
+      resolvedWorkspaceId,
+      {
+        conversationId,
+        messages,
+        locale: "pt-BR"
+      }
+    );
 
     const summary = await this.prisma.conversationSummary.create({
       data: {

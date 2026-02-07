@@ -1,4 +1,14 @@
-import { Body, Controller, Delete, Get, Headers, Param, Patch, Post, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Headers,
+  Param,
+  Patch,
+  Post,
+  UseGuards
+} from "@nestjs/common";
 import { AuditEntity } from "../audit-logs/audit-log.decorator";
 import { AccessTokenGuard } from "../auth/access-token.guard";
 import { CurrentUser } from "../auth/current-user.decorator";
@@ -13,7 +23,10 @@ export class CompaniesController {
   constructor(private readonly companiesService: CompaniesService) {}
 
   @Get()
-  async listCompanies(@CurrentUser() user: AuthUser, @Headers("x-workspace-id") workspaceId?: string) {
+  async listCompanies(
+    @CurrentUser() user: AuthUser,
+    @Headers("x-workspace-id") workspaceId?: string
+  ) {
     return this.companiesService.listCompanies(user.id, workspaceId);
   }
 
@@ -60,7 +73,12 @@ export class CompaniesController {
     @Body() body: UpdateCompanyDto,
     @Headers("x-workspace-id") workspaceId?: string
   ) {
-    return this.companiesService.updateCompany(user.id, companyId, body, workspaceId);
+    return this.companiesService.updateCompany(
+      user.id,
+      companyId,
+      body,
+      workspaceId
+    );
   }
 
   @Delete(":id")

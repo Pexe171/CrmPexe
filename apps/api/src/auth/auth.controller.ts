@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Headers, Post, Req, Res, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  Post,
+  Req,
+  Res,
+  UseGuards
+} from "@nestjs/common";
 import { UserRole } from "@prisma/client";
 import { Request, Response } from "express";
 import { RateLimit } from "../common/rate-limit/rate-limit.decorator";
@@ -50,15 +59,26 @@ export class AuthController {
       ip: this.resolveClientIp(req),
       userAgent: this.resolveUserAgent(req)
     });
-    this.setAuthCookies(res, result.tokens.accessToken, result.tokens.refreshToken);
+    this.setAuthCookies(
+      res,
+      result.tokens.accessToken,
+      result.tokens.refreshToken
+    );
     return result.user;
   }
 
   @Post("refresh")
-  async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+  async refresh(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response
+  ) {
     const refreshToken = req.cookies?.[this.authService.refreshTokenCookieName];
     const result = await this.authService.refresh(refreshToken);
-    this.setAuthCookies(res, result.tokens.accessToken, result.tokens.refreshToken);
+    this.setAuthCookies(
+      res,
+      result.tokens.accessToken,
+      result.tokens.refreshToken
+    );
     return result.user;
   }
 
@@ -77,7 +97,10 @@ export class AuthController {
     @CurrentUser() user: AuthUser,
     @Headers("x-workspace-id") workspaceId?: string
   ) {
-    return this.authService.revokeRefreshTokensByWorkspace(user.id, workspaceId);
+    return this.authService.revokeRefreshTokensByWorkspace(
+      user.id,
+      workspaceId
+    );
   }
 
   @Get("me")
@@ -95,7 +118,11 @@ export class AuthController {
     };
   }
 
-  private setAuthCookies(res: Response, accessToken: string, refreshToken: string) {
+  private setAuthCookies(
+    res: Response,
+    accessToken: string,
+    refreshToken: string
+  ) {
     const isProduction = process.env.NODE_ENV === "production";
     const baseOptions = {
       httpOnly: true,

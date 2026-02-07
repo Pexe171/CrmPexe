@@ -55,7 +55,11 @@ export class AutomationsController {
     @Param("id") templateId: string,
     @Body() body: CreateAutomationTemplateVersionDto
   ) {
-    return this.automationsService.createTemplateVersion(user.id, templateId, body);
+    return this.automationsService.createTemplateVersion(
+      user.id,
+      templateId,
+      body
+    );
   }
 
   @Post("automation-templates/:id/install")

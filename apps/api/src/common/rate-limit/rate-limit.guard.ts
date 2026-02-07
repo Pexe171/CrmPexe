@@ -51,7 +51,10 @@ export class RateLimitGuard implements CanActivate {
 
       if (entry.label) {
         response.setHeader(`x-rate-limit-limit-${entry.label}`, options.max);
-        response.setHeader(`x-rate-limit-remaining-${entry.label}`, result.remaining);
+        response.setHeader(
+          `x-rate-limit-remaining-${entry.label}`,
+          result.remaining
+        );
         response.setHeader(`x-rate-limit-reset-${entry.label}`, result.resetAt);
       }
 

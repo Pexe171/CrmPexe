@@ -71,7 +71,8 @@ export class BillingService {
       orderBy: { updatedAt: "desc" }
     });
 
-    const status = (subscription?.status ?? "NO_SUBSCRIPTION") as WorkspaceBillingStatus;
+    const status = (subscription?.status ??
+      "NO_SUBSCRIPTION") as WorkspaceBillingStatus;
     const isDelinquent = status === "REJECTED" || status === "CANCELED";
 
     return {
@@ -122,12 +123,16 @@ export class BillingService {
     }
 
     const signatureBase = `${timestamp}.${requestId}.${payloadId}`;
-    const expected = createHmac("sha256", secret).update(signatureBase).digest("hex");
+    const expected = createHmac("sha256", secret)
+      .update(signatureBase)
+      .digest("hex");
 
     return this.safeCompare(expected, parsedSignature.v1);
   }
 
-  private parseSignature(signature: string): { ts?: string; v1?: string } | null {
+  private parseSignature(
+    signature: string
+  ): { ts?: string; v1?: string } | null {
     const parts = signature.split(",");
     const entries = parts
       .map((part) => part.trim().split("="))

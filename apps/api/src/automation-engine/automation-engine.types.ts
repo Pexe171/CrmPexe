@@ -1,4 +1,6 @@
-export type AutomationTrigger = "message.inbound.created" | "deal.stage.changed";
+export type AutomationTrigger =
+  | "message.inbound.created"
+  | "deal.stage.changed";
 
 export interface MessageInboundCreatedPayload {
   workspaceId: string;

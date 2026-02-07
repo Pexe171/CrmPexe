@@ -1,4 +1,13 @@
-import { Body, Controller, Delete, Get, Headers, Param, Post, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Headers,
+  Param,
+  Post,
+  UseGuards
+} from "@nestjs/common";
 import { AccessTokenGuard } from "../auth/access-token.guard";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { AuthUser } from "../auth/auth.types";
@@ -8,10 +17,15 @@ import { MessageTemplatesService } from "./message-templates.service";
 @Controller("message-templates")
 @UseGuards(AccessTokenGuard)
 export class MessageTemplatesController {
-  constructor(private readonly messageTemplatesService: MessageTemplatesService) {}
+  constructor(
+    private readonly messageTemplatesService: MessageTemplatesService
+  ) {}
 
   @Get()
-  async listTemplates(@CurrentUser() user: AuthUser, @Headers("x-workspace-id") workspaceId?: string) {
+  async listTemplates(
+    @CurrentUser() user: AuthUser,
+    @Headers("x-workspace-id") workspaceId?: string
+  ) {
     return this.messageTemplatesService.listTemplates(user.id, workspaceId);
   }
 
@@ -21,7 +35,11 @@ export class MessageTemplatesController {
     @Body() body: CreateMessageTemplateDto,
     @Headers("x-workspace-id") workspaceId?: string
   ) {
-    return this.messageTemplatesService.createTemplate(user.id, body, workspaceId);
+    return this.messageTemplatesService.createTemplate(
+      user.id,
+      body,
+      workspaceId
+    );
   }
 
   @Delete(":id")
@@ -30,6 +48,10 @@ export class MessageTemplatesController {
     @Param("id") templateId: string,
     @Headers("x-workspace-id") workspaceId?: string
   ) {
-    return this.messageTemplatesService.deleteTemplate(user.id, templateId, workspaceId);
+    return this.messageTemplatesService.deleteTemplate(
+      user.id,
+      templateId,
+      workspaceId
+    );
   }
 }

@@ -25,12 +25,17 @@ export class WhatsappProvider implements IChannelProvider {
 
   constructor(private readonly externalCallLogger: ExternalCallLoggerService) {}
 
-  async sendMessage(input: ChannelSendMessageInput, integration: ChannelIntegration): Promise<ChannelSendMessageResult> {
+  async sendMessage(
+    input: ChannelSendMessageInput,
+    integration: ChannelIntegration
+  ): Promise<ChannelSendMessageResult> {
     const apiUrl = integration.secrets.apiUrl;
     const apiToken = integration.secrets.apiToken;
 
     if (!apiUrl || !apiToken) {
-      throw new BadRequestException("Integração do WhatsApp sem apiUrl ou apiToken.");
+      throw new BadRequestException(
+        "Integração do WhatsApp sem apiUrl ou apiToken."
+      );
     }
 
     const payload = {
@@ -130,7 +135,8 @@ export class WhatsappProvider implements IChannelProvider {
     if (!expectedToken) {
       return true;
     }
-    const headerToken = headers["x-whatsapp-token"] ?? headers["x-webhook-token"];
+    const headerToken =
+      headers["x-whatsapp-token"] ?? headers["x-webhook-token"];
     return headerToken === expectedToken;
   }
 

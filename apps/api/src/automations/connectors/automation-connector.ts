@@ -17,5 +17,7 @@ export type AutomationConnectorPayload = {
 export interface AutomationConnector {
   key: string;
   label: string;
-  provision(payload: AutomationConnectorPayload): Promise<AutomationProvisioningResult>;
+  provision(
+    payload: AutomationConnectorPayload
+  ): Promise<AutomationProvisioningResult>;
 }

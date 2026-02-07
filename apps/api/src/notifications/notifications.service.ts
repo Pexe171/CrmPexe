@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException
+} from "@nestjs/common";
 import { NotificationType, Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 
@@ -12,7 +16,10 @@ export interface NotificationPayload {
   data?: Prisma.InputJsonValue;
 }
 
-export interface NotificationWorkspacePayload extends Omit<NotificationPayload, "userId"> {
+export interface NotificationWorkspacePayload extends Omit<
+  NotificationPayload,
+  "userId"
+> {
   excludeUserIds?: string[];
 }
 
@@ -20,8 +27,15 @@ export interface NotificationWorkspacePayload extends Omit<NotificationPayload, 
 export class NotificationsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async listNotifications(userId: string, workspaceId?: string, unreadOnly?: boolean) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+  async listNotifications(
+    userId: string,
+    workspaceId?: string,
+    unreadOnly?: boolean
+  ) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
     return this.prisma.notification.findMany({
       where: {
         workspaceId: resolvedWorkspaceId,
@@ -32,8 +46,15 @@ export class NotificationsService {
     });
   }
 
-  async markAsRead(userId: string, notificationId: string, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+  async markAsRead(
+    userId: string,
+    notificationId: string,
+    workspaceId?: string
+  ) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
     const notification = await this.prisma.notification.findFirst({
       where: { id: notificationId, workspaceId: resolvedWorkspaceId, userId }
     });

@@ -1,4 +1,15 @@
-import { Body, Controller, Delete, Get, Headers, Param, Patch, Post, Query, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Headers,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards
+} from "@nestjs/common";
 import { TaskStatus } from "@prisma/client";
 import { AuditEntity } from "../audit-logs/audit-log.decorator";
 import { AccessTokenGuard } from "../auth/access-token.guard";
@@ -22,7 +33,11 @@ export class TasksController {
     @Query("dueAfter") dueAfter?: string,
     @Query("assignedToId") assignedToId?: string
   ) {
-    return this.tasksService.listTasks(user.id, { status, dueBefore, dueAfter, assignedToId }, workspaceId);
+    return this.tasksService.listTasks(
+      user.id,
+      { status, dueBefore, dueAfter, assignedToId },
+      workspaceId
+    );
   }
 
   @Post()

@@ -45,8 +45,12 @@ export class DashboardController {
       startDate,
       endDate,
       interval,
-      templatesLimit: Number.isFinite(parsedTemplatesLimit) ? parsedTemplatesLimit : undefined,
-      errosLimit: Number.isFinite(parsedErrosLimit) ? parsedErrosLimit : undefined
+      templatesLimit: Number.isFinite(parsedTemplatesLimit)
+        ? parsedTemplatesLimit
+        : undefined,
+      errosLimit: Number.isFinite(parsedErrosLimit)
+        ? parsedErrosLimit
+        : undefined
     });
   }
 }

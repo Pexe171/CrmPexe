@@ -1,4 +1,15 @@
-import { Body, Controller, Delete, Get, Headers, Param, Patch, Post, Query, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Headers,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards
+} from "@nestjs/common";
 import { AccessTokenGuard } from "../auth/access-token.guard";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { AuthUser } from "../auth/auth.types";
@@ -9,7 +20,9 @@ import { UpdateCustomFieldDefinitionDto } from "./dto/update-custom-field-defini
 @Controller("custom-field-definitions")
 @UseGuards(AccessTokenGuard)
 export class CustomFieldDefinitionsController {
-  constructor(private readonly customFieldDefinitionsService: CustomFieldDefinitionsService) {}
+  constructor(
+    private readonly customFieldDefinitionsService: CustomFieldDefinitionsService
+  ) {}
 
   @Get()
   async listDefinitions(
@@ -17,7 +30,11 @@ export class CustomFieldDefinitionsController {
     @Query("entity") entity?: string,
     @Headers("x-workspace-id") workspaceId?: string
   ) {
-    return this.customFieldDefinitionsService.listDefinitions(user.id, entity, workspaceId);
+    return this.customFieldDefinitionsService.listDefinitions(
+      user.id,
+      entity,
+      workspaceId
+    );
   }
 
   @Post()
@@ -26,7 +43,11 @@ export class CustomFieldDefinitionsController {
     @Body() body: CreateCustomFieldDefinitionDto,
     @Headers("x-workspace-id") workspaceId?: string
   ) {
-    return this.customFieldDefinitionsService.createDefinition(user.id, body, workspaceId);
+    return this.customFieldDefinitionsService.createDefinition(
+      user.id,
+      body,
+      workspaceId
+    );
   }
 
   @Patch(":id")
@@ -36,7 +57,12 @@ export class CustomFieldDefinitionsController {
     @Body() body: UpdateCustomFieldDefinitionDto,
     @Headers("x-workspace-id") workspaceId?: string
   ) {
-    return this.customFieldDefinitionsService.updateDefinition(user.id, definitionId, body, workspaceId);
+    return this.customFieldDefinitionsService.updateDefinition(
+      user.id,
+      definitionId,
+      body,
+      workspaceId
+    );
   }
 
   @Delete(":id")
@@ -45,6 +71,10 @@ export class CustomFieldDefinitionsController {
     @Param("id") definitionId: string,
     @Headers("x-workspace-id") workspaceId?: string
   ) {
-    return this.customFieldDefinitionsService.deleteDefinition(user.id, definitionId, workspaceId);
+    return this.customFieldDefinitionsService.deleteDefinition(
+      user.id,
+      definitionId,
+      workspaceId
+    );
   }
 }

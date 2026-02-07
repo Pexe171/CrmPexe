@@ -10,6 +10,10 @@ import { MockAutomationConnector } from "./connectors/mock-automation-connector.
 @Module({
   imports: [AuthModule, N8nModule, WorkspaceVariablesModule],
   controllers: [AutomationsController],
-  providers: [AutomationsService, AutomationConnectorsService, MockAutomationConnector]
+  providers: [
+    AutomationsService,
+    AutomationConnectorsService,
+    MockAutomationConnector
+  ]
 })
 export class AutomationsModule {}

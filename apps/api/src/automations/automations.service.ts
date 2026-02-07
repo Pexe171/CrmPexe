@@ -199,7 +199,10 @@ export class AutomationsService {
       payload.versionId,
       payload.version
     );
-    const templateSnapshot = this.getTemplateSnapshot(template, templateVersion);
+    const templateSnapshot = this.getTemplateSnapshot(
+      template,
+      templateVersion
+    );
 
     const configJson = this.normalizeJson(
       payload.configJson ?? {},
@@ -397,7 +400,10 @@ export class AutomationsService {
     const [items, total] = await Promise.all([
       this.prisma.automationInstance.findMany({
         where,
-        include: { template: { include: { currentVersion: true } }, templateVersion: true },
+        include: {
+          template: { include: { currentVersion: true } },
+          templateVersion: true
+        },
         orderBy: { createdAt: "desc" },
         skip,
         take: safePerPage
@@ -427,7 +433,10 @@ export class AutomationsService {
     );
     const instance = await this.prisma.automationInstance.findFirst({
       where: { id: instanceId, workspaceId: resolvedWorkspaceId },
-      include: { template: { include: { currentVersion: true } }, templateVersion: true }
+      include: {
+        template: { include: { currentVersion: true } },
+        templateVersion: true
+      }
     });
 
     if (!instance) {
@@ -524,7 +533,11 @@ export class AutomationsService {
       }
     });
 
-    return this.installAutomationInstance(userId, instance.id, resolvedWorkspaceId);
+    return this.installAutomationInstance(
+      userId,
+      instance.id,
+      resolvedWorkspaceId
+    );
   }
 
   async enableAutomation(
@@ -596,7 +609,11 @@ export class AutomationsService {
     instance: {
       id: string;
       workspaceId: string;
-      template: { name: string; definitionJson: Prisma.JsonValue; currentVersion?: { definitionJson: Prisma.JsonValue } | null };
+      template: {
+        name: string;
+        definitionJson: Prisma.JsonValue;
+        currentVersion?: { definitionJson: Prisma.JsonValue } | null;
+      };
       templateVersion?: { definitionJson: Prisma.JsonValue } | null;
       configJson: Prisma.JsonValue;
     },
@@ -630,7 +647,10 @@ export class AutomationsService {
   }
 
   private resolveDefinitionJson(instance: {
-    template: { definitionJson: Prisma.JsonValue; currentVersion?: { definitionJson: Prisma.JsonValue } | null };
+    template: {
+      definitionJson: Prisma.JsonValue;
+      currentVersion?: { definitionJson: Prisma.JsonValue } | null;
+    };
     templateVersion?: { definitionJson: Prisma.JsonValue } | null;
   }) {
     if (instance.templateVersion?.definitionJson) {
@@ -645,8 +665,14 @@ export class AutomationsService {
   }
 
   private getTemplateSnapshot(
-    template: { definitionJson: Prisma.JsonValue; requiredIntegrations: string[] },
-    templateVersion?: { definitionJson: Prisma.JsonValue; requiredIntegrations: string[] } | null
+    template: {
+      definitionJson: Prisma.JsonValue;
+      requiredIntegrations: string[];
+    },
+    templateVersion?: {
+      definitionJson: Prisma.JsonValue;
+      requiredIntegrations: string[];
+    } | null
   ) {
     if (templateVersion) {
       return {
@@ -662,14 +688,23 @@ export class AutomationsService {
   }
 
   private async resolveTemplateVersion(
-    template: { id: string; currentVersionId?: string | null; currentVersion?: { id: string; definitionJson: Prisma.JsonValue; requiredIntegrations: string[] } | null },
+    template: {
+      id: string;
+      currentVersionId?: string | null;
+      currentVersion?: {
+        id: string;
+        definitionJson: Prisma.JsonValue;
+        requiredIntegrations: string[];
+      } | null;
+    },
     versionId?: string,
     version?: string
   ) {
     if (versionId) {
-      const versionEntry = await this.prisma.automationTemplateVersion.findFirst({
-        where: { id: versionId, templateId: template.id }
-      });
+      const versionEntry =
+        await this.prisma.automationTemplateVersion.findFirst({
+          where: { id: versionId, templateId: template.id }
+        });
 
       if (!versionEntry) {
         throw new NotFoundException("Versão do template não encontrada.");
@@ -679,9 +714,10 @@ export class AutomationsService {
     }
 
     if (version) {
-      const versionEntry = await this.prisma.automationTemplateVersion.findFirst({
-        where: { templateId: template.id, version }
-      });
+      const versionEntry =
+        await this.prisma.automationTemplateVersion.findFirst({
+          where: { templateId: template.id, version }
+        });
 
       if (!versionEntry) {
         throw new NotFoundException("Versão do template não encontrada.");

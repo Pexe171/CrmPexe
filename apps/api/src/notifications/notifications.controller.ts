@@ -1,4 +1,12 @@
-import { Controller, Get, Headers, Param, Patch, Query, UseGuards } from "@nestjs/common";
+import {
+  Controller,
+  Get,
+  Headers,
+  Param,
+  Patch,
+  Query,
+  UseGuards
+} from "@nestjs/common";
 import { AccessTokenGuard } from "../auth/access-token.guard";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { AuthUser } from "../auth/auth.types";
@@ -16,7 +24,11 @@ export class NotificationsController {
     @Query("unreadOnly") unreadOnly?: string
   ) {
     const resolvedUnreadOnly = unreadOnly === "true";
-    return this.notificationsService.listNotifications(user.id, workspaceId, resolvedUnreadOnly);
+    return this.notificationsService.listNotifications(
+      user.id,
+      workspaceId,
+      resolvedUnreadOnly
+    );
   }
 
   @Patch(":id/read")
@@ -25,6 +37,10 @@ export class NotificationsController {
     @Param("id") notificationId: string,
     @Headers("x-workspace-id") workspaceId?: string
   ) {
-    return this.notificationsService.markAsRead(user.id, notificationId, workspaceId);
+    return this.notificationsService.markAsRead(
+      user.id,
+      notificationId,
+      workspaceId
+    );
   }
 }

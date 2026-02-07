@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException
+} from "@nestjs/common";
 import { IntegrationAccountType } from "@prisma/client";
 import { ExternalCallLoggerService } from "../common/logging/external-call-logger.service";
 import { IntegrationCryptoService } from "../integration-accounts/integration-crypto.service";
@@ -18,10 +22,15 @@ export class N8nClient {
   ) {}
 
   async listWorkflows(integrationAccountId: string) {
-    return this.request(integrationAccountId, "/api/v1/workflows", { method: "GET" });
+    return this.request(integrationAccountId, "/api/v1/workflows", {
+      method: "GET"
+    });
   }
 
-  async createWorkflow(integrationAccountId: string, payload: Record<string, unknown>) {
+  async createWorkflow(
+    integrationAccountId: string,
+    payload: Record<string, unknown>
+  ) {
     const normalizedPayload = this.normalizePayload(payload, "payload");
 
     return this.request(integrationAccountId, "/api/v1/workflows", {
@@ -30,34 +39,64 @@ export class N8nClient {
     });
   }
 
-  async updateWorkflow(integrationAccountId: string, workflowId: string, payload: Record<string, unknown>) {
-    const normalizedWorkflowId = this.normalizeRequiredString(workflowId, "workflowId");
+  async updateWorkflow(
+    integrationAccountId: string,
+    workflowId: string,
+    payload: Record<string, unknown>
+  ) {
+    const normalizedWorkflowId = this.normalizeRequiredString(
+      workflowId,
+      "workflowId"
+    );
     const normalizedPayload = this.normalizePayload(payload, "payload");
 
-    return this.request(integrationAccountId, `/api/v1/workflows/${normalizedWorkflowId}`, {
-      method: "PATCH",
-      body: normalizedPayload
-    });
+    return this.request(
+      integrationAccountId,
+      `/api/v1/workflows/${normalizedWorkflowId}`,
+      {
+        method: "PATCH",
+        body: normalizedPayload
+      }
+    );
   }
 
   async activateWorkflow(integrationAccountId: string, workflowId: string) {
-    const normalizedWorkflowId = this.normalizeRequiredString(workflowId, "workflowId");
+    const normalizedWorkflowId = this.normalizeRequiredString(
+      workflowId,
+      "workflowId"
+    );
 
-    return this.request(integrationAccountId, `/api/v1/workflows/${normalizedWorkflowId}/activate`, {
-      method: "POST"
-    });
+    return this.request(
+      integrationAccountId,
+      `/api/v1/workflows/${normalizedWorkflowId}/activate`,
+      {
+        method: "POST"
+      }
+    );
   }
 
   async deactivateWorkflow(integrationAccountId: string, workflowId: string) {
-    const normalizedWorkflowId = this.normalizeRequiredString(workflowId, "workflowId");
+    const normalizedWorkflowId = this.normalizeRequiredString(
+      workflowId,
+      "workflowId"
+    );
 
-    return this.request(integrationAccountId, `/api/v1/workflows/${normalizedWorkflowId}/deactivate`, {
-      method: "POST"
-    });
+    return this.request(
+      integrationAccountId,
+      `/api/v1/workflows/${normalizedWorkflowId}/deactivate`,
+      {
+        method: "POST"
+      }
+    );
   }
 
-  private async request(integrationAccountId: string, path: string, options: N8nRequestOptions) {
-    const { baseUrl, apiKey, workspaceId } = await this.getCredentials(integrationAccountId);
+  private async request(
+    integrationAccountId: string,
+    path: string,
+    options: N8nRequestOptions
+  ) {
+    const { baseUrl, apiKey, workspaceId } =
+      await this.getCredentials(integrationAccountId);
     const url = new URL(path, baseUrl).toString();
 
     const start = Date.now();
@@ -108,7 +147,10 @@ export class N8nClient {
   }
 
   private async getCredentials(integrationAccountId: string) {
-    const normalizedAccountId = this.normalizeRequiredString(integrationAccountId, "integrationAccountId");
+    const normalizedAccountId = this.normalizeRequiredString(
+      integrationAccountId,
+      "integrationAccountId"
+    );
 
     const account = await this.prisma.integrationAccount.findUnique({
       where: { id: normalizedAccountId },
@@ -127,7 +169,9 @@ export class N8nClient {
       throw new BadRequestException("Segredos da integração não configurados.");
     }
 
-    const secrets = this.integrationCryptoService.decrypt(account.secret.encryptedPayload);
+    const secrets = this.integrationCryptoService.decrypt(
+      account.secret.encryptedPayload
+    );
 
     return {
       workspaceId: account.workspaceId,
@@ -144,7 +188,10 @@ export class N8nClient {
     return payload;
   }
 
-  private normalizeRequiredString(value: string | undefined | null, field: string) {
+  private normalizeRequiredString(
+    value: string | undefined | null,
+    field: string
+  ) {
     const trimmed = value?.trim();
     if (!trimmed) {
       throw new BadRequestException(`${field} é obrigatório.`);

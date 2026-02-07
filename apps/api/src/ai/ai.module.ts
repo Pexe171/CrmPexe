@@ -9,7 +9,12 @@ import { MockAiProvider } from "./providers/mock-ai.provider";
 @Module({
   imports: [AuthModule],
   controllers: [AiController],
-  providers: [AiService, LeadScoringService, AiProcessingQueueService, MockAiProvider],
+  providers: [
+    AiService,
+    LeadScoringService,
+    AiProcessingQueueService,
+    MockAiProvider
+  ],
   exports: [AiService, LeadScoringService, AiProcessingQueueService]
 })
 export class AiModule {}
