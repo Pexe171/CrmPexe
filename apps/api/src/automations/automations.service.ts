@@ -192,7 +192,7 @@ export class AutomationsService {
       throw new NotFoundException("Template de automação não encontrado.");
     }
 
-    await this.ensureTemplateAccess(userId, resolvedWorkspaceId, templateId);
+    await this.ensureTemplateAccess(resolvedWorkspaceId, templateId);
 
     const templateVersion = await this.resolveTemplateVersion(
       template,
@@ -777,31 +777,19 @@ export class AutomationsService {
     return currentWorkspaceId;
   }
 
-  private async ensureTemplateAccess(
-    userId: string,
-    workspaceId: string,
-    templateId: string
-  ) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { isSuperAdmin: true }
-    });
-
-    if (user?.isSuperAdmin) {
-      return;
-    }
-
+  private async ensureTemplateAccess(workspaceId: string, templateId: string) {
     const access = await this.prisma.automationAccess.findFirst({
       where: {
         workspaceId,
         templateId,
-        status: AutomationAccessStatus.APPROVED
+        status: AutomationAccessStatus.APPROVED,
+        enabled: true
       }
     });
 
     if (!access) {
       throw new ForbiddenException(
-        "Acesso ao template não liberado para este workspace."
+        "Este workspace não tem licença para ativar esta automação. Contacte o suporte."
       );
     }
   }
