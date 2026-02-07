@@ -9,7 +9,8 @@
 ALTER TABLE IF EXISTS "AiUsageLog" DROP CONSTRAINT IF EXISTS "AiUsageLog_workspaceId_fkey";
 
 -- DropForeignKey
-ALTER TABLE "AutomationTemplateVersion" DROP CONSTRAINT "AutomationTemplateVersion_templateId_fkey";
+ALTER TABLE IF EXISTS "AutomationTemplateVersion"
+    DROP CONSTRAINT IF EXISTS "AutomationTemplateVersion_templateId_fkey";
 
 -- DropForeignKey
 ALTER TABLE "ConversationSummary" DROP CONSTRAINT "ConversationSummary_workspaceId_fkey";
@@ -33,7 +34,7 @@ DROP INDEX "AutomationTemplate_currentVersionId_idx";
 ALTER TABLE IF EXISTS "AiUsageLog" ALTER COLUMN "id" DROP DEFAULT;
 
 -- AlterTable
-ALTER TABLE "AutomationTemplateVersion" ALTER COLUMN "id" DROP DEFAULT;
+ALTER TABLE IF EXISTS "AutomationTemplateVersion" ALTER COLUMN "id" DROP DEFAULT;
 
 -- AlterTable
 ALTER TABLE "Conversation" ADD COLUMN     "queueId" TEXT;
@@ -216,7 +217,20 @@ ALTER TABLE "Notification" ADD CONSTRAINT "Notification_workspaceId_fkey" FOREIG
 ALTER TABLE "Notification" ADD CONSTRAINT "Notification_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "AutomationTemplateVersion" ADD CONSTRAINT "AutomationTemplateVersion_templateId_fkey" FOREIGN KEY ("templateId") REFERENCES "AutomationTemplate"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.tables
+        WHERE table_schema = 'public'
+          AND table_name = 'AutomationTemplateVersion'
+    ) THEN
+        ALTER TABLE "AutomationTemplateVersion"
+            ADD CONSTRAINT "AutomationTemplateVersion_templateId_fkey"
+            FOREIGN KEY ("templateId") REFERENCES "AutomationTemplate"("id")
+            ON DELETE RESTRICT ON UPDATE CASCADE;
+    END IF;
+END $$;
 
 -- AddForeignKey
 ALTER TABLE "AiUsageLog" ADD CONSTRAINT "AiUsageLog_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "Workspace"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
