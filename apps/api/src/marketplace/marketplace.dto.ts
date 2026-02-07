@@ -6,5 +6,11 @@ export class ToggleMarketplaceAccessDto {
   workspaceId!: string;
 
   @IsBoolean()
-  status!: boolean;
+  enabled!: boolean;
+}
+
+export class MarketplaceAccessDto extends ToggleMarketplaceAccessDto {
+  @IsString()
+  @IsNotEmpty()
+  templateId!: string;
 }

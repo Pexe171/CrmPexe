@@ -102,7 +102,7 @@ const toggleMarketplaceAccess = async ({
     method: "PATCH",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ workspaceId, status: enabled })
+    body: JSON.stringify({ workspaceId, enabled })
   });
 
   if (!response.ok) {

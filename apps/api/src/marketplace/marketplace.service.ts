@@ -46,6 +46,10 @@ export type MarketplaceAgent = {
   canInstall?: boolean;
 };
 
+export type MarketplaceStorefrontAgent = MarketplaceAgent & {
+  isUnlocked: boolean;
+};
+
 export type MarketplaceAgentInput = {
   name: string;
   headline?: string;
@@ -453,7 +457,7 @@ export class MarketplaceService {
     adminId: string,
     targetWorkspaceId: string,
     templateId: string,
-    status: boolean
+    enabled: boolean
   ) {
     const resolvedWorkspaceId = targetWorkspaceId.trim();
     if (!resolvedWorkspaceId) {
@@ -472,7 +476,7 @@ export class MarketplaceService {
       throw new NotFoundException("Agente não encontrado no marketplace.");
     }
 
-    if (!status) {
+    if (!enabled) {
       await this.prisma.automationAccess.deleteMany({
         where: { workspaceId: resolvedWorkspaceId, templateId }
       });
@@ -493,6 +497,43 @@ export class MarketplaceService {
     });
 
     return { enabled: true, accessId: access.id };
+  }
+
+  async getStorefront(params: {
+    userId: string;
+    workspaceId?: string;
+  }): Promise<MarketplaceStorefrontAgent[]> {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      params.userId,
+      params.workspaceId
+    );
+
+    const templates = await this.prisma.automationTemplate.findMany({
+      where: { status: MarketplaceTemplateStatus.APPROVED },
+      include: { _count: { select: { instances: true } } },
+      orderBy: { updatedAt: "desc" }
+    });
+
+    const accesses = await this.prisma.automationAccess.findMany({
+      where: {
+        workspaceId: resolvedWorkspaceId,
+        status: AutomationAccessStatus.APPROVED,
+        templateId: { in: templates.map((template) => template.id) }
+      },
+      select: { templateId: true }
+    });
+
+    const accessMap = new Set(accesses.map((access) => access.templateId));
+
+    return templates.map((template) => {
+      const isUnlocked = accessMap.has(template.id);
+      return {
+        ...this.mapTemplateToAgent(template, template._count.instances, {
+          canInstall: isUnlocked
+        }),
+        isUnlocked
+      };
+    });
   }
 
   async listInterests(): Promise<MarketplaceInterest[]> {
