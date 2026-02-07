@@ -50,6 +50,9 @@ ALTER TABLE IF EXISTS "AutomationTemplateVersion" ALTER COLUMN "id" DROP DEFAULT
 -- AlterTable
 ALTER TABLE "Conversation" ADD COLUMN     "queueId" TEXT;
 
+-- AlterTable
+ALTER TABLE "AutomationTemplate" ADD COLUMN IF NOT EXISTS "currentVersionId" TEXT;
+
 
 -- AlterTable
 DO $$
