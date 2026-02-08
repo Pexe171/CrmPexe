@@ -106,15 +106,15 @@ Se aparecer erro de validação informando que um campo de relação não tem la
 Se o erro mencionar que uma relação **one-to-one** precisa de campo único (ex.: `A one-to-one relation must use unique fields on the defining side`), confirme que o campo FK do lado definidor está marcado com `@unique` (por exemplo, `currentVersionId @unique`).
 
 #### Problemas comuns — `prisma:migrate` com P3006/P1014
-Se o `pnpm prisma:migrate` falhar com `P3006`/`P1014` dizendo que a tabela `AiUsageLog` não existe na shadow database, revise o histórico de migrations e garanta que a migration `20260126000030_novos` **não** execute alterações na tabela `AiUsageLog` (ela só é criada em `20260630090000_add_ai_usage_logs`). Isso evita o erro de tabela inexistente durante a aplicação sequencial das migrations.
+Se o `pnpm prisma:migrate` falhar com `P3006`/`P1014` dizendo que a tabela `AiUsageLog` não existe na shadow database, revise o histórico de migrations e garanta que a migration `20260131034627_novos` **não** execute alterações/constraints em `AiUsageLog` quando a tabela ainda não foi criada (ela só aparece em `20260630090000_add_ai_usage_logs`). Isso evita o erro de tabela inexistente durante a aplicação sequencial das migrations.
 
-Se aparecer `P3006`/`P1014` mencionando que a tabela `AutomationTemplate` não existe na shadow database, confirme que a migration `20260126000030_novos` garante a criação de `AutomationTemplate`/`AutomationInstance` antes de alterar constraints. Isso impede falhas quando a shadow database aplica migrations antigas em sequência. 
+Se aparecer `P3006`/`P1014` mencionando que a tabela `AutomationTemplate` não existe na shadow database, confirme que a migration `20260131034627_novos` garante a criação de `AutomationTemplate`/`AutomationInstance` antes de alterar constraints. Isso impede falhas quando a shadow database aplica migrations antigas em sequência. 
 
-Se aparecer o erro `constraint "AutomationInstance_templateId_fkey" ... does not exist` durante a criação da shadow database, confirme que a migration `20260126000030_novos` usa `DROP CONSTRAINT IF EXISTS` para evitar falhas quando a constraint ainda não foi criada em ambientes limpos.
+Se aparecer o erro `constraint "AutomationInstance_templateId_fkey" ... does not exist` durante a criação da shadow database, confirme que a migration `20260131034627_novos` usa `DROP CONSTRAINT IF EXISTS` para evitar falhas quando a constraint ainda não foi criada em ambientes limpos.
 
-Se o erro citar `IntegrationAccount`, `MessageTemplate` ou `Notification` como tabelas inexistentes, verifique se a migration `20260126000030_novos` está protegendo os `ALTER TABLE` com `to_regclass` (executar apenas quando a tabela existe). Essas tabelas só são criadas em migrations posteriores e não devem quebrar a aplicação sequencial no banco shadow.
+Se o erro citar `IntegrationAccount`, `MessageTemplate` ou `Notification` como tabelas inexistentes, verifique se a migration `20260131034627_novos` está protegendo os `ALTER TABLE` com `to_regclass` (executar apenas quando a tabela existe). Essas tabelas só são criadas em migrations posteriores e não devem quebrar a aplicação sequencial no banco shadow.
 
-Se o erro mencionar `Notification` ao tentar remover o `DEFAULT` do `id`, confirme que a migration `20260126000030_novos` usa `ALTER TABLE IF EXISTS "Notification"` para não falhar quando a tabela ainda não foi criada na shadow database.
+Se o erro mencionar `Notification` ao tentar remover o `DEFAULT` do `id`, confirme que a migration `20260131034627_novos` usa `ALTER TABLE IF EXISTS "Notification"` para não falhar quando a tabela ainda não foi criada na shadow database.
 
 ### PASSO 5 — Iniciar a API e o Front-end
 **Objetivo:** subir os serviços de aplicação.
