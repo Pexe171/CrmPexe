@@ -2,83 +2,64 @@ import { MarketplaceTemplateStatus, PrismaClient, UserRole } from '@prisma/clien
 
 const prisma = new PrismaClient();
 
-async function ensureWorkspaceRetentionColumns() {
-  const existingColumns = await prisma.$queryRaw<{ column_name: string }[]>`
-    SELECT column_name
-    FROM information_schema.columns
-    WHERE table_name = 'Workspace'
-      AND column_name IN ('deletedAt', 'retentionEndsAt');
+const REQUIRED_TABLES = [
+  'Workspace',
+  'Role',
+  'Permission',
+  'RolePermission',
+  'User',
+  'WorkspaceMember',
+];
+
+const MARKETPLACE_TABLES = [
+  'MarketplaceCategory',
+  'AutomationTemplate',
+  'AutomationTemplateVersion',
+];
+
+async function tableExists(tableName: string) {
+  const [row] = await prisma.$queryRaw<{ exists: boolean }[]>`
+    SELECT to_regclass(${`public."${tableName}"`}) IS NOT NULL AS "exists";
   `;
 
-  if (existingColumns.length === 2) {
-    return;
-  }
-
-  await prisma.$executeRawUnsafe(`
-    ALTER TABLE "Workspace"
-    ADD COLUMN IF NOT EXISTS "deletedAt" TIMESTAMP(3),
-    ADD COLUMN IF NOT EXISTS "retentionEndsAt" TIMESTAMP(3);
-  `);
-
-  await prisma.$executeRawUnsafe(`
-    CREATE INDEX IF NOT EXISTS "Workspace_deletedAt_idx" ON "Workspace"("deletedAt");
-  `);
+  return row?.exists ?? false;
 }
 
-async function ensureUserRoleColumn() {
-  const roleColumn = await prisma.$queryRaw<{ column_name: string }[]>`
-    SELECT column_name
-    FROM information_schema.columns
-    WHERE table_name = 'User'
-      AND column_name = 'role';
-  `;
+async function ensureTablesExist(tableNames: string[]) {
+  const results = await Promise.all(
+    tableNames.map(async (tableName) => ({
+      tableName,
+      exists: await tableExists(tableName),
+    })),
+  );
 
-  if (roleColumn.length > 0) {
-    return;
-  }
-
-  await prisma.$executeRawUnsafe(`
-    DO $$ BEGIN
-      IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'UserRole') THEN
-        CREATE TYPE "UserRole" AS ENUM ('ADMIN', 'USER');
-      END IF;
-    END $$;
-  `);
-
-  await prisma.$executeRawUnsafe(`
-    ALTER TABLE "User"
-    ADD COLUMN IF NOT EXISTS "role" "UserRole" NOT NULL DEFAULT 'USER';
-  `);
-}
-
-async function ensureUserSuperAdminColumn() {
-  const superAdminColumn = await prisma.$queryRaw<{ column_name: string }[]>`
-    SELECT column_name
-    FROM information_schema.columns
-    WHERE table_name = 'User'
-      AND column_name = 'isSuperAdmin';
-  `;
-
-  if (superAdminColumn.length > 0) {
-    return;
-  }
-
-  await prisma.$executeRawUnsafe(`
-    ALTER TABLE "User"
-    ADD COLUMN IF NOT EXISTS "isSuperAdmin" BOOLEAN NOT NULL DEFAULT false;
-  `);
+  return results;
 }
 
 async function seedAutomationTemplates(adminId: string) {
+  const marketplaceTables = await ensureTablesExist(MARKETPLACE_TABLES);
+  const hasAllMarketplaceTables = marketplaceTables.every((table) => table.exists);
+
+  if (!hasAllMarketplaceTables) {
+    return;
+  }
+
   const marketingCategoryId = 'marketing';
-  await prisma.marketplaceCategory.create({
-    data: {
-      id: marketingCategoryId,
-      name: 'Marketing',
-      description: 'Agentes focados em captação e nutrição de leads.',
-      highlights: ['Automação rápida', 'Padronização de dados', 'Integração com n8n'],
-    }
+  const existingCategory = await prisma.marketplaceCategory.findFirst({
+    where: { id: marketingCategoryId },
+    select: { id: true },
   });
+
+  if (!existingCategory) {
+    await prisma.marketplaceCategory.create({
+      data: {
+        id: marketingCategoryId,
+        name: 'Marketing',
+        description: 'Agentes focados em captação e nutrição de leads.',
+        highlights: ['Automação rápida', 'Padronização de dados', 'Integração com n8n'],
+      },
+    });
+  }
 
   const leadCaptureWorkflow = {
     name: 'Capturador de Leads Universal',
@@ -106,7 +87,7 @@ async function seedAutomationTemplates(adminId: string) {
               {
                 name: 'email',
                 value: '={{$json["body"]["email"]}}',
-              }
+              },
             ],
           },
           options: {},
@@ -132,93 +113,170 @@ async function seedAutomationTemplates(adminId: string) {
     },
   };
 
-  const leadCaptureTemplate = await prisma.automationTemplate.create({
-    data: {
-      name: 'Capturador de Leads Universal',
-      slug: 'lead-capture-v1',
-      headline: 'Receba leads por webhook e normalize os dados no CRM.',
-      description:
-        'Recebe dados de formulários externos via Webhook e padroniza para o CRM.',
-      version: '1.0.0',
-      changelog: 'Template inicial pronto para captação de leads.',
-      category: marketingCategoryId,
-      definitionJson: leadCaptureWorkflow,
-      workflowData: leadCaptureWorkflow,
-      requiredIntegrations: ['n8n'],
-      tags: ['leads', 'webhook', 'n8n'],
-      capabilities: ['Receber dados via webhook', 'Padronizar campos essenciais'],
-      requirements: ['Instância n8n configurada'],
-      rating: 5,
-      responseSlaSeconds: 300,
-      priceLabel: 'Incluso',
-      isPublic: true,
-      status: MarketplaceTemplateStatus.APPROVED,
-      createdByAdminId: adminId,
-    }
+  const existingTemplate = await prisma.automationTemplate.findFirst({
+    where: { slug: 'lead-capture-v1' },
   });
 
-  const leadCaptureVersion = await prisma.automationTemplateVersion.create({
-    data: {
+  const leadCaptureTemplate = existingTemplate
+    ? await prisma.automationTemplate.update({
+        where: { id: existingTemplate.id },
+        data: {
+          name: 'Capturador de Leads Universal',
+          headline: 'Receba leads por webhook e normalize os dados no CRM.',
+          description:
+            'Recebe dados de formulários externos via Webhook e padroniza para o CRM.',
+          version: '1.0.0',
+          changelog: 'Template inicial pronto para captação de leads.',
+          category: marketingCategoryId,
+          definitionJson: leadCaptureWorkflow,
+          workflowData: leadCaptureWorkflow,
+          requiredIntegrations: ['n8n'],
+          tags: ['leads', 'webhook', 'n8n'],
+          capabilities: ['Receber dados via webhook', 'Padronizar campos essenciais'],
+          requirements: ['Instância n8n configurada'],
+          rating: 5,
+          responseSlaSeconds: 300,
+          priceLabel: 'Incluso',
+          isPublic: true,
+          status: MarketplaceTemplateStatus.APPROVED,
+        },
+      })
+    : await prisma.automationTemplate.create({
+        data: {
+          name: 'Capturador de Leads Universal',
+          slug: 'lead-capture-v1',
+          headline: 'Receba leads por webhook e normalize os dados no CRM.',
+          description:
+            'Recebe dados de formulários externos via Webhook e padroniza para o CRM.',
+          version: '1.0.0',
+          changelog: 'Template inicial pronto para captação de leads.',
+          category: marketingCategoryId,
+          definitionJson: leadCaptureWorkflow,
+          workflowData: leadCaptureWorkflow,
+          requiredIntegrations: ['n8n'],
+          tags: ['leads', 'webhook', 'n8n'],
+          capabilities: ['Receber dados via webhook', 'Padronizar campos essenciais'],
+          requirements: ['Instância n8n configurada'],
+          rating: 5,
+          responseSlaSeconds: 300,
+          priceLabel: 'Incluso',
+          isPublic: true,
+          status: MarketplaceTemplateStatus.APPROVED,
+          createdByAdminId: adminId,
+        },
+      });
+
+  const existingVersion = await prisma.automationTemplateVersion.findFirst({
+    where: {
       templateId: leadCaptureTemplate.id,
       version: '1.0.0',
-      changelog: 'Primeira versão estável do workflow.',
-      definitionJson: leadCaptureWorkflow,
-      requiredIntegrations: ['n8n'],
-      createdByAdminId: adminId,
-    }
-  });
-
-  await prisma.automationTemplate.update({
-    where: { id: leadCaptureTemplate.id },
-    data: { currentVersionId: leadCaptureVersion.id },
-  });
-}
-
-async function main() {
-  await ensureWorkspaceRetentionColumns();
-  await ensureUserRoleColumn();
-  await ensureUserSuperAdminColumn();
-
-  const existingWorkspace = await prisma.workspace.findFirst({
-    select: { id: true },
-  });
-  if (existingWorkspace?.id) {
-    console.log('Seed skipped: workspace already exists.');
-    return;
-  }
-
-  const workspace = await prisma.workspace.create({
-    data: {
-      name: 'Workspace Demo',
     },
   });
 
-  const role = await prisma.role.create({
-    data: {
+  const leadCaptureVersion = existingVersion
+    ? existingVersion
+    : await prisma.automationTemplateVersion.create({
+        data: {
+          templateId: leadCaptureTemplate.id,
+          version: '1.0.0',
+          changelog: 'Primeira versão estável do workflow.',
+          definitionJson: leadCaptureWorkflow,
+          requiredIntegrations: ['n8n'],
+          createdByAdminId: adminId,
+        },
+      });
+
+  if (leadCaptureTemplate.currentVersionId !== leadCaptureVersion.id) {
+    await prisma.automationTemplate.update({
+      where: { id: leadCaptureTemplate.id },
+      data: { currentVersionId: leadCaptureVersion.id },
+    });
+  }
+}
+
+async function main() {
+  const requiredTables = await ensureTablesExist(REQUIRED_TABLES);
+  const missingRequiredTables = requiredTables.filter((table) => !table.exists);
+
+  if (missingRequiredTables.length > 0) {
+    console.log(
+      'Seed ignorado: tabelas obrigatórias ausentes.',
+      missingRequiredTables.map((table) => table.tableName).join(', '),
+    );
+    return;
+  }
+
+  const workspace =
+    (await prisma.workspace.findFirst({
+      where: { name: 'Workspace Demo' },
+    })) ||
+    (await prisma.workspace.create({
+      data: {
+        name: 'Workspace Demo',
+      },
+    }));
+
+  const role = await prisma.role.upsert({
+    where: {
+      workspaceId_name: {
+        workspaceId: workspace.id,
+        name: 'Admin',
+      },
+    },
+    update: {
+      description: 'Acesso total ao workspace',
+    },
+    create: {
       workspaceId: workspace.id,
       name: 'Admin',
       description: 'Acesso total ao workspace',
     },
   });
 
-  const permission = await prisma.permission.create({
-    data: {
+  const permission = await prisma.permission.upsert({
+    where: {
+      workspaceId_key: {
+        workspaceId: workspace.id,
+        key: 'workspace.manage',
+      },
+    },
+    update: {
+      description: 'Gerenciar configurações do workspace',
+    },
+    create: {
       workspaceId: workspace.id,
       key: 'workspace.manage',
       description: 'Gerenciar configurações do workspace',
     },
   });
 
-  await prisma.rolePermission.create({
-    data: {
+  await prisma.rolePermission.upsert({
+    where: {
+      roleId_permissionId: {
+        roleId: role.id,
+        permissionId: permission.id,
+      },
+    },
+    update: {
+      workspaceId: workspace.id,
+    },
+    create: {
       workspaceId: workspace.id,
       roleId: role.id,
       permissionId: permission.id,
     },
   });
 
-  const user = await prisma.user.create({
-    data: {
+  const user = await prisma.user.upsert({
+    where: {
+      email: 'davidhenriquesms18@gmail.com',
+    },
+    update: {
+      name: 'Admin',
+      contact: 'Admin',
+      role: UserRole.ADMIN,
+    },
+    create: {
       email: 'davidhenriquesms18@gmail.com',
       name: 'Admin',
       contact: 'Admin',
@@ -226,16 +284,26 @@ async function main() {
     },
   });
 
-  await prisma.workspaceMember.create({
-    data: {
+  await prisma.workspaceMember.upsert({
+    where: {
+      workspaceId_userId: {
+        workspaceId: workspace.id,
+        userId: user.id,
+      },
+    },
+    update: {
+      roleId: role.id,
+    },
+    create: {
       workspaceId: workspace.id,
       userId: user.id,
       roleId: role.id,
     },
   });
+
   await seedAutomationTemplates(user.id);
 
-  console.log('Seed completed: workspace demo created.');
+  console.log('Seed completed: workspace demo created/updated.');
 }
 
 main()

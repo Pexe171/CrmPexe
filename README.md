@@ -121,41 +121,8 @@ Se o erro citar `IntegrationAccount`, `MessageTemplate` ou `Notification` como t
 
 Se o erro mencionar `Notification` ao tentar remover o `DEFAULT` do `id`, confirme que a migration `20260131034627_novos` usa `ALTER TABLE IF EXISTS "Notification"` para não falhar quando a tabela ainda não foi criada na shadow database.
 
-#### Problemas comuns — `prisma:seed` falhando com `Workspace.deletedAt`
-Se o seed falhar com `The column "Workspace.deletedAt" does not exist`, significa que o banco está sem os campos de retenção do workspace. Garanta que **todas** as migrations foram aplicadas (principalmente as de retenção) ou rode o fluxo completo abaixo:
-
-```bash
-pnpm prisma:migrate:dev
-pnpm prisma:generate
-pnpm prisma:seed
-```
-
-> **Nota:** o seed agora garante que as colunas `deletedAt` e `retentionEndsAt` existam antes de consultar workspaces, reduzindo falhas em bancos recém-criados. Mesmo assim, mantenha as migrations em dia para não ter inconsistências no schema.
-
-#### Problemas comuns — `prisma:seed` falhando com `User.role`
-Se o seed falhar com `The column "role" does not exist`, o banco está sem a coluna `User.role`. Verifique se a migration `20260601090000_add_user_role` foi aplicada. Caso esteja rodando em um banco recém-criado, execute:
-
-```bash
-pnpm prisma:migrate:dev
-pnpm prisma:generate
-pnpm prisma:seed
-```
-
-> **Nota:** o seed agora tenta criar o enum `UserRole` e a coluna `User.role` quando não existem, evitando quebra em bancos antigos. Ainda assim, mantenha as migrations aplicadas para garantir consistência.
-
-#### Problemas comuns — `prisma:seed` falhando com `User.isSuperAdmin`
-Se o seed falhar com `The column "isSuperAdmin" does not exist`, o banco está sem a coluna `User.isSuperAdmin`. Garanta que a migration `20261001090000_add_super_admin_flag` foi aplicada. Em bancos recém-criados, execute:
-
-```bash
-pnpm prisma:migrate:dev
-pnpm prisma:generate
-pnpm prisma:seed
-```
-
-> **Nota:** o seed agora garante que a coluna `User.isSuperAdmin` exista antes de criar o usuário admin, reduzindo falhas em ambientes com histórico incompleto de migrations. Mesmo assim, mantenha as migrations em dia.
-
-#### Problemas comuns — `prisma:seed` falhando com `MarketplaceCategory`
-Se o seed falhar com `The table "public.MarketplaceCategory" does not exist`, significa que a migration da tabela de categorias do marketplace ainda não foi aplicada. Garanta que a migration `20261126090000_add_marketplace_category` está no banco. Em ambiente limpo, rode:
+#### Problemas comuns — `prisma:seed` com P2021/P2022
+Se o seed falhar com `P2021` (tabela inexistente) ou `P2022` (coluna inexistente), significa que as migrations não foram aplicadas no banco atual. O seed **não** cria colunas, enums ou tabelas; ele apenas usa o schema vigente. Garanta que todas as migrations foram aplicadas e rode o fluxo abaixo:
 
 ```bash
 pnpm prisma:migrate:dev
@@ -388,10 +355,11 @@ Executa a criação do workspace demo + usuário admin padrão:
 pnpm --filter crmpexe-api prisma db seed
 ```
 
-O seed cria:
+O seed cria (ou atualiza, de forma idempotente):
 - **Workspace:** `Workspace Demo`
 - **Usuário admin:** `davidhenriquesms18@gmail.com` com `role: ADMIN`
 - **Role/Admin + permission `workspace.manage`** vinculados ao workspace
+- **Template base de automação + categoria** (apenas se as tabelas de marketplace existirem no banco)
 
 > Dica: para transformar o usuário em super admin, atualize `isSuperAdmin` para `true` no banco após rodar o seed.
 
