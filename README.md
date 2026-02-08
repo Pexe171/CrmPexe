@@ -130,6 +130,8 @@ pnpm prisma:generate
 pnpm prisma:seed
 ```
 
+Se o log mencionar `Seed marketplace ignorado`, o seed detectou ausência das tabelas de marketplace e pulou o carregamento desses registros. Aplique as migrations pendentes e execute o seed novamente para popular o catálogo.
+
 ### PASSO 5 — Iniciar a API e o Front-end
 **Objetivo:** subir os serviços de aplicação.
 
