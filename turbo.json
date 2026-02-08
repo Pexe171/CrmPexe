@@ -23,6 +23,9 @@
     },
     "prisma:migrate": {
       "cache": false
+    },
+    "prisma:migrate:dev": {
+      "cache": false
     }
   }
 }

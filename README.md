@@ -101,6 +101,7 @@ pnpm prisma:migrate:dev
 ```
 
 > **Nota:** `pnpm prisma:migrate` foi padronizado para usar `prisma migrate deploy`, adequado para ambientes não interativos (CI/produção). Para criar/rodar migrations em desenvolvimento, use `pnpm prisma:migrate:dev`.
+> **Nota (Turbo):** se o Turbo exibir `Could not find task prisma:migrate:dev`, confirme que o `turbo.json` possui a task `prisma:migrate:dev` definida. Este repositório já inclui essa task para evitar o erro.
 
 #### Problemas comuns — `prisma:generate` falhando
 Se aparecer erro de validação informando que um campo de relação não tem lado oposto, verifique se o modelo relacionado contém o back-reference (por exemplo, `Workspace.summaries`, `User.teamMemberships` e `AutomationTemplateVersion.currentVersionTemplate`). Essas relações são obrigatórias para o Prisma validar o schema e gerar o client corretamente.
