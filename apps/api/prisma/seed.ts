@@ -51,6 +51,24 @@ async function ensureUserRoleColumn() {
   `);
 }
 
+async function ensureUserSuperAdminColumn() {
+  const superAdminColumn = await prisma.$queryRaw<{ column_name: string }[]>`
+    SELECT column_name
+    FROM information_schema.columns
+    WHERE table_name = 'User'
+      AND column_name = 'isSuperAdmin';
+  `;
+
+  if (superAdminColumn.length > 0) {
+    return;
+  }
+
+  await prisma.$executeRawUnsafe(`
+    ALTER TABLE "User"
+    ADD COLUMN IF NOT EXISTS "isSuperAdmin" BOOLEAN NOT NULL DEFAULT false;
+  `);
+}
+
 async function seedAutomationTemplates(adminId: string) {
   const marketingCategoryId = 'marketing';
   await prisma.marketplaceCategory.create({
@@ -159,6 +177,7 @@ async function seedAutomationTemplates(adminId: string) {
 async function main() {
   await ensureWorkspaceRetentionColumns();
   await ensureUserRoleColumn();
+  await ensureUserSuperAdminColumn();
 
   const existingWorkspace = await prisma.workspace.findFirst({
     select: { id: true },
