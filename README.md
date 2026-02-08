@@ -47,6 +47,8 @@ cp apps/api/.env.example apps/api/.env
 
 Variáveis usadas pela API hoje:
 - `DATABASE_URL` (**obrigatória**) — conexão com o PostgreSQL.
+- `DIRECT_URL` (opcional) — conexão direta com o PostgreSQL (sem pooler/pgBouncer), usada pelo Prisma quando precisa de comandos administrativos.
+- `SHADOW_DATABASE_URL` (opcional, recomendado em dev) — conexão para o banco shadow do Prisma (deve apontar para um banco vazio existente).
 - `JWT_ACCESS_SECRET` (**obrigatória em produção**) — segredo do access token.
 - `JWT_REFRESH_SECRET` (**obrigatória em produção**) — segredo do refresh token.
 - `JWT_ACCESS_EXPIRES_IN` (opcional, padrão `15m`).
@@ -120,6 +122,16 @@ Se aparecer o erro `constraint "AutomationInstance_templateId_fkey" ... does not
 Se o erro citar `IntegrationAccount`, `MessageTemplate` ou `Notification` como tabelas inexistentes, verifique se a migration `20260131034627_novos` está protegendo os `ALTER TABLE` com `to_regclass` (executar apenas quando a tabela existe). Essas tabelas só são criadas em migrations posteriores e não devem quebrar a aplicação sequencial no banco shadow.
 
 Se o erro mencionar `Notification` ao tentar remover o `DEFAULT` do `id`, confirme que a migration `20260131034627_novos` usa `ALTER TABLE IF EXISTS "Notification"` para não falhar quando a tabela ainda não foi criada na shadow database.
+
+#### Problemas comuns — `prisma:migrate:dev` com P3014 (shadow database)
+Se o `pnpm prisma:migrate:dev` falhar com `P3014` indicando que o Prisma não conseguiu criar o **shadow database**, configure um banco shadow separado e/ou uma conexão direta sem pooler:
+
+1. Crie um banco vazio para shadow (ex.: `crmpexe_shadow`).
+2. Adicione no `apps/api/.env`:
+   - `SHADOW_DATABASE_URL="postgresql://usuario:senha@host:porta/crmpexe_shadow"`
+   - `DIRECT_URL="postgresql://usuario:senha@host:porta/crmpexe"`
+
+> **Nota:** esse erro é comum quando o Postgres está atrás de **pgBouncer em modo transaction** ou quando o usuário não tem permissão de `CREATE DATABASE`. O Prisma precisa de uma conexão direta para criar e aplicar migrations no banco shadow.
 
 #### Problemas comuns — `prisma:seed` falhando com `Workspace.deletedAt`
 Se o seed falhar com `The column "Workspace.deletedAt" does not exist`, significa que o banco está sem os campos de retenção do workspace. Garanta que **todas** as migrations foram aplicadas (principalmente as de retenção) ou rode o fluxo completo abaixo:
