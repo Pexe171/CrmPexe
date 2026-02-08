@@ -273,4 +273,12 @@ BEGIN
 END $$;
 
 -- AddForeignKey
-ALTER TABLE "AiUsageLog" ADD CONSTRAINT "AiUsageLog_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "Workspace"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$
+BEGIN
+    IF to_regclass('public."AiUsageLog"') IS NOT NULL THEN
+        ALTER TABLE "AiUsageLog"
+            ADD CONSTRAINT "AiUsageLog_workspaceId_fkey"
+            FOREIGN KEY ("workspaceId") REFERENCES "Workspace"("id")
+            ON DELETE RESTRICT ON UPDATE CASCADE;
+    END IF;
+END $$;
