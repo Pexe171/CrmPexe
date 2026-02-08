@@ -108,8 +108,10 @@ async function seedAutomationTemplates(adminId: string) {
 }
 
 async function main() {
-  const existingWorkspace = await prisma.workspace.findFirst();
-  if (existingWorkspace) {
+  const existingWorkspace = await prisma.workspace.findFirst({
+    select: { id: true },
+  });
+  if (existingWorkspace?.id) {
     console.log('Seed skipped: workspace already exists.');
     return;
   }
