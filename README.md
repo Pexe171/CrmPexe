@@ -132,6 +132,17 @@ pnpm prisma:seed
 
 > **Nota:** o seed agora garante que as colunas `deletedAt` e `retentionEndsAt` existam antes de consultar workspaces, reduzindo falhas em bancos recém-criados. Mesmo assim, mantenha as migrations em dia para não ter inconsistências no schema.
 
+#### Problemas comuns — `prisma:seed` falhando com `User.role`
+Se o seed falhar com `The column "role" does not exist`, o banco está sem a coluna `User.role`. Verifique se a migration `20260601090000_add_user_role` foi aplicada. Caso esteja rodando em um banco recém-criado, execute:
+
+```bash
+pnpm prisma:migrate:dev
+pnpm prisma:generate
+pnpm prisma:seed
+```
+
+> **Nota:** o seed agora tenta criar o enum `UserRole` e a coluna `User.role` quando não existem, evitando quebra em bancos antigos. Ainda assim, mantenha as migrations aplicadas para garantir consistência.
+
 ### PASSO 5 — Iniciar a API e o Front-end
 **Objetivo:** subir os serviços de aplicação.
 

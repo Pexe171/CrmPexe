@@ -25,6 +25,32 @@ async function ensureWorkspaceRetentionColumns() {
   `);
 }
 
+async function ensureUserRoleColumn() {
+  const roleColumn = await prisma.$queryRaw<{ column_name: string }[]>`
+    SELECT column_name
+    FROM information_schema.columns
+    WHERE table_name = 'User'
+      AND column_name = 'role';
+  `;
+
+  if (roleColumn.length > 0) {
+    return;
+  }
+
+  await prisma.$executeRawUnsafe(`
+    DO $$ BEGIN
+      IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'UserRole') THEN
+        CREATE TYPE "UserRole" AS ENUM ('ADMIN', 'USER');
+      END IF;
+    END $$;
+  `);
+
+  await prisma.$executeRawUnsafe(`
+    ALTER TABLE "User"
+    ADD COLUMN IF NOT EXISTS "role" "UserRole" NOT NULL DEFAULT 'USER';
+  `);
+}
+
 async function seedAutomationTemplates(adminId: string) {
   const marketingCategoryId = 'marketing';
   await prisma.marketplaceCategory.create({
@@ -132,6 +158,7 @@ async function seedAutomationTemplates(adminId: string) {
 
 async function main() {
   await ensureWorkspaceRetentionColumns();
+  await ensureUserRoleColumn();
 
   const existingWorkspace = await prisma.workspace.findFirst({
     select: { id: true },
