@@ -121,6 +121,15 @@ Se o erro citar `IntegrationAccount`, `MessageTemplate` ou `Notification` como t
 
 Se o erro mencionar `Notification` ao tentar remover o `DEFAULT` do `id`, confirme que a migration `20260131034627_novos` usa `ALTER TABLE IF EXISTS "Notification"` para não falhar quando a tabela ainda não foi criada na shadow database.
 
+#### Problemas comuns — `prisma:seed` falhando com `Workspace.deletedAt`
+Se o seed falhar com `The column "Workspace.deletedAt" does not exist`, significa que o banco está sem os campos de retenção do workspace. Garanta que **todas** as migrations foram aplicadas (principalmente as de retenção) ou rode o fluxo completo abaixo:
+
+```bash
+pnpm prisma:migrate:dev
+pnpm prisma:generate
+pnpm prisma:seed
+```
+
 ### PASSO 5 — Iniciar a API e o Front-end
 **Objetivo:** subir os serviços de aplicação.
 
