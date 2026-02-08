@@ -154,6 +154,15 @@ pnpm prisma:seed
 
 > **Nota:** o seed agora garante que a coluna `User.isSuperAdmin` exista antes de criar o usuário admin, reduzindo falhas em ambientes com histórico incompleto de migrations. Mesmo assim, mantenha as migrations em dia.
 
+#### Problemas comuns — `prisma:seed` falhando com `MarketplaceCategory`
+Se o seed falhar com `The table "public.MarketplaceCategory" does not exist`, significa que a migration da tabela de categorias do marketplace ainda não foi aplicada. Garanta que a migration `20261126090000_add_marketplace_category` está no banco. Em ambiente limpo, rode:
+
+```bash
+pnpm prisma:migrate:dev
+pnpm prisma:generate
+pnpm prisma:seed
+```
+
 ### PASSO 5 — Iniciar a API e o Front-end
 **Objetivo:** subir os serviços de aplicação.
 
