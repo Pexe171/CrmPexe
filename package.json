@@ -11,7 +11,8 @@
     "typecheck": "turbo run typecheck",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "prisma:generate": "turbo run prisma:generate --filter=crmpexe-api",
-    "prisma:migrate": "turbo run prisma:migrate --filter=crmpexe-api"
+    "prisma:migrate": "turbo run prisma:migrate --filter=crmpexe-api",
+    "prisma:migrate:dev": "turbo run prisma:migrate:dev --filter=crmpexe-api"
   },
   "devDependencies": {
     "turbo": "^2.0.9",

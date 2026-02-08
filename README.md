@@ -97,8 +97,10 @@ Variáveis usadas pela Web:
 
 ```bash
 pnpm prisma:generate
-pnpm prisma:migrate
+pnpm prisma:migrate:dev
 ```
+
+> **Nota:** `pnpm prisma:migrate` foi padronizado para usar `prisma migrate deploy`, adequado para ambientes não interativos (CI/produção). Para criar/rodar migrations em desenvolvimento, use `pnpm prisma:migrate:dev`.
 
 #### Problemas comuns — `prisma:generate` falhando
 Se aparecer erro de validação informando que um campo de relação não tem lado oposto, verifique se o modelo relacionado contém o back-reference (por exemplo, `Workspace.summaries`, `User.teamMemberships` e `AutomationTemplateVersion.currentVersionTemplate`). Essas relações são obrigatórias para o Prisma validar o schema e gerar o client corretamente.
@@ -190,11 +192,11 @@ Boas práticas:
 
 #### Estratégia de migração (Prisma migrate)
 Fluxo recomendado:
-- **Desenvolvimento:** usar `pnpm prisma:migrate` (gera/roda migrations locais).
-- **Produção:** aplicar **apenas** migrations já versionadas com:
+- **Desenvolvimento:** usar `pnpm prisma:migrate:dev` (gera/roda migrations locais).
+- **CI/Produção:** aplicar **apenas** migrations já versionadas com:
 
 ```bash
-pnpm --filter crmpexe-api prisma migrate deploy
+pnpm prisma:migrate
 ```
 
 Checklist para migrações seguras:
@@ -295,6 +297,8 @@ pnpm build        # Build de todos os apps
 pnpm lint         # Lint de todos os apps
 pnpm test         # Testes de todos os apps
 pnpm typecheck    # Typecheck de todos os apps
+pnpm prisma:migrate:dev # Gerar/rodar migrations locais (interativo)
+pnpm prisma:migrate     # Aplicar migrations versionadas (não interativo)
 ```
 
 ## Proxy de autenticação no Next.js
