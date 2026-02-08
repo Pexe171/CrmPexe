@@ -130,7 +130,7 @@ pnpm prisma:generate
 pnpm prisma:seed
 ```
 
-> **Nota:** o seed foi ajustado para checar apenas o `id` do workspace existente, evitando que a execução falhe quando a coluna `deletedAt` ainda não existe. Mesmo assim, mantenha as migrations em dia para não ter inconsistências no schema.
+> **Nota:** o seed agora garante que as colunas `deletedAt` e `retentionEndsAt` existam antes de consultar workspaces, reduzindo falhas em bancos recém-criados. Mesmo assim, mantenha as migrations em dia para não ter inconsistências no schema.
 
 ### PASSO 5 — Iniciar a API e o Front-end
 **Objetivo:** subir os serviços de aplicação.

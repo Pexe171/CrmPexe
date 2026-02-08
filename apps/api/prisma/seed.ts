@@ -2,6 +2,29 @@ import { MarketplaceTemplateStatus, PrismaClient, UserRole } from '@prisma/clien
 
 const prisma = new PrismaClient();
 
+async function ensureWorkspaceRetentionColumns() {
+  const existingColumns = await prisma.$queryRaw<{ column_name: string }[]>`
+    SELECT column_name
+    FROM information_schema.columns
+    WHERE table_name = 'Workspace'
+      AND column_name IN ('deletedAt', 'retentionEndsAt');
+  `;
+
+  if (existingColumns.length === 2) {
+    return;
+  }
+
+  await prisma.$executeRawUnsafe(`
+    ALTER TABLE "Workspace"
+    ADD COLUMN IF NOT EXISTS "deletedAt" TIMESTAMP(3),
+    ADD COLUMN IF NOT EXISTS "retentionEndsAt" TIMESTAMP(3);
+  `);
+
+  await prisma.$executeRawUnsafe(`
+    CREATE INDEX IF NOT EXISTS "Workspace_deletedAt_idx" ON "Workspace"("deletedAt");
+  `);
+}
+
 async function seedAutomationTemplates(adminId: string) {
   const marketingCategoryId = 'marketing';
   await prisma.marketplaceCategory.create({
@@ -108,6 +131,8 @@ async function seedAutomationTemplates(adminId: string) {
 }
 
 async function main() {
+  await ensureWorkspaceRetentionColumns();
+
   const existingWorkspace = await prisma.workspace.findFirst({
     select: { id: true },
   });
