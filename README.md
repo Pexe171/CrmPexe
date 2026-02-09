@@ -119,6 +119,8 @@ Se o `pnpm prisma:migrate` falhar com `P3006`/`P1014` dizendo que a tabela `Auto
 
 Se aparecer `P3006`/`P1014` mencionando que a tabela `AutomationTemplate` não existe na shadow database, confirme que a migration `20260131034627_novos` garante a criação de `AutomationTemplate`/`AutomationInstance` antes de alterar constraints. Isso impede falhas quando a shadow database aplica migrations antigas em sequência. 
 
+Se o erro citar `IntegrationAccount` como tabela inexistente (ex.: durante `ALTER TABLE`/`DROP CONSTRAINT`), atualize a migration `20260209022359_v2` para usar `ALTER TABLE IF EXISTS` + `DROP CONSTRAINT IF EXISTS` ao tocar nessa tabela. Ela só é criada em `20260415090000_add_integration_accounts`, então a migration precisa ser resiliente em bancos novos.
+
 Se aparecer o erro `constraint "AutomationInstance_templateId_fkey" ... does not exist` durante a criação da shadow database, confirme que a migration `20260131034627_novos` usa `DROP CONSTRAINT IF EXISTS` para evitar falhas quando a constraint ainda não foi criada em ambientes limpos.
 
 Se o erro citar `IntegrationAccount`, `MessageTemplate` ou `Notification` como tabelas inexistentes, verifique se a migration `20260131034627_novos` está protegendo os `ALTER TABLE` com `to_regclass` (executar apenas quando a tabela existe). Essas tabelas só são criadas em migrations posteriores e não devem quebrar a aplicação sequencial no banco shadow.
