@@ -141,6 +141,10 @@ docker compose up -d
 pnpm dev:api
 ```
 
+### Validar acesso a automações
+
+O acesso às automações é liberado quando o workspace possui aprovação (`status=APPROVED`) para o template correspondente. Garanta que a liberação esteja registrada antes de ativar fluxos.
+
 ## Troubleshooting
 
 - **Erro de conexão com o banco**: confirme se o Docker está rodando e se o `DATABASE_URL` está correto.

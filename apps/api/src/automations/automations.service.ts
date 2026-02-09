@@ -796,8 +796,7 @@ export class AutomationsService {
       where: {
         workspaceId,
         templateId,
-        status: AutomationAccessStatus.APPROVED,
-        enabled: true
+        status: AutomationAccessStatus.APPROVED
       }
     });
 
