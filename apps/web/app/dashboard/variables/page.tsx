@@ -4,8 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Button, buttonVariants } from "@/components/ui/button";
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-
 type WorkspaceVariable = {
   id: string;
   key: string;
@@ -26,7 +24,7 @@ export default function WorkspaceVariablesPage() {
   const [saving, setSaving] = useState(false);
 
   const fetchVariables = useCallback(async () => {
-    const response = await fetch(`${apiUrl}/api/workspace-variables`, {
+    const response = await fetch("/api/workspace-variables", {
       credentials: "include"
     });
 
@@ -70,7 +68,7 @@ export default function WorkspaceVariablesPage() {
     setSaving(true);
     setError(null);
     try {
-      const response = await fetch(`${apiUrl}/api/workspace-variables`, {
+      const response = await fetch("/api/workspace-variables", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"

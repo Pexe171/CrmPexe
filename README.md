@@ -150,6 +150,7 @@ O acesso às automações é liberado quando o workspace possui aprovação (`st
 - **Erro de conexão com o banco**: confirme se o Docker está rodando e se o `DATABASE_URL` está correto.
 - **Erro com Prisma**: rode `pnpm prisma:generate` e depois `pnpm prisma:migrate:dev`.
 - **Portas ocupadas**: altere as portas nos scripts ou finalize processos que estejam usando 3000/3001.
+- **401 nas variáveis do workspace**: no front-end utilize o endpoint `/api/workspace-variables` (proxy da Web) para garantir o envio de cookies de autenticação.
 
 ## Licença
 
