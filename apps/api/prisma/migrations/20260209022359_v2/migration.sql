@@ -8,7 +8,7 @@
 CREATE TYPE "MarketplaceTemplateStatus" AS ENUM ('PENDING', 'APPROVED');
 
 -- DropForeignKey
-ALTER TABLE "AiUsageLog" DROP CONSTRAINT "AiUsageLog_workspaceId_fkey";
+ALTER TABLE IF EXISTS "AiUsageLog" DROP CONSTRAINT IF EXISTS "AiUsageLog_workspaceId_fkey";
 
 -- DropForeignKey
 ALTER TABLE "AutomationTemplateVersion" DROP CONSTRAINT "AutomationTemplateVersion_templateId_fkey";
@@ -32,7 +32,7 @@ ALTER TABLE "Notification" DROP CONSTRAINT "Notification_workspaceId_fkey";
 DROP INDEX "AutomationTemplate_currentVersionId_idx";
 
 -- AlterTable
-ALTER TABLE "AiUsageLog" ALTER COLUMN "id" DROP DEFAULT;
+ALTER TABLE IF EXISTS "AiUsageLog" ALTER COLUMN "id" DROP DEFAULT;
 
 -- AlterTable
 ALTER TABLE "AutomationAccess" ALTER COLUMN "id" DROP DEFAULT,
@@ -131,4 +131,4 @@ ALTER TABLE "MarketplaceInterest" ADD CONSTRAINT "MarketplaceInterest_requestedB
 ALTER TABLE "AutomationTemplateVersion" ADD CONSTRAINT "AutomationTemplateVersion_templateId_fkey" FOREIGN KEY ("templateId") REFERENCES "AutomationTemplate"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "AiUsageLog" ADD CONSTRAINT "AiUsageLog_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "Workspace"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE IF EXISTS "AiUsageLog" ADD CONSTRAINT "AiUsageLog_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "Workspace"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
