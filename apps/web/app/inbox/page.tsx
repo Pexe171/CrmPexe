@@ -502,7 +502,7 @@ export default function InboxPage() {
   const isReadOnly = billingSummary?.isDelinquent ?? false;
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-950">
+    <div className="flex min-h-screen flex-col bg-slate-950 md:pl-80">
       <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-slate-900 px-6 shadow-sm">
         <div className="flex items-center gap-3">
           <SidebarNav variant="client" />
