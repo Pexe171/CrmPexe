@@ -11,7 +11,8 @@ CREATE TYPE "MarketplaceTemplateStatus" AS ENUM ('PENDING', 'APPROVED');
 ALTER TABLE IF EXISTS "AiUsageLog" DROP CONSTRAINT IF EXISTS "AiUsageLog_workspaceId_fkey";
 
 -- DropForeignKey
-ALTER TABLE "AutomationTemplateVersion" DROP CONSTRAINT "AutomationTemplateVersion_templateId_fkey";
+ALTER TABLE IF EXISTS "AutomationTemplateVersion"
+    DROP CONSTRAINT IF EXISTS "AutomationTemplateVersion_templateId_fkey";
 
 -- DropForeignKey
 ALTER TABLE "ConversationSummary" DROP CONSTRAINT "ConversationSummary_workspaceId_fkey";
@@ -61,7 +62,7 @@ ADD COLUMN     "tags" TEXT[] DEFAULT ARRAY[]::TEXT[],
 ADD COLUMN     "workflowData" JSONB;
 
 -- AlterTable
-ALTER TABLE "AutomationTemplateVersion" ALTER COLUMN "id" DROP DEFAULT;
+ALTER TABLE IF EXISTS "AutomationTemplateVersion" ALTER COLUMN "id" DROP DEFAULT;
 
 -- AlterTable
 ALTER TABLE "ConversationSummary" ALTER COLUMN "id" DROP DEFAULT;
@@ -128,7 +129,9 @@ ALTER TABLE "MarketplaceInterest" ADD CONSTRAINT "MarketplaceInterest_templateId
 ALTER TABLE "MarketplaceInterest" ADD CONSTRAINT "MarketplaceInterest_requestedByUserId_fkey" FOREIGN KEY ("requestedByUserId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "AutomationTemplateVersion" ADD CONSTRAINT "AutomationTemplateVersion_templateId_fkey" FOREIGN KEY ("templateId") REFERENCES "AutomationTemplate"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE IF EXISTS "AutomationTemplateVersion"
+    ADD CONSTRAINT "AutomationTemplateVersion_templateId_fkey"
+    FOREIGN KEY ("templateId") REFERENCES "AutomationTemplate"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE IF EXISTS "AiUsageLog" ADD CONSTRAINT "AiUsageLog_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "Workspace"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
