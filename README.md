@@ -19,6 +19,7 @@ Plataforma CRM com API em NestJS e front-end em Next.js, organizada como monorep
 - [Scripts úteis](#scripts-úteis)
 - [Estrutura do repositório](#estrutura-do-repositório)
 - [Fluxos comuns](#fluxos-comuns)
+- [Interface](#interface)
 - [Troubleshooting](#troubleshooting)
 - [Licença](#licença)
 
@@ -144,6 +145,12 @@ pnpm dev:api
 ### Validar acesso a automações
 
 O acesso às automações é liberado quando o workspace possui aprovação (`status=APPROVED`) para o template correspondente. Garanta que a liberação esteja registrada antes de ativar fluxos.
+
+## Interface
+
+### Barra lateral de navegação
+
+A aplicação web conta com uma barra lateral fixa no desktop e recolhível no mobile, separando as funcionalidades por seções (início rápido, atendimento, operações e integrações). Isso facilita encontrar rapidamente painéis e recursos do CRM.
 
 ## Troubleshooting
 
