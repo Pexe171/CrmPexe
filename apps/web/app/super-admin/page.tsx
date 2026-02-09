@@ -77,7 +77,7 @@ export default function SuperAdminPage() {
   }, [workspaces]);
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-slate-950 md:pl-72">
       <header className="border-b bg-slate-900 px-6 py-6 shadow-sm">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-2">
           <div className="flex items-center gap-3">
