@@ -1,5 +1,4 @@
 ALTER TYPE "AutomationInstanceStatus" ADD VALUE IF NOT EXISTS 'PENDING_CONFIG';
-COMMIT;
 
 BEGIN;
 UPDATE "AutomationInstance"
@@ -8,3 +7,4 @@ WHERE "status" = 'PENDING';
 
 ALTER TABLE "AutomationInstance"
 ALTER COLUMN "status" SET DEFAULT 'PENDING_CONFIG';
+COMMIT;
