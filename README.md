@@ -111,7 +111,7 @@ Se o erro mencionar que uma relação **one-to-one** precisa de campo único (ex
 #### Problemas comuns — `prisma:migrate` com P3006/P1014
 Se o `pnpm prisma:migrate` falhar com `P3006` dizendo `unsafe use of new value` ao adicionar um novo valor em enum (ex.: `PENDING_CONFIG`), garanta que a migration faça o `ALTER TYPE` e **comite** a transação antes de atualizar registros ou defaults com o novo valor. Isso evita o erro do PostgreSQL no banco shadow.
 
-Se o `pnpm prisma:migrate` falhar com `P3006`/`P1014` dizendo que a tabela `AiUsageLog` não existe na shadow database, revise o histórico de migrations e garanta que a migration `20260131034627_novos` **não** execute alterações/constraints em `AiUsageLog` quando a tabela ainda não foi criada (ela só aparece em `20260630090000_add_ai_usage_logs`). Isso evita o erro de tabela inexistente durante a aplicação sequencial das migrations.
+Se o `pnpm prisma:migrate` falhar com `P3006`/`P1014` dizendo que a tabela `AiUsageLog` não existe na shadow database, revise o histórico de migrations e garanta que a migration `20260209022359_v2` **não** execute `ALTER TABLE`/constraints em `AiUsageLog` quando a tabela ainda não foi criada (ela só aparece em `20260630090000_add_ai_usage_logs`). A solução recomendada é usar `ALTER TABLE IF EXISTS` e `DROP CONSTRAINT IF EXISTS` para proteger o fluxo em bancos limpos.
 
 Se aparecer `P3006`/`P1014` mencionando que a tabela `AutomationTemplate` não existe na shadow database, confirme que a migration `20260131034627_novos` garante a criação de `AutomationTemplate`/`AutomationInstance` antes de alterar constraints. Isso impede falhas quando a shadow database aplica migrations antigas em sequência. 
 
