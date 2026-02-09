@@ -150,7 +150,7 @@ O acesso às automações é liberado quando o workspace possui aprovação (`st
 
 ### Barra lateral de navegação
 
-A aplicação web conta com uma barra lateral fixa no desktop e recolhível no mobile, separando as funcionalidades por seções (início rápido, atendimento, operações e integrações). Isso facilita encontrar rapidamente painéis e recursos do CRM.
+A aplicação web conta com uma barra lateral fixa no desktop e recolhível no mobile, com hierarquia por seções (início rápido, atendimento, vendas & CRM, operações e integrações). Os itens recebem ícones e destaque visual para facilitar a descoberta das funcionalidades principais.
 
 ## Troubleshooting
 

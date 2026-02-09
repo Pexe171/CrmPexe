@@ -462,7 +462,7 @@ export default function DashboardClient({ role, isSuperAdmin }: DashboardClientP
   }, [auditLogs]);
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-950 md:pl-80">
+    <div className="flex min-h-screen flex-col bg-slate-950 md:pl-72">
       <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-slate-900 px-6 shadow-sm">
         <SidebarNav
           variant="client"
