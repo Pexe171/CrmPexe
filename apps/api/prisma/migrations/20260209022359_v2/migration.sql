@@ -18,7 +18,8 @@ ALTER TABLE IF EXISTS "AutomationTemplateVersion"
 ALTER TABLE "ConversationSummary" DROP CONSTRAINT "ConversationSummary_workspaceId_fkey";
 
 -- DropForeignKey
-ALTER TABLE "IntegrationAccount" DROP CONSTRAINT "IntegrationAccount_workspaceId_fkey";
+ALTER TABLE IF EXISTS "IntegrationAccount"
+    DROP CONSTRAINT IF EXISTS "IntegrationAccount_workspaceId_fkey";
 
 -- DropForeignKey
 ALTER TABLE "MessageTemplate" DROP CONSTRAINT "MessageTemplate_workspaceId_fkey";
