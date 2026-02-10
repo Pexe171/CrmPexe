@@ -199,7 +199,7 @@ Este repositório possui Dockerfiles otimizados para produção:
 
 ### Subir stack de produção
 
-1. Crie os arquivos de ambiente de produção (não commite segredos):
+1. Crie os arquivos de ambiente de produção (não comite segredos):
 
 ```bash
 cp apps/api/.env.production.example apps/api/.env.production

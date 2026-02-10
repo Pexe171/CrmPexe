@@ -1,7 +1,15 @@
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
+
+  if (!apiBaseUrl) {
+    return NextResponse.json(
+      { message: "NEXT_PUBLIC_API_URL não configurada." },
+      { status: 500 }
+    );
+  }
+
   const headers = new Headers();
   const cookieHeader = request.headers.get("cookie");
 

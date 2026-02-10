@@ -4,11 +4,11 @@ import { SESSION_COOKIE } from "@/lib/auth";
 import { ROLE_COOKIE, SUPER_ADMIN_COOKIE } from "@/lib/rbac";
 
 export async function POST() {
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
 
   if (!apiBaseUrl) {
     return NextResponse.json(
-      { message: "URL da API não configurada." },
+      { message: "NEXT_PUBLIC_API_URL não configurada." },
       { status: 500 }
     );
   }
