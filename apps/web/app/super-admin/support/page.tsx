@@ -4,8 +4,14 @@ import { type FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { fetchSuperAdminWorkspaces, type WorkspaceOverview } from "@/lib/super-admin";
-import { fetchWorkspaceMembers, type WorkspaceMemberSummary } from "@/lib/support";
+import {
+  fetchSuperAdminWorkspaces,
+  type WorkspaceOverview
+} from "@/lib/super-admin";
+import {
+  fetchWorkspaceMembers,
+  type WorkspaceMemberSummary
+} from "@/lib/support";
 
 type ImpersonationFormState = {
   workspaceId: string;
@@ -65,7 +71,10 @@ export default function SupportImpersonationPage() {
       setMembersLoading(true);
       setError(null);
       try {
-        const response = await fetchWorkspaceMembers(formState.workspaceId, controller.signal);
+        const response = await fetchWorkspaceMembers(
+          formState.workspaceId,
+          controller.signal
+        );
         setMembers(response);
         if (!response.find((member) => member.id === formState.userId)) {
           setFormState((prev) => ({ ...prev, userId: "" }));
@@ -111,7 +120,9 @@ export default function SupportImpersonationPage() {
       const data = await response.json().catch(() => null);
 
       if (!response.ok) {
-        throw new Error(data?.message ?? "Não foi possível iniciar o modo suporte.");
+        throw new Error(
+          data?.message ?? "Não foi possível iniciar o modo suporte."
+        );
       }
 
       router.push("/dashboard");
@@ -131,9 +142,12 @@ export default function SupportImpersonationPage() {
       <header className="border-b bg-white px-6 py-6 shadow-sm">
         <div className="mx-auto flex w-full max-w-4xl flex-col gap-2">
           <p className="text-sm font-medium text-purple-600">Super Admin</p>
-          <h1 className="text-2xl font-semibold text-gray-900">Impersonação de suporte</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">
+            Impersonação de suporte
+          </h1>
           <p className="text-sm text-gray-500">
-            Gere um acesso temporário para investigar tickets em nome de um membro.
+            Gere um acesso temporário para investigar tickets em nome de um
+            membro.
           </p>
           <div className="mt-3 flex flex-wrap gap-3">
             <Link href="/super-admin">
@@ -151,7 +165,8 @@ export default function SupportImpersonationPage() {
         ) : null}
 
         <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          Use apenas quando houver solicitação formal. As ações realizadas serão registradas no audit log.
+          Use apenas quando houver solicitação formal. As ações realizadas serão
+          registradas no audit log.
         </div>
 
         <form
@@ -165,7 +180,10 @@ export default function SupportImpersonationPage() {
                 className="rounded-lg border border-gray-200 px-3 py-2 text-sm"
                 value={formState.workspaceId}
                 onChange={(event) =>
-                  setFormState((prev) => ({ ...prev, workspaceId: event.target.value }))
+                  setFormState((prev) => ({
+                    ...prev,
+                    workspaceId: event.target.value
+                  }))
                 }
                 disabled={loading || submitting}
               >
@@ -186,12 +204,19 @@ export default function SupportImpersonationPage() {
                 className="rounded-lg border border-gray-200 px-3 py-2 text-sm"
                 value={formState.userId}
                 onChange={(event) =>
-                  setFormState((prev) => ({ ...prev, userId: event.target.value }))
+                  setFormState((prev) => ({
+                    ...prev,
+                    userId: event.target.value
+                  }))
                 }
-                disabled={!formState.workspaceId || membersLoading || submitting}
+                disabled={
+                  !formState.workspaceId || membersLoading || submitting
+                }
               >
                 <option value="">
-                  {membersLoading ? "Carregando membros..." : "Selecione um membro"}
+                  {membersLoading
+                    ? "Carregando membros..."
+                    : "Selecione um membro"}
                 </option>
                 {sortedMembers.map((member) => (
                   <option key={member.id} value={member.id}>
@@ -207,7 +232,10 @@ export default function SupportImpersonationPage() {
                 className="min-h-[96px] rounded-lg border border-gray-200 px-3 py-2 text-sm"
                 value={formState.reason}
                 onChange={(event) =>
-                  setFormState((prev) => ({ ...prev, reason: event.target.value }))
+                  setFormState((prev) => ({
+                    ...prev,
+                    reason: event.target.value
+                  }))
                 }
                 placeholder="Ex.: Cliente solicitou análise de automação."
                 disabled={submitting}
@@ -216,11 +244,19 @@ export default function SupportImpersonationPage() {
           </div>
 
           <div className="mt-6 flex flex-wrap gap-3">
-            <Button type="submit" disabled={!formState.workspaceId || !formState.userId || submitting}>
-              {submitting ? "Entrando no modo suporte..." : "Entrar em modo suporte"}
+            <Button
+              type="submit"
+              disabled={
+                !formState.workspaceId || !formState.userId || submitting
+              }
+            >
+              {submitting
+                ? "Entrando no modo suporte..."
+                : "Entrar em modo suporte"}
             </Button>
             <p className="text-xs text-gray-500">
-              O acesso expira automaticamente e o banner de suporte será exibido no topo.
+              O acesso expira automaticamente e o banner de suporte será exibido
+              no topo.
             </p>
           </div>
         </form>

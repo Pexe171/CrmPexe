@@ -34,7 +34,9 @@ const statusStyles = {
 export default function MarketplacePage() {
   const [agents, setAgents] = useState<MarketplaceAgent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedAgent, setSelectedAgent] = useState<MarketplaceAgent | null>(null);
+  const [selectedAgent, setSelectedAgent] = useState<MarketplaceAgent | null>(
+    null
+  );
   const [submittingInterest, setSubmittingInterest] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -103,11 +105,14 @@ export default function MarketplacePage() {
     setErrorMessage(null);
 
     try {
-      const response = await fetch(`${apiUrl}/api/marketplace/agents/${selectedAgent.id}/interest`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" }
-      });
+      const response = await fetch(
+        `${apiUrl}/api/marketplace/agents/${selectedAgent.id}/interest`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" }
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Não foi possível registrar seu interesse.");
@@ -158,9 +163,10 @@ export default function MarketplacePage() {
               Você escolhe, o super admin libera
             </h2>
             <p className="text-sm text-slate-300">
-              A contratação acontece diretamente com nosso time. Se você deseja um agente, clique em{" "}
-              <strong>Contactar no WhatsApp</strong>. O super admin localiza seu usuário pelo e-mail,
-              nome ou login e libera o agente para o workspace conforme a necessidade.
+              A contratação acontece diretamente com nosso time. Se você deseja
+              um agente, clique em <strong>Contactar no WhatsApp</strong>. O
+              super admin localiza seu usuário pelo e-mail, nome ou login e
+              libera o agente para o workspace conforme a necessidade.
             </p>
             <div className="flex flex-wrap gap-3">
               <Link href={whatsappLink} target="_blank" rel="noreferrer">
@@ -181,23 +187,28 @@ export default function MarketplacePage() {
             </p>
             <ol className="space-y-4 text-sm text-slate-300">
               <li className="rounded-2xl border border-slate-800/80 bg-slate-950/60 p-4">
-                <p className="text-sm font-semibold text-white">1. Solicite pelo WhatsApp</p>
+                <p className="text-sm font-semibold text-white">
+                  1. Solicite pelo WhatsApp
+                </p>
                 <p className="mt-2">
-                  Nosso time entende sua necessidade e define o agente ideal para o seu CRM.
+                  Nosso time entende sua necessidade e define o agente ideal
+                  para o seu CRM.
                 </p>
               </li>
               <li className="rounded-2xl border border-slate-800/80 bg-slate-950/60 p-4">
-                <p className="text-sm font-semibold text-white">2. Configuração técnica</p>
+                <p className="text-sm font-semibold text-white">
+                  2. Configuração técnica
+                </p>
                 <p className="mt-2">
-                  O admin cadastra o agente, descreve o que ele faz e informa o ping e o JSON de
-                  configuração.
+                  O admin cadastra o agente, descreve o que ele faz e informa o
+                  ping e o JSON de configuração.
                 </p>
               </li>
               <li className="rounded-2xl border border-slate-800/80 bg-slate-950/60 p-4">
                 <p className="text-sm font-semibold text-white">3. Aprovação</p>
                 <p className="mt-2">
-                  Você acompanha o status <strong>Pendente</strong> ou <strong>Aprovado</strong> direto
-                  aqui no painel.
+                  Você acompanha o status <strong>Pendente</strong> ou{" "}
+                  <strong>Aprovado</strong> direto aqui no painel.
                 </p>
               </li>
             </ol>
@@ -214,20 +225,27 @@ export default function MarketplacePage() {
                 Acompanhe a liberação do seu agente
               </h3>
             </div>
-            <Link href={whatsappLink} target="_blank" rel="noreferrer" className="text-sm font-semibold text-emerald-200">
+            <Link
+              href={whatsappLink}
+              target="_blank"
+              rel="noreferrer"
+              className="text-sm font-semibold text-emerald-200"
+            >
               Preciso de um agente →
             </Link>
           </div>
 
           {loading ? (
             <div className="mt-6 rounded-3xl border border-slate-800/80 bg-slate-900/60 p-8">
-              <p className="text-sm text-slate-300">Carregando agentes disponíveis...</p>
+              <p className="text-sm text-slate-300">
+                Carregando agentes disponíveis...
+              </p>
             </div>
           ) : !hasAgents ? (
             <div className="mt-6 rounded-3xl border border-slate-800/80 bg-slate-900/60 p-8">
               <p className="text-sm text-slate-300">
-                Ainda não há agentes disponíveis no catálogo. Fale com nosso time para iniciar a
-                contratação.
+                Ainda não há agentes disponíveis no catálogo. Fale com nosso
+                time para iniciar a contratação.
               </p>
               <div className="mt-4">
                 <Link href={whatsappLink} target="_blank" rel="noreferrer">
@@ -244,7 +262,9 @@ export default function MarketplacePage() {
                 >
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-xl font-semibold text-white">{agent.name}</h4>
+                      <h4 className="text-xl font-semibold text-white">
+                        {agent.name}
+                      </h4>
                       {agent.status ? (
                         <span
                           className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider ${
@@ -256,9 +276,13 @@ export default function MarketplacePage() {
                       ) : null}
                     </div>
                     {agent.headline ? (
-                      <p className="text-sm font-semibold text-emerald-200">{agent.headline}</p>
+                      <p className="text-sm font-semibold text-emerald-200">
+                        {agent.headline}
+                      </p>
                     ) : null}
-                    <p className="text-sm text-slate-300">{agent.description}</p>
+                    <p className="text-sm text-slate-300">
+                      {agent.description}
+                    </p>
                   </div>
                   <div className="flex flex-wrap gap-3">
                     {agent.isUnlocked ? (
@@ -297,11 +321,14 @@ export default function MarketplacePage() {
               <p className="text-sm font-semibold uppercase tracking-[0.25em] text-emerald-200">
                 Atendimento dedicado
               </p>
-              <h3 className="text-3xl font-semibold text-white">Administração centralizada</h3>
+              <h3 className="text-3xl font-semibold text-white">
+                Administração centralizada
+              </h3>
               <p className="text-sm text-slate-300">
-                Para garantir segurança e configuração correta, o super admin não acessa o perfil do
-                cliente. Ele localiza seu usuário pelo e-mail, login ou nome cadastrado e libera o
-                agente diretamente no painel do super admin, sempre por workspace.
+                Para garantir segurança e configuração correta, o super admin
+                não acessa o perfil do cliente. Ele localiza seu usuário pelo
+                e-mail, login ou nome cadastrado e libera o agente diretamente
+                no painel do super admin, sempre por workspace.
               </p>
             </div>
             <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
@@ -314,8 +341,12 @@ export default function MarketplacePage() {
       {selectedAgent ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 px-6">
           <div className="w-full max-w-lg rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-xl">
-            <h4 className="text-lg font-semibold text-white">{modalCopy?.title}</h4>
-            <p className="mt-2 text-sm text-slate-300">{modalCopy?.description}</p>
+            <h4 className="text-lg font-semibold text-white">
+              {modalCopy?.title}
+            </h4>
+            <p className="mt-2 text-sm text-slate-300">
+              {modalCopy?.description}
+            </p>
             <div className="mt-6 flex flex-wrap justify-end gap-3">
               <Button
                 className="bg-slate-800 text-slate-100 hover:bg-slate-700"

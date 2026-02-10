@@ -1,7 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState, type ChangeEvent, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useState,
+  type ChangeEvent,
+  type FormEvent
+} from "react";
 import { Button } from "@/components/ui/button";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
@@ -47,7 +53,9 @@ export default function CannedResponsesPage() {
 
     try {
       const searchParam = currentSearch.trim();
-      const query = searchParam ? `?search=${encodeURIComponent(searchParam)}` : "";
+      const query = searchParam
+        ? `?search=${encodeURIComponent(searchParam)}`
+        : "";
       const response = await fetch(`${apiUrl}/api/canned-responses${query}`, {
         credentials: "include"
       });
@@ -59,7 +67,11 @@ export default function CannedResponsesPage() {
       const data = (await response.json()) as CannedResponse[];
       setResponses(data);
     } catch (fetchError) {
-      setError(fetchError instanceof Error ? fetchError.message : "Erro inesperado ao carregar respostas rápidas.");
+      setError(
+        fetchError instanceof Error
+          ? fetchError.message
+          : "Erro inesperado ao carregar respostas rápidas."
+      );
     } finally {
       setLoading(false);
     }
@@ -70,10 +82,12 @@ export default function CannedResponsesPage() {
   }, [fetchResponses, search]);
 
   const handleChange =
-    (field: keyof ResponseFormState) => (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      const value = field === "isActive" && "checked" in event.target
-        ? (event.target.checked as unknown as boolean)
-        : event.target.value;
+    (field: keyof ResponseFormState) =>
+    (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      const value =
+        field === "isActive" && "checked" in event.target
+          ? (event.target.checked as unknown as boolean)
+          : event.target.value;
 
       setFormState((prev) => ({
         ...prev,
@@ -118,7 +132,11 @@ export default function CannedResponsesPage() {
       resetForm();
       await fetchResponses(search);
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Erro inesperado ao salvar resposta rápida.");
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : "Erro inesperado ao salvar resposta rápida."
+      );
     } finally {
       setSubmitting(false);
     }
@@ -129,10 +147,13 @@ export default function CannedResponsesPage() {
     setError(null);
 
     try {
-      const response = await fetch(`${apiUrl}/api/canned-responses/${responseId}`, {
-        method: "DELETE",
-        credentials: "include"
-      });
+      const response = await fetch(
+        `${apiUrl}/api/canned-responses/${responseId}`,
+        {
+          method: "DELETE",
+          credentials: "include"
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Não foi possível remover a resposta rápida.");
@@ -140,7 +161,11 @@ export default function CannedResponsesPage() {
 
       await fetchResponses(search);
     } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : "Erro inesperado ao remover resposta rápida.");
+      setError(
+        deleteError instanceof Error
+          ? deleteError.message
+          : "Erro inesperado ao remover resposta rápida."
+      );
     } finally {
       setSubmitting(false);
     }
@@ -151,7 +176,9 @@ export default function CannedResponsesPage() {
       <header className="border-b bg-white px-6 py-6 shadow-sm">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-2">
           <p className="text-sm font-medium text-blue-600">Admin</p>
-          <h1 className="text-2xl font-semibold text-gray-900">Respostas rápidas</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">
+            Respostas rápidas
+          </h1>
           <p className="text-sm text-gray-500">
             Defina atalhos de resposta para acelerar o atendimento nos canais.
           </p>
@@ -167,9 +194,12 @@ export default function CannedResponsesPage() {
         <section className="flex-1 space-y-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-gray-800">Respostas cadastradas</h2>
+              <h2 className="text-lg font-semibold text-gray-800">
+                Respostas cadastradas
+              </h2>
               <p className="text-sm text-gray-500">
-                Busque pelo título, atalho ou tags para revisar rapidamente o conteúdo.
+                Busque pelo título, atalho ou tags para revisar rapidamente o
+                conteúdo.
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -179,7 +209,11 @@ export default function CannedResponsesPage() {
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
               />
-              <Button variant="outline" onClick={() => fetchResponses(search)} disabled={loading}>
+              <Button
+                variant="outline"
+                onClick={() => fetchResponses(search)}
+                disabled={loading}
+              >
                 Atualizar lista
               </Button>
             </div>
@@ -191,16 +225,22 @@ export default function CannedResponsesPage() {
             </div>
           ) : responses.length === 0 ? (
             <div className="rounded-xl border bg-white p-6 text-sm text-gray-500 shadow-sm">
-              Nenhuma resposta cadastrada ainda. Use o formulário ao lado para criar a primeira.
+              Nenhuma resposta cadastrada ainda. Use o formulário ao lado para
+              criar a primeira.
             </div>
           ) : (
             <div className="grid gap-4">
               {responses.map((response) => (
-                <div key={response.id} className="rounded-xl border bg-white p-5 shadow-sm">
+                <div
+                  key={response.id}
+                  className="rounded-xl border bg-white p-5 shadow-sm"
+                >
                   <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="text-lg font-semibold text-gray-900">{response.title}</h3>
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          {response.title}
+                        </h3>
                         {!response.isActive ? (
                           <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-700">
                             Inativo
@@ -208,9 +248,13 @@ export default function CannedResponsesPage() {
                         ) : null}
                       </div>
                       {response.shortcut ? (
-                        <p className="text-xs text-gray-500">Atalho: {response.shortcut}</p>
+                        <p className="text-xs text-gray-500">
+                          Atalho: {response.shortcut}
+                        </p>
                       ) : null}
-                      <p className="mt-2 text-sm text-gray-600 whitespace-pre-line">{response.content}</p>
+                      <p className="mt-2 text-sm text-gray-600 whitespace-pre-line">
+                        {response.content}
+                      </p>
                       {response.tags.length > 0 ? (
                         <div className="mt-3 flex flex-wrap gap-2">
                           {response.tags.map((tag) => (
@@ -224,7 +268,11 @@ export default function CannedResponsesPage() {
                         </div>
                       ) : null}
                     </div>
-                    <Button variant="outline" onClick={() => handleDelete(response.id)} disabled={submitting}>
+                    <Button
+                      variant="outline"
+                      onClick={() => handleDelete(response.id)}
+                      disabled={submitting}
+                    >
                       Remover
                     </Button>
                   </div>
@@ -237,7 +285,8 @@ export default function CannedResponsesPage() {
         <section className="w-full max-w-md space-y-4 rounded-xl border bg-white p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-gray-900">Nova resposta</h2>
           <p className="text-sm text-gray-500">
-            Cadastre o texto que será usado para responder rapidamente durante o atendimento.
+            Cadastre o texto que será usado para responder rapidamente durante o
+            atendimento.
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -297,7 +346,11 @@ export default function CannedResponsesPage() {
               </div>
             ) : null}
 
-            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={submitting}>
+            <Button
+              type="submit"
+              className="w-full bg-blue-600 hover:bg-blue-700"
+              disabled={submitting}
+            >
               {submitting ? "Salvando..." : "Salvar resposta"}
             </Button>
           </form>

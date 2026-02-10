@@ -31,16 +31,23 @@ const formatDate = (value?: string | null) => {
 
 export default function WorkspacesPage() {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
-  const [currentWorkspaceId, setCurrentWorkspaceId] = useState<string | null>(null);
+  const [currentWorkspaceId, setCurrentWorkspaceId] = useState<string | null>(
+    null
+  );
   const [workspaceName, setWorkspaceName] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const totalWorkspaces = workspaces.length;
-  const currentWorkspace = workspaces.find((workspace) => workspace.id === currentWorkspaceId);
+  const currentWorkspace = workspaces.find(
+    (workspace) => workspace.id === currentWorkspaceId
+  );
   const lastUpdatedWorkspace = workspaces
     .slice()
-    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0];
+    .sort(
+      (a, b) =>
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+    )[0];
 
   const fetchWorkspaces = useCallback(async () => {
     setLoading(true);
@@ -59,7 +66,11 @@ export default function WorkspacesPage() {
       setWorkspaces(data.workspaces);
       setCurrentWorkspaceId(data.currentWorkspaceId);
     } catch (fetchError) {
-      setError(fetchError instanceof Error ? fetchError.message : "Erro inesperado ao buscar workspaces.");
+      setError(
+        fetchError instanceof Error
+          ? fetchError.message
+          : "Erro inesperado ao buscar workspaces."
+      );
     } finally {
       setLoading(false);
     }
@@ -93,7 +104,11 @@ export default function WorkspacesPage() {
       setWorkspaceName("");
       await fetchWorkspaces();
     } catch (createError) {
-      setError(createError instanceof Error ? createError.message : "Erro inesperado ao criar workspace.");
+      setError(
+        createError instanceof Error
+          ? createError.message
+          : "Erro inesperado ao criar workspace."
+      );
     } finally {
       setSaving(false);
     }
@@ -106,10 +121,13 @@ export default function WorkspacesPage() {
     setError(null);
 
     try {
-      const response = await fetch(`${apiUrl}/api/workspaces/${workspaceId}/switch`, {
-        method: "POST",
-        credentials: "include"
-      });
+      const response = await fetch(
+        `${apiUrl}/api/workspaces/${workspaceId}/switch`,
+        {
+          method: "POST",
+          credentials: "include"
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Não foi possível trocar de workspace.");
@@ -118,7 +136,11 @@ export default function WorkspacesPage() {
       const data = (await response.json()) as { currentWorkspaceId: string };
       setCurrentWorkspaceId(data.currentWorkspaceId);
     } catch (switchError) {
-      setError(switchError instanceof Error ? switchError.message : "Erro inesperado ao trocar de workspace.");
+      setError(
+        switchError instanceof Error
+          ? switchError.message
+          : "Erro inesperado ao trocar de workspace."
+      );
     } finally {
       setSaving(false);
     }
@@ -150,19 +172,25 @@ export default function WorkspacesPage() {
         <section className="flex-1 space-y-4">
           <div className="grid gap-4 md:grid-cols-3">
             <div className="rounded-xl border bg-slate-900 p-5 shadow-sm">
-              <p className="text-sm font-medium text-slate-400">Workspaces ativos</p>
+              <p className="text-sm font-medium text-slate-400">
+                Workspaces ativos
+              </p>
               <p className="mt-2 text-2xl font-semibold text-slate-100">
                 {loading ? "-" : totalWorkspaces}
               </p>
             </div>
             <div className="rounded-xl border bg-slate-900 p-5 shadow-sm">
-              <p className="text-sm font-medium text-slate-400">Workspace atual</p>
+              <p className="text-sm font-medium text-slate-400">
+                Workspace atual
+              </p>
               <p className="mt-2 text-sm font-semibold text-slate-100">
-                {loading ? "-" : currentWorkspace?.name ?? "Não selecionado"}
+                {loading ? "-" : (currentWorkspace?.name ?? "Não selecionado")}
               </p>
             </div>
             <div className="rounded-xl border bg-slate-900 p-5 shadow-sm">
-              <p className="text-sm font-medium text-slate-400">Última atualização</p>
+              <p className="text-sm font-medium text-slate-400">
+                Última atualização
+              </p>
               <p className="mt-2 text-sm font-semibold text-slate-100">
                 {loading ? "-" : formatDate(lastUpdatedWorkspace?.updatedAt)}
               </p>
@@ -230,7 +258,10 @@ export default function WorkspacesPage() {
             Defina um nome e comece a organizar seu time.
           </p>
           <div className="mt-4 space-y-3">
-            <label className="text-sm font-medium text-slate-200" htmlFor="workspace-name">
+            <label
+              className="text-sm font-medium text-slate-200"
+              htmlFor="workspace-name"
+            >
               Nome do workspace
             </label>
             <input
@@ -255,8 +286,8 @@ export default function WorkspacesPage() {
           <div className="mt-6 rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-700">
             <p className="font-semibold">Como funciona</p>
             <p className="mt-2">
-              Cada workspace possui seus próprios agentes, filas e integrações. Use esta tela para
-              organizar times por unidade ou produto.
+              Cada workspace possui seus próprios agentes, filas e integrações.
+              Use esta tela para organizar times por unidade ou produto.
             </p>
           </div>
         </aside>

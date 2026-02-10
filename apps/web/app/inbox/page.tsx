@@ -1,9 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent
+} from "react";
 import { SidebarNav } from "@/components/sidebar-nav";
 import { Button } from "@/components/ui/button";
-import { fetchWorkspaceBillingSummary, type BillingSummary } from "@/lib/billing";
+import {
+  fetchWorkspaceBillingSummary,
+  type BillingSummary
+} from "@/lib/billing";
 import {
   conversationsPageSize,
   fetchConversationDetails as fetchConversationDetailsApi,
@@ -59,12 +69,22 @@ const resolveLeadBadge = (contact?: Conversation["contact"] | null) => {
   if (!label && score === null) return null;
 
   const resolvedLabel =
-    label ?? (score !== null ? (score >= 70 ? "quente" : score >= 40 ? "morno" : "frio") : "frio");
+    label ??
+    (score !== null
+      ? score >= 70
+        ? "quente"
+        : score >= 40
+          ? "morno"
+          : "frio"
+      : "frio");
 
   const palette: Record<string, { text: string; className: string }> = {
     frio: { text: "Lead frio", className: "bg-slate-800 text-slate-100" },
     morno: { text: "Lead morno", className: "bg-amber-500/20 text-amber-200" },
-    quente: { text: "Lead quente", className: "bg-emerald-500/20 text-emerald-200" }
+    quente: {
+      text: "Lead quente",
+      className: "bg-emerald-500/20 text-emerald-200"
+    }
   };
 
   const config = palette[resolvedLabel] ?? palette.frio;
@@ -113,7 +133,9 @@ const resolveNextPollInterval = ({
 
 export default function InboxPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [activeConversationId, setActiveConversationId] = useState<
+    string | null
+  >(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -122,30 +144,45 @@ export default function InboxPage() {
   const [cannedSearch, setCannedSearch] = useState("");
   const [knowledgeSearch, setKnowledgeSearch] = useState("");
   const [cannedResponses, setCannedResponses] = useState<CannedResponse[]>([]);
-  const [knowledgeArticles, setKnowledgeArticles] = useState<KnowledgeBaseArticle[]>([]);
+  const [knowledgeArticles, setKnowledgeArticles] = useState<
+    KnowledgeBaseArticle[]
+  >([]);
   const [cannedLoading, setCannedLoading] = useState(false);
   const [knowledgeLoading, setKnowledgeLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  const [billingSummary, setBillingSummary] = useState<BillingSummary | null>(null);
+  const [billingSummary, setBillingSummary] = useState<BillingSummary | null>(
+    null
+  );
   const [billingLoading, setBillingLoading] = useState(true);
-  const [conversationSummary, setConversationSummary] = useState<ConversationSummary | null>(null);
+  const [conversationSummary, setConversationSummary] =
+    useState<ConversationSummary | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMoreConversations, setHasMoreConversations] = useState(true);
-  const [loadingMoreConversations, setLoadingMoreConversations] = useState(false);
-  const [pollingIntervalMs, setPollingIntervalMs] = useState(basePollIntervalMs);
+  const [loadingMoreConversations, setLoadingMoreConversations] =
+    useState(false);
+  const [pollingIntervalMs, setPollingIntervalMs] =
+    useState(basePollIntervalMs);
   const lastMessageSignatureRef = useRef<string>("");
   const pollingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollingIntervalRef = useRef(basePollIntervalMs);
   const isTabHiddenRef = useRef(false);
-  const totalConversations = useMemo(() => conversations.length, [conversations]);
+  const totalConversations = useMemo(
+    () => conversations.length,
+    [conversations]
+  );
   const openConversations = useMemo(
-    () => conversations.filter((conversation) => conversation.status !== "CLOSED").length,
+    () =>
+      conversations.filter((conversation) => conversation.status !== "CLOSED")
+        .length,
     [conversations]
   );
   const totalMessages = useMemo(
     () =>
-      conversations.reduce((total, conversation) => total + (conversation._count?.messages ?? 0), 0),
+      conversations.reduce(
+        (total, conversation) => total + (conversation._count?.messages ?? 0),
+        0
+      ),
     [conversations]
   );
 
@@ -167,14 +204,19 @@ export default function InboxPage() {
       if (firstTime !== secondTime) {
         return secondTime - firstTime;
       }
-      return new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime();
+      return (
+        new Date(second.createdAt).getTime() -
+        new Date(first.createdAt).getTime()
+      );
     });
   }, []);
 
   const mergeConversations = useCallback(
     (current: Conversation[], incoming: Conversation[]) => {
       const merged = new Map<string, Conversation>();
-      incoming.forEach((conversation) => merged.set(conversation.id, conversation));
+      incoming.forEach((conversation) =>
+        merged.set(conversation.id, conversation)
+      );
       current.forEach((conversation) => {
         if (!merged.has(conversation.id)) {
           merged.set(conversation.id, conversation);
@@ -195,38 +237,53 @@ export default function InboxPage() {
       append?: boolean;
       signal?: AbortSignal;
     }) => {
-    try {
-      if (!append) {
-        setLoading(true);
+      try {
+        if (!append) {
+          setLoading(true);
+        }
+        const data = await fetchConversationsApi({
+          page,
+          limit: conversationsPageSize,
+          signal
+        });
+        setHasMoreConversations(data.length === conversationsPageSize);
+        setConversations((prev) =>
+          append ? mergeConversations(prev, data) : mergeConversations([], data)
+        );
+        if (!append) {
+          setCurrentPage(page);
+        }
+        setActiveConversationId((prev) =>
+          data.length > 0 ? (prev ?? data[0].id) : null
+        );
+        if (!append && data.length === 0) {
+          setMessages([]);
+        }
+        setError(null);
+      } catch (fetchError) {
+        if (
+          fetchError instanceof DOMException &&
+          fetchError.name === "AbortError"
+        ) {
+          return;
+        }
+        setError(
+          fetchError instanceof Error
+            ? fetchError.message
+            : "Erro inesperado ao buscar conversas."
+        );
+        if (!append) {
+          setConversations([]);
+          setActiveConversationId(null);
+          setMessages([]);
+        }
+      } finally {
+        if (!append) {
+          setLoading(false);
+        }
+        setLoadingMoreConversations(false);
       }
-      const data = await fetchConversationsApi({ page, limit: conversationsPageSize, signal });
-      setHasMoreConversations(data.length === conversationsPageSize);
-      setConversations((prev) => (append ? mergeConversations(prev, data) : mergeConversations([], data)));
-      if (!append) {
-        setCurrentPage(page);
-      }
-      setActiveConversationId((prev) => (data.length > 0 ? prev ?? data[0].id : null));
-      if (!append && data.length === 0) {
-        setMessages([]);
-      }
-      setError(null);
-    } catch (fetchError) {
-      if (fetchError instanceof DOMException && fetchError.name === "AbortError") {
-        return;
-      }
-      setError(fetchError instanceof Error ? fetchError.message : "Erro inesperado ao buscar conversas.");
-      if (!append) {
-        setConversations([]);
-        setActiveConversationId(null);
-        setMessages([]);
-      }
-    } finally {
-      if (!append) {
-        setLoading(false);
-      }
-      setLoadingMoreConversations(false);
-    }
-  },
+    },
     [mergeConversations]
   );
 
@@ -240,25 +297,39 @@ export default function InboxPage() {
     await fetchConversations({ page: nextPage, append: true });
   };
 
-  const fetchConversationDetails = useCallback(async (conversationId: string, signal?: AbortSignal) => {
-    try {
-      const data = await fetchConversationDetailsApi(conversationId, signal);
-      setMessages(data.messages ?? []);
-      setError(null);
-      return data;
-    } catch (fetchError) {
-      if (fetchError instanceof DOMException && fetchError.name === "AbortError") {
+  const fetchConversationDetails = useCallback(
+    async (conversationId: string, signal?: AbortSignal) => {
+      try {
+        const data = await fetchConversationDetailsApi(conversationId, signal);
+        setMessages(data.messages ?? []);
+        setError(null);
+        return data;
+      } catch (fetchError) {
+        if (
+          fetchError instanceof DOMException &&
+          fetchError.name === "AbortError"
+        ) {
+          return null;
+        }
+        setError(
+          fetchError instanceof Error
+            ? fetchError.message
+            : "Erro inesperado ao buscar mensagens."
+        );
+        setMessages([]);
         return null;
       }
-      setError(fetchError instanceof Error ? fetchError.message : "Erro inesperado ao buscar mensagens.");
-      setMessages([]);
-      return null;
-    }
-  }, []);
+    },
+    []
+  );
 
   useEffect(() => {
     const controller = new AbortController();
-    void fetchConversations({ page: 1, append: false, signal: controller.signal });
+    void fetchConversations({
+      page: 1,
+      append: false,
+      signal: controller.signal
+    });
 
     return () => {
       controller.abort();
@@ -270,8 +341,12 @@ export default function InboxPage() {
       const term = cannedSearch.trim();
       setCannedLoading(true);
       try {
-        const query = term ? `?search=${encodeURIComponent(term)}&isActive=true` : "?isActive=true";
-        const response = await fetch(`${apiUrl}/api/canned-responses${query}`, { credentials: "include" });
+        const query = term
+          ? `?search=${encodeURIComponent(term)}&isActive=true`
+          : "?isActive=true";
+        const response = await fetch(`${apiUrl}/api/canned-responses${query}`, {
+          credentials: "include"
+        });
         if (!response.ok) {
           throw new Error("Não foi possível buscar respostas rápidas.");
         }
@@ -292,8 +367,13 @@ export default function InboxPage() {
       const term = knowledgeSearch.trim();
       setKnowledgeLoading(true);
       try {
-        const query = term ? `?search=${encodeURIComponent(term)}&isActive=true` : "?isActive=true";
-        const response = await fetch(`${apiUrl}/api/knowledge-base-articles${query}`, { credentials: "include" });
+        const query = term
+          ? `?search=${encodeURIComponent(term)}&isActive=true`
+          : "?isActive=true";
+        const response = await fetch(
+          `${apiUrl}/api/knowledge-base-articles${query}`,
+          { credentials: "include" }
+        );
         if (!response.ok) {
           throw new Error("Não foi possível buscar artigos.");
         }
@@ -434,18 +514,25 @@ export default function InboxPage() {
       const name = conversation.contact?.name?.toLowerCase() ?? "";
       const email = conversation.contact?.email?.toLowerCase() ?? "";
       const phone = conversation.contact?.phone?.toLowerCase() ?? "";
-      return name.includes(term) || email.includes(term) || phone.includes(term);
+      return (
+        name.includes(term) || email.includes(term) || phone.includes(term)
+      );
     });
   }, [conversations, search]);
 
-  const activeConversation = conversations.find((conversation) => conversation.id === activeConversationId) ?? null;
+  const activeConversation =
+    conversations.find(
+      (conversation) => conversation.id === activeConversationId
+    ) ?? null;
   const activeLeadBadge = resolveLeadBadge(activeConversation?.contact);
 
   const handleSendMessage = async (event: FormEvent) => {
     event.preventDefault();
 
     if (billingSummary?.isDelinquent) {
-      setError("Workspace inadimplente. O envio de mensagens está bloqueado até o pagamento ser regularizado.");
+      setError(
+        "Workspace inadimplente. O envio de mensagens está bloqueado até o pagamento ser regularizado."
+      );
       return;
     }
 
@@ -466,18 +553,28 @@ export default function InboxPage() {
     setConversations((prev) =>
       prev.map((conversation) =>
         conversation.id === activeConversationId
-          ? { ...conversation, lastMessageAt: newMessage.sentAt ?? conversation.lastMessageAt }
+          ? {
+              ...conversation,
+              lastMessageAt: newMessage.sentAt ?? conversation.lastMessageAt
+            }
           : conversation
       )
     );
 
     try {
-      await sendConversationMessage({ conversationId: activeConversationId, text: newMessage.text ?? "" });
+      await sendConversationMessage({
+        conversationId: activeConversationId,
+        text: newMessage.text ?? ""
+      });
 
       await fetchConversationDetails(activeConversationId);
       await fetchConversations({ page: 1, append: false });
     } catch (sendError) {
-      setError(sendError instanceof Error ? sendError.message : "Erro inesperado ao enviar mensagem.");
+      setError(
+        sendError instanceof Error
+          ? sendError.message
+          : "Erro inesperado ao enviar mensagem."
+      );
     }
   };
 
@@ -493,7 +590,11 @@ export default function InboxPage() {
       const data = await fetchConversationSummaryApi(activeConversationId);
       setConversationSummary(data);
     } catch (summaryError) {
-      setError(summaryError instanceof Error ? summaryError.message : "Erro inesperado ao gerar resumo.");
+      setError(
+        summaryError instanceof Error
+          ? summaryError.message
+          : "Erro inesperado ao gerar resumo."
+      );
     } finally {
       setSummaryLoading(false);
     }
@@ -509,7 +610,8 @@ export default function InboxPage() {
           <div>
             <h1 className="text-xl font-semibold text-slate-100">Inbox</h1>
             <p className="text-xs text-slate-400">
-              Atualização automática a cada {pollingIntervalMs / 1000}s (polling adaptativo).
+              Atualização automática a cada {pollingIntervalMs / 1000}s (polling
+              adaptativo).
             </p>
           </div>
         </div>
@@ -521,30 +623,48 @@ export default function InboxPage() {
       <div className="border-b bg-slate-900 px-6 py-4">
         <div className="mx-auto flex w-full max-w-6xl flex-wrap gap-4">
           {[
-            { label: "Conversas totais", value: loading ? "-" : totalConversations },
-            { label: "Conversas abertas", value: loading ? "-" : openConversations },
-            { label: "Mensagens registradas", value: loading ? "-" : totalMessages }
+            {
+              label: "Conversas totais",
+              value: loading ? "-" : totalConversations
+            },
+            {
+              label: "Conversas abertas",
+              value: loading ? "-" : openConversations
+            },
+            {
+              label: "Mensagens registradas",
+              value: loading ? "-" : totalMessages
+            }
           ].map((stat) => (
-            <div key={stat.label} className="rounded-xl border bg-slate-950 px-4 py-3 text-sm">
+            <div
+              key={stat.label}
+              className="rounded-xl border bg-slate-950 px-4 py-3 text-sm"
+            >
               <p className="text-xs font-medium text-slate-400">{stat.label}</p>
-              <p className="mt-1 text-base font-semibold text-slate-100">{stat.value}</p>
+              <p className="mt-1 text-base font-semibold text-slate-100">
+                {stat.value}
+              </p>
             </div>
           ))}
           <div className="rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-xs text-blue-200">
-            O inbox é o coração do CRM marketplace: monitore SLAs, filas e agentes em tempo real.
+            O inbox é o coração do CRM marketplace: monitore SLAs, filas e
+            agentes em tempo real.
           </div>
         </div>
       </div>
       {isReadOnly ? (
         <div className="border-b border-red-200 bg-red-50 px-6 py-2 text-xs text-red-700">
-          Workspace inadimplente. O envio de mensagens está bloqueado e o atendimento está em modo somente leitura.
+          Workspace inadimplente. O envio de mensagens está bloqueado e o
+          atendimento está em modo somente leitura.
         </div>
       ) : null}
 
       <main className="flex flex-1 gap-0 overflow-hidden">
         <aside className="flex w-full max-w-sm flex-col border-r bg-slate-900">
           <div className="border-b px-4 py-3">
-            <label className="text-xs font-medium text-slate-400">Buscar conversas</label>
+            <label className="text-xs font-medium text-slate-400">
+              Buscar conversas
+            </label>
             <input
               className="mt-2 w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-blue-500 focus:outline-none"
               placeholder="Nome, email ou telefone"
@@ -555,7 +675,8 @@ export default function InboxPage() {
           <div className="flex-1 overflow-y-auto">
             {filteredConversations.map((conversation) => {
               const isActive = conversation.id === activeConversationId;
-              const contactName = conversation.contact?.name ?? "Contato sem nome";
+              const contactName =
+                conversation.contact?.name ?? "Contato sem nome";
               const leadBadge = resolveLeadBadge(conversation.contact);
               return (
                 <button
@@ -567,17 +688,27 @@ export default function InboxPage() {
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-slate-100">{contactName}</span>
+                      <span className="text-sm font-semibold text-slate-100">
+                        {contactName}
+                      </span>
                       {leadBadge && (
-                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${leadBadge.className}`}>
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${leadBadge.className}`}
+                        >
                           {leadBadge.text}
                         </span>
                       )}
                     </div>
-                    <span className="text-xs text-slate-500">{formatDate(conversation.lastMessageAt)}</span>
+                    <span className="text-xs text-slate-500">
+                      {formatDate(conversation.lastMessageAt)}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between text-xs text-slate-400">
-                    <span>{conversation.contact?.email ?? conversation.contact?.phone ?? "Sem contato"}</span>
+                    <span>
+                      {conversation.contact?.email ??
+                        conversation.contact?.phone ??
+                        "Sem contato"}
+                    </span>
                     <span className="rounded-full bg-slate-800 px-2 py-0.5">
                       {conversation._count?.messages ?? 0} msgs
                     </span>
@@ -587,7 +718,9 @@ export default function InboxPage() {
             })}
             {filteredConversations.length === 0 && (
               <div className="px-4 py-6 text-sm text-slate-400">
-                {loading ? "Carregando conversas..." : "Nenhuma conversa encontrada."}
+                {loading
+                  ? "Carregando conversas..."
+                  : "Nenhuma conversa encontrada."}
               </div>
             )}
             {filteredConversations.length > 0 && (
@@ -598,7 +731,11 @@ export default function InboxPage() {
                   onClick={handleLoadMoreConversations}
                   disabled={loadingMoreConversations || !hasMoreConversations}
                 >
-                  {loadingMoreConversations ? "Carregando..." : hasMoreConversations ? "Carregar mais" : "Fim da lista"}
+                  {loadingMoreConversations
+                    ? "Carregando..."
+                    : hasMoreConversations
+                      ? "Carregar mais"
+                      : "Fim da lista"}
                 </Button>
               </div>
             )}
@@ -611,7 +748,8 @@ export default function InboxPage() {
               <div>
                 <div className="flex flex-wrap items-center gap-2">
                   <h2 className="text-lg font-semibold text-slate-100">
-                    {activeConversation?.contact?.name ?? "Selecione uma conversa"}
+                    {activeConversation?.contact?.name ??
+                      "Selecione uma conversa"}
                   </h2>
                   {activeLeadBadge && (
                     <span
@@ -622,13 +760,16 @@ export default function InboxPage() {
                   )}
                 </div>
                 <p className="text-xs text-slate-400">
-                  {activeConversation?.contact?.email ?? activeConversation?.contact?.phone ?? "Sem detalhes do contato"}
+                  {activeConversation?.contact?.email ??
+                    activeConversation?.contact?.phone ??
+                    "Sem detalhes do contato"}
                 </p>
               </div>
               <div className="text-right">
                 <p className="text-xs text-slate-400">Responsável</p>
                 <p className="text-sm font-medium text-slate-200">
-                  {activeConversation?.assignedToUser?.name ?? "Fila sem responsável"}
+                  {activeConversation?.assignedToUser?.name ??
+                    "Fila sem responsável"}
                 </p>
                 <Button
                   type="button"
@@ -648,10 +789,16 @@ export default function InboxPage() {
             {conversationSummary && (
               <div className="mt-4 rounded-lg border border-slate-800 bg-slate-950 px-4 py-4 text-sm text-slate-200">
                 <div className="flex items-center justify-between text-xs text-slate-400">
-                  <span className="font-medium text-slate-200">Resumo da conversa</span>
-                  <span>Gerado em {formatDateTime(conversationSummary.createdAt)}</span>
+                  <span className="font-medium text-slate-200">
+                    Resumo da conversa
+                  </span>
+                  <span>
+                    Gerado em {formatDateTime(conversationSummary.createdAt)}
+                  </span>
                 </div>
-                <p className="mt-2 text-sm text-slate-200">{conversationSummary.text}</p>
+                <p className="mt-2 text-sm text-slate-200">
+                  {conversationSummary.text}
+                </p>
                 {conversationSummary.bullets.length > 0 && (
                   <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-300">
                     {conversationSummary.bullets.map((bullet) => (
@@ -664,9 +811,13 @@ export default function InboxPage() {
             <div className="mt-4 grid gap-4 lg:grid-cols-2">
               <div className="rounded-lg border border-slate-800 bg-slate-950 px-4 py-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-slate-200">Respostas rápidas</h3>
+                  <h3 className="text-sm font-semibold text-slate-200">
+                    Respostas rápidas
+                  </h3>
                   <span className="text-xs text-slate-500">
-                    {cannedLoading ? "Buscando..." : `${cannedResponses.length} itens`}
+                    {cannedLoading
+                      ? "Buscando..."
+                      : `${cannedResponses.length} itens`}
                   </span>
                 </div>
                 <input
@@ -677,7 +828,9 @@ export default function InboxPage() {
                 />
                 <div className="mt-3 max-h-48 space-y-2 overflow-y-auto text-xs text-slate-300">
                   {cannedResponses.length === 0 ? (
-                    <p className="text-slate-500">Nenhuma resposta encontrada.</p>
+                    <p className="text-slate-500">
+                      Nenhuma resposta encontrada.
+                    </p>
                   ) : (
                     cannedResponses.map((response) => (
                       <button
@@ -686,11 +839,17 @@ export default function InboxPage() {
                         className="w-full rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-left transition hover:border-blue-200 hover:bg-blue-50"
                         onClick={() => appendToDraft(response.content)}
                       >
-                        <p className="font-medium text-slate-100">{response.title}</p>
+                        <p className="font-medium text-slate-100">
+                          {response.title}
+                        </p>
                         {response.shortcut ? (
-                          <p className="text-[10px] text-slate-500">Atalho: {response.shortcut}</p>
+                          <p className="text-[10px] text-slate-500">
+                            Atalho: {response.shortcut}
+                          </p>
                         ) : null}
-                        <p className="mt-1 max-h-10 overflow-hidden text-[11px] text-slate-400">{response.content}</p>
+                        <p className="mt-1 max-h-10 overflow-hidden text-[11px] text-slate-400">
+                          {response.content}
+                        </p>
                       </button>
                     ))
                   )}
@@ -698,9 +857,13 @@ export default function InboxPage() {
               </div>
               <div className="rounded-lg border border-slate-800 bg-slate-950 px-4 py-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-slate-200">Base de conhecimento</h3>
+                  <h3 className="text-sm font-semibold text-slate-200">
+                    Base de conhecimento
+                  </h3>
                   <span className="text-xs text-slate-500">
-                    {knowledgeLoading ? "Buscando..." : `${knowledgeArticles.length} itens`}
+                    {knowledgeLoading
+                      ? "Buscando..."
+                      : `${knowledgeArticles.length} itens`}
                   </span>
                 </div>
                 <input
@@ -720,8 +883,12 @@ export default function InboxPage() {
                         className="w-full rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-left transition hover:border-emerald-200 hover:bg-emerald-50"
                         onClick={() => appendToDraft(article.content)}
                       >
-                        <p className="font-medium text-slate-100">{article.title}</p>
-                        <p className="mt-1 max-h-10 overflow-hidden text-[11px] text-slate-400">{article.content}</p>
+                        <p className="font-medium text-slate-100">
+                          {article.title}
+                        </p>
+                        <p className="mt-1 max-h-10 overflow-hidden text-[11px] text-slate-400">
+                          {article.content}
+                        </p>
                       </button>
                     ))
                   )}
@@ -734,7 +901,9 @@ export default function InboxPage() {
             <div className="flex flex-col gap-4">
               {messages.length === 0 && (
                 <div className="rounded-lg border border-dashed border-slate-800 bg-slate-900 px-4 py-6 text-center text-sm text-slate-400">
-                  {activeConversationId ? "Ainda não há mensagens nessa conversa." : "Selecione uma conversa para começar."}
+                  {activeConversationId
+                    ? "Ainda não há mensagens nessa conversa."
+                    : "Selecione uma conversa para começar."}
                 </div>
               )}
               {messages.map((message) => {
@@ -752,7 +921,9 @@ export default function InboxPage() {
                       }`}
                     >
                       <p className="leading-relaxed">{message.text}</p>
-                      <span className={`mt-2 block text-[10px] ${isOutgoing ? "text-blue-100" : "text-slate-500"}`}>
+                      <span
+                        className={`mt-2 block text-[10px] ${isOutgoing ? "text-blue-100" : "text-slate-500"}`}
+                      >
                         {formatTime(message.sentAt)}
                       </span>
                     </div>
@@ -763,11 +934,18 @@ export default function InboxPage() {
             </div>
           </div>
 
-          <form onSubmit={handleSendMessage} className="border-t bg-slate-900 px-6 py-4">
+          <form
+            onSubmit={handleSendMessage}
+            className="border-t bg-slate-900 px-6 py-4"
+          >
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <input
                 className="flex-1 rounded-xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-slate-100 focus:border-blue-500 focus:outline-none"
-                placeholder={isReadOnly ? "Envio bloqueado por inadimplência." : "Digite sua mensagem..."}
+                placeholder={
+                  isReadOnly
+                    ? "Envio bloqueado por inadimplência."
+                    : "Digite sua mensagem..."
+                }
                 value={messageDraft}
                 onChange={(event) => setMessageDraft(event.target.value)}
                 disabled={!activeConversationId || isReadOnly || billingLoading}

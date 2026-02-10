@@ -79,9 +79,13 @@ const parseJson = (value: string) => {
 
 export default function AutomationTemplatesAdminPage() {
   const [templates, setTemplates] = useState<AutomationTemplate[]>([]);
-  const [templateForm, setTemplateForm] = useState<TemplateFormState>(emptyTemplateForm);
-  const [versionForm, setVersionForm] = useState<VersionFormState>(emptyVersionForm);
-  const [versionsByTemplate, setVersionsByTemplate] = useState<Record<string, AutomationTemplateVersion[]>>({});
+  const [templateForm, setTemplateForm] =
+    useState<TemplateFormState>(emptyTemplateForm);
+  const [versionForm, setVersionForm] =
+    useState<VersionFormState>(emptyVersionForm);
+  const [versionsByTemplate, setVersionsByTemplate] = useState<
+    Record<string, AutomationTemplateVersion[]>
+  >({});
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [versionSubmitting, setVersionSubmitting] = useState(false);
@@ -137,7 +141,10 @@ export default function AutomationTemplatesAdminPage() {
           version: templateForm.version,
           changelog: templateForm.changelog || null,
           requiredIntegrations: templateForm.requiredIntegrations
-            ? templateForm.requiredIntegrations.split(",").map((item) => item.trim()).filter(Boolean)
+            ? templateForm.requiredIntegrations
+                .split(",")
+                .map((item) => item.trim())
+                .filter(Boolean)
             : [],
           definitionJson: parseJson(templateForm.definitionJson)
         })
@@ -153,7 +160,9 @@ export default function AutomationTemplatesAdminPage() {
       await loadTemplates();
     } catch (submitError) {
       setError(
-        submitError instanceof Error ? submitError.message : "Erro inesperado ao criar template."
+        submitError instanceof Error
+          ? submitError.message
+          : "Erro inesperado ao criar template."
       );
     } finally {
       setSubmitting(false);
@@ -166,9 +175,12 @@ export default function AutomationTemplatesAdminPage() {
     }
 
     try {
-      const response = await fetch(`${apiUrl}/api/automation-templates/${templateId}/versions`, {
-        credentials: "include"
-      });
+      const response = await fetch(
+        `${apiUrl}/api/automation-templates/${templateId}/versions`,
+        {
+          credentials: "include"
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Não foi possível carregar as versões.");
@@ -206,7 +218,10 @@ export default function AutomationTemplatesAdminPage() {
             version: versionForm.version,
             changelog: versionForm.changelog || null,
             requiredIntegrations: versionForm.requiredIntegrations
-              ? versionForm.requiredIntegrations.split(",").map((item) => item.trim()).filter(Boolean)
+              ? versionForm.requiredIntegrations
+                  .split(",")
+                  .map((item) => item.trim())
+                  .filter(Boolean)
               : [],
             definitionJson: parseJson(versionForm.definitionJson),
             name: versionForm.name || undefined,
@@ -222,7 +237,10 @@ export default function AutomationTemplatesAdminPage() {
         throw new Error(data?.message ?? "Erro ao criar versão.");
       }
 
-      setVersionForm((prev) => ({ ...emptyVersionForm, templateId: prev.templateId }));
+      setVersionForm((prev) => ({
+        ...emptyVersionForm,
+        templateId: prev.templateId
+      }));
       setVersionsByTemplate((prev) => {
         const next = { ...prev };
         delete next[versionForm.templateId];
@@ -232,7 +250,9 @@ export default function AutomationTemplatesAdminPage() {
       await loadVersions(versionForm.templateId);
     } catch (submitError) {
       setError(
-        submitError instanceof Error ? submitError.message : "Erro inesperado ao criar versão."
+        submitError instanceof Error
+          ? submitError.message
+          : "Erro inesperado ao criar versão."
       );
     } finally {
       setVersionSubmitting(false);
@@ -240,7 +260,7 @@ export default function AutomationTemplatesAdminPage() {
   };
 
   const selectedVersions = versionForm.templateId
-    ? versionsByTemplate[versionForm.templateId] ?? []
+    ? (versionsByTemplate[versionForm.templateId] ?? [])
     : [];
 
   return (
@@ -248,9 +268,12 @@ export default function AutomationTemplatesAdminPage() {
       <header className="border-b bg-white px-6 py-6 shadow-sm">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-2">
           <p className="text-sm font-medium text-purple-600">Super Admin</p>
-          <h1 className="text-2xl font-semibold text-gray-900">Templates de automação</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">
+            Templates de automação
+          </h1>
           <p className="text-sm text-gray-500">
-            Crie versões, registre changelog e publique templates para o marketplace interno.
+            Crie versões, registre changelog e publique templates para o
+            marketplace interno.
           </p>
           <div className="mt-3 flex flex-wrap gap-3">
             <Link href="/super-admin">
@@ -269,7 +292,9 @@ export default function AutomationTemplatesAdminPage() {
 
         <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
           <section className="rounded-2xl border bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900">Biblioteca publicada</h2>
+            <h2 className="text-lg font-semibold text-gray-900">
+              Biblioteca publicada
+            </h2>
             <p className="text-sm text-gray-500">
               Gerencie templates ativos e acompanhe o histórico de versões.
             </p>
@@ -285,15 +310,23 @@ export default function AutomationTemplatesAdminPage() {
             ) : (
               <div className="mt-4 space-y-4">
                 {sortedTemplates.map((template) => (
-                  <div key={template.id} className="rounded-xl border bg-gray-50 p-4 text-sm">
+                  <div
+                    key={template.id}
+                    className="rounded-xl border bg-gray-50 p-4 text-sm"
+                  >
                     <div className="flex items-start justify-between gap-4">
                       <div>
-                        <p className="text-base font-semibold text-gray-900">{template.name}</p>
+                        <p className="text-base font-semibold text-gray-900">
+                          {template.name}
+                        </p>
                         <p className="text-xs text-gray-500">
-                          Categoria {template.category} · Versão atual {template.version}
+                          Categoria {template.category} · Versão atual{" "}
+                          {template.version}
                         </p>
                         {template.changelog ? (
-                          <p className="mt-2 text-xs text-gray-600">Changelog: {template.changelog}</p>
+                          <p className="mt-2 text-xs text-gray-600">
+                            Changelog: {template.changelog}
+                          </p>
                         ) : null}
                       </div>
                       <Button
@@ -308,12 +341,17 @@ export default function AutomationTemplatesAdminPage() {
                     {versionsByTemplate[template.id]?.length ? (
                       <div className="mt-3 space-y-2">
                         {versionsByTemplate[template.id].map((version) => (
-                          <div key={version.id} className="rounded-lg border bg-white px-3 py-2">
+                          <div
+                            key={version.id}
+                            className="rounded-lg border bg-white px-3 py-2"
+                          >
                             <p className="text-xs font-semibold text-gray-800">
                               {version.version}
                             </p>
                             {version.changelog ? (
-                              <p className="text-xs text-gray-500">{version.changelog}</p>
+                              <p className="text-xs text-gray-500">
+                                {version.changelog}
+                              </p>
                             ) : null}
                           </div>
                         ))}
@@ -327,8 +365,12 @@ export default function AutomationTemplatesAdminPage() {
 
           <div className="space-y-6">
             <section className="rounded-2xl border bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-gray-900">Novo template</h2>
-              <p className="text-sm text-gray-500">Publica a primeira versão (v1, v2...).</p>
+              <h2 className="text-lg font-semibold text-gray-900">
+                Novo template
+              </h2>
+              <p className="text-sm text-gray-500">
+                Publica a primeira versão (v1, v2...).
+              </p>
 
               <form className="mt-4 space-y-4" onSubmit={handleSubmitTemplate}>
                 <label className="flex flex-col gap-2 text-sm text-gray-700">
@@ -336,7 +378,12 @@ export default function AutomationTemplatesAdminPage() {
                   <input
                     className="rounded-lg border border-gray-200 px-3 py-2 text-sm"
                     value={templateForm.name}
-                    onChange={(event) => setTemplateForm((prev) => ({ ...prev, name: event.target.value }))}
+                    onChange={(event) =>
+                      setTemplateForm((prev) => ({
+                        ...prev,
+                        name: event.target.value
+                      }))
+                    }
                     required
                   />
                 </label>
@@ -345,7 +392,12 @@ export default function AutomationTemplatesAdminPage() {
                   <input
                     className="rounded-lg border border-gray-200 px-3 py-2 text-sm"
                     value={templateForm.description}
-                    onChange={(event) => setTemplateForm((prev) => ({ ...prev, description: event.target.value }))}
+                    onChange={(event) =>
+                      setTemplateForm((prev) => ({
+                        ...prev,
+                        description: event.target.value
+                      }))
+                    }
                   />
                 </label>
                 <label className="flex flex-col gap-2 text-sm text-gray-700">
@@ -353,7 +405,12 @@ export default function AutomationTemplatesAdminPage() {
                   <input
                     className="rounded-lg border border-gray-200 px-3 py-2 text-sm"
                     value={templateForm.category}
-                    onChange={(event) => setTemplateForm((prev) => ({ ...prev, category: event.target.value }))}
+                    onChange={(event) =>
+                      setTemplateForm((prev) => ({
+                        ...prev,
+                        category: event.target.value
+                      }))
+                    }
                     required
                   />
                 </label>
@@ -363,7 +420,12 @@ export default function AutomationTemplatesAdminPage() {
                     <input
                       className="rounded-lg border border-gray-200 px-3 py-2 text-sm"
                       value={templateForm.version}
-                      onChange={(event) => setTemplateForm((prev) => ({ ...prev, version: event.target.value }))}
+                      onChange={(event) =>
+                        setTemplateForm((prev) => ({
+                          ...prev,
+                          version: event.target.value
+                        }))
+                      }
                       placeholder="v1"
                       required
                     />
@@ -373,7 +435,12 @@ export default function AutomationTemplatesAdminPage() {
                     <input
                       className="rounded-lg border border-gray-200 px-3 py-2 text-sm"
                       value={templateForm.changelog}
-                      onChange={(event) => setTemplateForm((prev) => ({ ...prev, changelog: event.target.value }))}
+                      onChange={(event) =>
+                        setTemplateForm((prev) => ({
+                          ...prev,
+                          changelog: event.target.value
+                        }))
+                      }
                       placeholder="Resumo das mudanças"
                     />
                   </label>
@@ -384,7 +451,10 @@ export default function AutomationTemplatesAdminPage() {
                     className="rounded-lg border border-gray-200 px-3 py-2 text-sm"
                     value={templateForm.requiredIntegrations}
                     onChange={(event) =>
-                      setTemplateForm((prev) => ({ ...prev, requiredIntegrations: event.target.value }))
+                      setTemplateForm((prev) => ({
+                        ...prev,
+                        requiredIntegrations: event.target.value
+                      }))
                     }
                     placeholder="ex.: whatsapp,n8n"
                   />
@@ -395,7 +465,10 @@ export default function AutomationTemplatesAdminPage() {
                     className="min-h-[140px] rounded-lg border border-gray-200 px-3 py-2 text-xs"
                     value={templateForm.definitionJson}
                     onChange={(event) =>
-                      setTemplateForm((prev) => ({ ...prev, definitionJson: event.target.value }))
+                      setTemplateForm((prev) => ({
+                        ...prev,
+                        definitionJson: event.target.value
+                      }))
                     }
                     placeholder='{"name": "Fluxo", "nodes": []}'
                     required
@@ -408,8 +481,12 @@ export default function AutomationTemplatesAdminPage() {
             </section>
 
             <section className="rounded-2xl border bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-gray-900">Nova versão</h2>
-              <p className="text-sm text-gray-500">Atualize template com changelog e versão.</p>
+              <h2 className="text-lg font-semibold text-gray-900">
+                Nova versão
+              </h2>
+              <p className="text-sm text-gray-500">
+                Atualize template com changelog e versão.
+              </p>
 
               <form className="mt-4 space-y-4" onSubmit={handleSubmitVersion}>
                 <label className="flex flex-col gap-2 text-sm text-gray-700">
@@ -438,7 +515,12 @@ export default function AutomationTemplatesAdminPage() {
                     <input
                       className="rounded-lg border border-gray-200 px-3 py-2 text-sm"
                       value={versionForm.version}
-                      onChange={(event) => setVersionForm((prev) => ({ ...prev, version: event.target.value }))}
+                      onChange={(event) =>
+                        setVersionForm((prev) => ({
+                          ...prev,
+                          version: event.target.value
+                        }))
+                      }
                       placeholder="v2"
                       required
                     />
@@ -448,7 +530,12 @@ export default function AutomationTemplatesAdminPage() {
                     <input
                       className="rounded-lg border border-gray-200 px-3 py-2 text-sm"
                       value={versionForm.changelog}
-                      onChange={(event) => setVersionForm((prev) => ({ ...prev, changelog: event.target.value }))}
+                      onChange={(event) =>
+                        setVersionForm((prev) => ({
+                          ...prev,
+                          changelog: event.target.value
+                        }))
+                      }
                       placeholder="Resumo das mudanças"
                     />
                   </label>
@@ -459,7 +546,10 @@ export default function AutomationTemplatesAdminPage() {
                     className="rounded-lg border border-gray-200 px-3 py-2 text-sm"
                     value={versionForm.requiredIntegrations}
                     onChange={(event) =>
-                      setVersionForm((prev) => ({ ...prev, requiredIntegrations: event.target.value }))
+                      setVersionForm((prev) => ({
+                        ...prev,
+                        requiredIntegrations: event.target.value
+                      }))
                     }
                     placeholder="ex.: whatsapp,n8n"
                   />
@@ -470,7 +560,10 @@ export default function AutomationTemplatesAdminPage() {
                     className="min-h-[140px] rounded-lg border border-gray-200 px-3 py-2 text-xs"
                     value={versionForm.definitionJson}
                     onChange={(event) =>
-                      setVersionForm((prev) => ({ ...prev, definitionJson: event.target.value }))
+                      setVersionForm((prev) => ({
+                        ...prev,
+                        definitionJson: event.target.value
+                      }))
                     }
                     placeholder='{"name": "Fluxo atualizado", "nodes": []}'
                     required
@@ -478,39 +571,59 @@ export default function AutomationTemplatesAdminPage() {
                 </label>
 
                 <div className="rounded-xl border border-dashed p-4 text-xs text-gray-500">
-                  <p className="font-semibold text-gray-700">Ajustes opcionais do template</p>
+                  <p className="font-semibold text-gray-700">
+                    Ajustes opcionais do template
+                  </p>
                   <div className="mt-3 grid gap-3 md:grid-cols-2">
                     <input
                       className="rounded-lg border border-gray-200 px-3 py-2 text-sm"
                       value={versionForm.name}
-                      onChange={(event) => setVersionForm((prev) => ({ ...prev, name: event.target.value }))}
+                      onChange={(event) =>
+                        setVersionForm((prev) => ({
+                          ...prev,
+                          name: event.target.value
+                        }))
+                      }
                       placeholder="Nome (opcional)"
                     />
                     <input
                       className="rounded-lg border border-gray-200 px-3 py-2 text-sm"
                       value={versionForm.category}
-                      onChange={(event) => setVersionForm((prev) => ({ ...prev, category: event.target.value }))}
+                      onChange={(event) =>
+                        setVersionForm((prev) => ({
+                          ...prev,
+                          category: event.target.value
+                        }))
+                      }
                       placeholder="Categoria (opcional)"
                     />
                   </div>
                   <input
                     className="mt-3 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
                     value={versionForm.description}
-                    onChange={(event) => setVersionForm((prev) => ({ ...prev, description: event.target.value }))}
+                    onChange={(event) =>
+                      setVersionForm((prev) => ({
+                        ...prev,
+                        description: event.target.value
+                      }))
+                    }
                     placeholder="Descrição (opcional)"
                   />
                 </div>
 
                 {versionForm.templateId ? (
                   <div className="rounded-xl border bg-gray-50 px-4 py-3 text-xs text-gray-600">
-                    <p className="font-semibold text-gray-700">Histórico de versões</p>
+                    <p className="font-semibold text-gray-700">
+                      Histórico de versões
+                    </p>
                     {selectedVersions.length === 0 ? (
                       <p className="mt-2">Nenhuma versão encontrada.</p>
                     ) : (
                       <ul className="mt-2 space-y-1">
                         {selectedVersions.map((version) => (
                           <li key={version.id}>
-                            {version.version} {version.changelog ? `· ${version.changelog}` : ""}
+                            {version.version}{" "}
+                            {version.changelog ? `· ${version.changelog}` : ""}
                           </li>
                         ))}
                       </ul>

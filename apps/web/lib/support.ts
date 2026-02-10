@@ -11,10 +11,13 @@ export async function fetchWorkspaceMembers(
   workspaceId: string,
   signal?: AbortSignal
 ) {
-  const response = await fetch(`${apiUrl}/api/support/workspaces/${workspaceId}/members`, {
-    credentials: "include",
-    signal
-  });
+  const response = await fetch(
+    `${apiUrl}/api/support/workspaces/${workspaceId}/members`,
+    {
+      credentials: "include",
+      signal
+    }
+  );
 
   if (!response.ok) {
     throw new Error("Não foi possível carregar os membros do workspace.");

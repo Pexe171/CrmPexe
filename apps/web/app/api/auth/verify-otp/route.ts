@@ -81,7 +81,9 @@ export async function POST(request: Request) {
   });
 
   const role = normalizeUserRole(apiPayload?.role) ?? "USER";
-  const isSuperAdmin = normalizeSuperAdminFlag(String(apiPayload?.isSuperAdmin ?? "false"));
+  const isSuperAdmin = normalizeSuperAdminFlag(
+    String(apiPayload?.isSuperAdmin ?? "false")
+  );
 
   response.cookies.set(SESSION_COOKIE, crypto.randomUUID(), {
     httpOnly: true,

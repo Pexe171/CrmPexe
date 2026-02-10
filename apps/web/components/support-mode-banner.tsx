@@ -52,8 +52,8 @@ export function SupportModeBanner() {
       <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-2">
         <span className="font-semibold">Modo suporte ativo</span>
         <span>
-          Você está usando um acesso temporário para suporte. As ações ficam registradas
-          no audit log.
+          Você está usando um acesso temporário para suporte. As ações ficam
+          registradas no audit log.
         </span>
       </div>
     </div>

@@ -28,19 +28,22 @@ export async function POST(request: Request) {
   let apiResponse: Response;
 
   try {
-    apiResponse = await fetch(new URL("/api/support/impersonations", apiBaseUrl), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        cookie: request.headers.get("cookie") ?? ""
-      },
-      body: JSON.stringify({
-        workspaceId: body.workspaceId,
-        userId: body.userId,
-        reason: body.reason ?? null
-      }),
-      credentials: "include"
-    });
+    apiResponse = await fetch(
+      new URL("/api/support/impersonations", apiBaseUrl),
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          cookie: request.headers.get("cookie") ?? ""
+        },
+        body: JSON.stringify({
+          workspaceId: body.workspaceId,
+          userId: body.userId,
+          reason: body.reason ?? null
+        }),
+        credentials: "include"
+      }
+    );
   } catch (error) {
     console.error("Erro ao conectar na API de suporte:", error);
     return NextResponse.json(

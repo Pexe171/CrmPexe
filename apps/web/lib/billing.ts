@@ -32,14 +32,18 @@ export type BillingSummary = {
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
-export const fetchWorkspaceBillingSummary = async (signal?: AbortSignal): Promise<BillingSummary> => {
+export const fetchWorkspaceBillingSummary = async (
+  signal?: AbortSignal
+): Promise<BillingSummary> => {
   const response = await fetch(`${apiUrl}/api/billing/workspace-summary`, {
     credentials: "include",
     signal
   });
 
   if (!response.ok) {
-    throw new Error("Não foi possível carregar o status de cobrança do workspace.");
+    throw new Error(
+      "Não foi possível carregar o status de cobrança do workspace."
+    );
   }
 
   return (await response.json()) as BillingSummary;

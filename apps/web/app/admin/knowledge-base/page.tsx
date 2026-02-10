@@ -1,7 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState, type ChangeEvent, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useState,
+  type ChangeEvent,
+  type FormEvent
+} from "react";
 import { Button } from "@/components/ui/button";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
@@ -44,10 +50,15 @@ export default function KnowledgeBasePage() {
 
     try {
       const searchParam = currentSearch.trim();
-      const query = searchParam ? `?search=${encodeURIComponent(searchParam)}` : "";
-      const response = await fetch(`${apiUrl}/api/knowledge-base-articles${query}`, {
-        credentials: "include"
-      });
+      const query = searchParam
+        ? `?search=${encodeURIComponent(searchParam)}`
+        : "";
+      const response = await fetch(
+        `${apiUrl}/api/knowledge-base-articles${query}`,
+        {
+          credentials: "include"
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Não foi possível carregar os artigos.");
@@ -56,7 +67,11 @@ export default function KnowledgeBasePage() {
       const data = (await response.json()) as KnowledgeBaseArticle[];
       setArticles(data);
     } catch (fetchError) {
-      setError(fetchError instanceof Error ? fetchError.message : "Erro inesperado ao carregar artigos.");
+      setError(
+        fetchError instanceof Error
+          ? fetchError.message
+          : "Erro inesperado ao carregar artigos."
+      );
     } finally {
       setLoading(false);
     }
@@ -67,10 +82,12 @@ export default function KnowledgeBasePage() {
   }, [fetchArticles, search]);
 
   const handleChange =
-    (field: keyof ArticleFormState) => (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      const value = field === "isActive" && "checked" in event.target
-        ? (event.target.checked as unknown as boolean)
-        : event.target.value;
+    (field: keyof ArticleFormState) =>
+    (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      const value =
+        field === "isActive" && "checked" in event.target
+          ? (event.target.checked as unknown as boolean)
+          : event.target.value;
 
       setFormState((prev) => ({
         ...prev,
@@ -114,7 +131,11 @@ export default function KnowledgeBasePage() {
       resetForm();
       await fetchArticles(search);
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Erro inesperado ao salvar artigo.");
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : "Erro inesperado ao salvar artigo."
+      );
     } finally {
       setSubmitting(false);
     }
@@ -125,10 +146,13 @@ export default function KnowledgeBasePage() {
     setError(null);
 
     try {
-      const response = await fetch(`${apiUrl}/api/knowledge-base-articles/${articleId}`, {
-        method: "DELETE",
-        credentials: "include"
-      });
+      const response = await fetch(
+        `${apiUrl}/api/knowledge-base-articles/${articleId}`,
+        {
+          method: "DELETE",
+          credentials: "include"
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Não foi possível remover o artigo.");
@@ -136,7 +160,11 @@ export default function KnowledgeBasePage() {
 
       await fetchArticles(search);
     } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : "Erro inesperado ao remover artigo.");
+      setError(
+        deleteError instanceof Error
+          ? deleteError.message
+          : "Erro inesperado ao remover artigo."
+      );
     } finally {
       setSubmitting(false);
     }
@@ -147,7 +175,9 @@ export default function KnowledgeBasePage() {
       <header className="border-b bg-white px-6 py-6 shadow-sm">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-2">
           <p className="text-sm font-medium text-blue-600">Admin</p>
-          <h1 className="text-2xl font-semibold text-gray-900">Base de conhecimento</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">
+            Base de conhecimento
+          </h1>
           <p className="text-sm text-gray-500">
             Centralize artigos com informações úteis para o time de atendimento.
           </p>
@@ -163,9 +193,12 @@ export default function KnowledgeBasePage() {
         <section className="flex-1 space-y-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-gray-800">Artigos cadastrados</h2>
+              <h2 className="text-lg font-semibold text-gray-800">
+                Artigos cadastrados
+              </h2>
               <p className="text-sm text-gray-500">
-                Atualize e organize o conteúdo que o time consulta durante o atendimento.
+                Atualize e organize o conteúdo que o time consulta durante o
+                atendimento.
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -175,7 +208,11 @@ export default function KnowledgeBasePage() {
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
               />
-              <Button variant="outline" onClick={() => fetchArticles(search)} disabled={loading}>
+              <Button
+                variant="outline"
+                onClick={() => fetchArticles(search)}
+                disabled={loading}
+              >
                 Atualizar lista
               </Button>
             </div>
@@ -187,23 +224,31 @@ export default function KnowledgeBasePage() {
             </div>
           ) : articles.length === 0 ? (
             <div className="rounded-xl border bg-white p-6 text-sm text-gray-500 shadow-sm">
-              Nenhum artigo cadastrado ainda. Use o formulário ao lado para criar o primeiro.
+              Nenhum artigo cadastrado ainda. Use o formulário ao lado para
+              criar o primeiro.
             </div>
           ) : (
             <div className="grid gap-4">
               {articles.map((article) => (
-                <div key={article.id} className="rounded-xl border bg-white p-5 shadow-sm">
+                <div
+                  key={article.id}
+                  className="rounded-xl border bg-white p-5 shadow-sm"
+                >
                   <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="text-lg font-semibold text-gray-900">{article.title}</h3>
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          {article.title}
+                        </h3>
                         {!article.isActive ? (
                           <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-700">
                             Inativo
                           </span>
                         ) : null}
                       </div>
-                      <p className="mt-2 text-sm text-gray-600 whitespace-pre-line">{article.content}</p>
+                      <p className="mt-2 text-sm text-gray-600 whitespace-pre-line">
+                        {article.content}
+                      </p>
                       {article.tags.length > 0 ? (
                         <div className="mt-3 flex flex-wrap gap-2">
                           {article.tags.map((tag) => (
@@ -217,7 +262,11 @@ export default function KnowledgeBasePage() {
                         </div>
                       ) : null}
                     </div>
-                    <Button variant="outline" onClick={() => handleDelete(article.id)} disabled={submitting}>
+                    <Button
+                      variant="outline"
+                      onClick={() => handleDelete(article.id)}
+                      disabled={submitting}
+                    >
                       Remover
                     </Button>
                   </div>
@@ -230,7 +279,8 @@ export default function KnowledgeBasePage() {
         <section className="w-full max-w-md space-y-4 rounded-xl border bg-white p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-gray-900">Novo artigo</h2>
           <p className="text-sm text-gray-500">
-            Escreva o conteúdo e adicione tags para facilitar a busca durante o atendimento.
+            Escreva o conteúdo e adicione tags para facilitar a busca durante o
+            atendimento.
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -280,7 +330,11 @@ export default function KnowledgeBasePage() {
               </div>
             ) : null}
 
-            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={submitting}>
+            <Button
+              type="submit"
+              className="w-full bg-blue-600 hover:bg-blue-700"
+              disabled={submitting}
+            >
               {submitting ? "Salvando..." : "Salvar artigo"}
             </Button>
           </form>

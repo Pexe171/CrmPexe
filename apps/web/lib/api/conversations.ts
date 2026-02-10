@@ -53,10 +53,13 @@ export const fetchConversations = async ({
   limit?: number;
   signal?: AbortSignal;
 }): Promise<Conversation[]> => {
-  const response = await fetch(`${apiUrl}/api/conversations?page=${page}&limit=${limit}`, {
-    credentials: "include",
-    signal
-  });
+  const response = await fetch(
+    `${apiUrl}/api/conversations?page=${page}&limit=${limit}`,
+    {
+      credentials: "include",
+      signal
+    }
+  );
 
   if (!response.ok) {
     throw new Error("Não foi possível carregar conversas.");
@@ -69,10 +72,13 @@ export const fetchConversationDetails = async (
   conversationId: string,
   signal?: AbortSignal
 ): Promise<ConversationDetails> => {
-  const response = await fetch(`${apiUrl}/api/conversations/${conversationId}`, {
-    credentials: "include",
-    signal
-  });
+  const response = await fetch(
+    `${apiUrl}/api/conversations/${conversationId}`,
+    {
+      credentials: "include",
+      signal
+    }
+  );
 
   if (!response.ok) {
     throw new Error("Não foi possível carregar mensagens.");
@@ -90,15 +96,18 @@ export const sendConversationMessage = async ({
   text: string;
   signal?: AbortSignal;
 }): Promise<void> => {
-  const response = await fetch(`${apiUrl}/api/conversations/${conversationId}/send`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    credentials: "include",
-    body: JSON.stringify({ text }),
-    signal
-  });
+  const response = await fetch(
+    `${apiUrl}/api/conversations/${conversationId}/send`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      credentials: "include",
+      body: JSON.stringify({ text }),
+      signal
+    }
+  );
 
   if (!response.ok) {
     throw new Error("Não foi possível enviar a mensagem.");
@@ -109,11 +118,14 @@ export const fetchConversationSummary = async (
   conversationId: string,
   signal?: AbortSignal
 ): Promise<ConversationSummary> => {
-  const response = await fetch(`${apiUrl}/api/ai/conversations/${conversationId}/summary`, {
-    method: "POST",
-    credentials: "include",
-    signal
-  });
+  const response = await fetch(
+    `${apiUrl}/api/ai/conversations/${conversationId}/summary`,
+    {
+      method: "POST",
+      credentials: "include",
+      signal
+    }
+  );
 
   if (!response.ok) {
     throw new Error("Não foi possível gerar o resumo.");
