@@ -1,5 +1,11 @@
 import { BadRequestException, Injectable, Logger } from "@nestjs/common";
-import { IntegrationAccountType, IntegrationAccountStatus, MessageDirection, NotificationType, Prisma } from "@prisma/client";
+import {
+  IntegrationAccountType,
+  IntegrationAccountStatus,
+  MessageDirection,
+  NotificationType,
+  Prisma
+} from "@prisma/client";
 import { NotificationsService } from "../notifications/notifications.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { IntegrationCryptoService } from "../integration-accounts/integration-crypto.service";
@@ -8,7 +14,12 @@ import { AiProcessingQueueService } from "../ai/ai-processing.queue";
 import { QueuesService } from "../queues/queues.service";
 import { IChannelProvider } from "./interfaces/channel-provider.interface";
 import { WhatsappProvider } from "./providers/whatsapp.provider";
-import { ChannelInboundMessage, ChannelContact, ChannelIntegration, ChannelSendMessageInput } from "./types";
+import {
+  ChannelInboundMessage,
+  ChannelContact,
+  ChannelIntegration,
+  ChannelSendMessageInput
+} from "./types";
 
 @Injectable()
 export class ChannelsService {
@@ -45,12 +56,22 @@ export class ChannelsService {
 
     const integration = await this.getIntegration(resolvedWorkspaceId, channel);
     const normalizedHeaders = this.normalizeHeaders(headers);
-    const isValid = await provider.verifyWebhook(payload, normalizedHeaders, integration);
+    const isValid = await provider.verifyWebhook(
+      payload,
+      normalizedHeaders,
+      integration
+    );
     if (!isValid) {
-      throw new BadRequestException("Webhook inválido.");
+      throw new BadRequestException(
+        "Webhook inválido: assinatura ausente, segredo não configurado ou assinatura incorreta."
+      );
     }
 
-    const inboundMessages = await provider.receiveWebhook(payload, normalizedHeaders, integration);
+    const inboundMessages = await provider.receiveWebhook(
+      payload,
+      normalizedHeaders,
+      integration
+    );
     if (!inboundMessages.length) {
       return { processed: 0, results: [] };
     }
@@ -58,12 +79,13 @@ export class ChannelsService {
     const results = [];
     for (const inboundMessage of inboundMessages) {
       const contactInfo = provider.mapInboundToContact(inboundMessage);
-      const { conversationId, messageId, isDuplicate } = await this.handleInboundMessage(
-        resolvedWorkspaceId,
-        channel,
-        inboundMessage,
-        contactInfo
-      );
+      const { conversationId, messageId, isDuplicate } =
+        await this.handleInboundMessage(
+          resolvedWorkspaceId,
+          channel,
+          inboundMessage,
+          contactInfo
+        );
       if (!isDuplicate) {
         results.push({ conversationId, messageId });
       }
@@ -72,7 +94,11 @@ export class ChannelsService {
     return { processed: results.length, results };
   }
 
-  async sendMessage(channel: string, input: ChannelSendMessageInput, workspaceId?: string) {
+  async sendMessage(
+    channel: string,
+    input: ChannelSendMessageInput,
+    workspaceId?: string
+  ) {
     const resolvedWorkspaceId = workspaceId?.trim();
     if (!resolvedWorkspaceId) {
       throw new BadRequestException("Workspace é obrigatório.");
@@ -109,7 +135,11 @@ export class ChannelsService {
           }
         });
         if (existingMessage) {
-          return { conversation: existingMessage.conversation, message: existingMessage, isDuplicate: true };
+          return {
+            conversation: existingMessage.conversation,
+            message: existingMessage,
+            isDuplicate: true
+          };
         }
       }
 
@@ -157,11 +187,12 @@ export class ChannelsService {
     if (!result.isDuplicate) {
       let assignedToUserId = result.conversation.assignedToUserId;
       if (!assignedToUserId) {
-        const assignment = await this.queuesService.assignConversationRoundRobin({
-          workspaceId,
-          channel,
-          conversationId: result.conversation.id
-        });
+        const assignment =
+          await this.queuesService.assignConversationRoundRobin({
+            workspaceId,
+            channel,
+            conversationId: result.conversation.id
+          });
         assignedToUserId = assignment?.assignedToUserId ?? null;
       }
 
@@ -188,14 +219,19 @@ export class ChannelsService {
           source: channel
         })
         .catch((error) => {
-          const message = error instanceof Error ? error.message : "Erro desconhecido";
+          const message =
+            error instanceof Error ? error.message : "Erro desconhecido";
           this.logger.warn(
             `Falha ao enfileirar lead scoring inbound (contactId=${result.conversation.contactId}). ${message}`
           );
         });
     }
 
-    return { conversationId: result.conversation.id, messageId: result.message.id, isDuplicate: result.isDuplicate };
+    return {
+      conversationId: result.conversation.id,
+      messageId: result.message.id,
+      isDuplicate: result.isDuplicate
+    };
   }
 
   private async notifyInboundMessage(
@@ -205,7 +241,9 @@ export class ChannelsService {
     assignedToUserId?: string | null
   ) {
     const title = "Nova mensagem inbound";
-    const body = contactName ? `Mensagem recebida de ${contactName}.` : "Mensagem recebida.";
+    const body = contactName
+      ? `Mensagem recebida de ${contactName}.`
+      : "Mensagem recebida.";
 
     if (assignedToUserId) {
       await this.notificationsService.createNotification({
@@ -230,7 +268,10 @@ export class ChannelsService {
     });
   }
 
-  private async upsertContact(workspaceId: string, contactInfo: ChannelContact) {
+  private async upsertContact(
+    workspaceId: string,
+    contactInfo: ChannelContact
+  ) {
     const phone = contactInfo.phone?.trim() ?? null;
     const email = contactInfo.email?.trim() ?? null;
 
@@ -278,7 +319,9 @@ export class ChannelsService {
     });
   }
 
-  private normalizeHeaders(headers: Record<string, string | string[] | undefined>) {
+  private normalizeHeaders(
+    headers: Record<string, string | string[] | undefined>
+  ) {
     const normalized: Record<string, string> = {};
     Object.entries(headers).forEach(([key, value]) => {
       if (Array.isArray(value)) {
@@ -290,10 +333,17 @@ export class ChannelsService {
     return normalized;
   }
 
-  private async getIntegration(workspaceId: string, channel: string): Promise<ChannelIntegration> {
+  private async getIntegration(
+    workspaceId: string,
+    channel: string
+  ): Promise<ChannelIntegration> {
     const provider = this.resolveProvider(channel);
     const integration = await this.prisma.integrationAccount.findFirst({
-      where: { workspaceId, type: provider, status: IntegrationAccountStatus.ACTIVE },
+      where: {
+        workspaceId,
+        type: provider,
+        status: IntegrationAccountStatus.ACTIVE
+      },
       orderBy: { createdAt: "desc" },
       include: { secret: true }
     });
@@ -306,7 +356,9 @@ export class ChannelsService {
       throw new BadRequestException("Segredos da integração não configurados.");
     }
 
-    const secrets = this.integrationCryptoService.decrypt(integration.secret.encryptedPayload);
+    const secrets = this.integrationCryptoService.decrypt(
+      integration.secret.encryptedPayload
+    );
 
     return {
       id: integration.id,

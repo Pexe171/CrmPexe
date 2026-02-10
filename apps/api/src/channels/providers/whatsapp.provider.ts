@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
+import { createHmac, timingSafeEqual } from "crypto";
 import { ExternalCallLoggerService } from "../../common/logging/external-call-logger.service";
 import { IChannelProvider } from "../interfaces/channel-provider.interface";
 import {
@@ -25,12 +26,17 @@ export class WhatsappProvider implements IChannelProvider {
 
   constructor(private readonly externalCallLogger: ExternalCallLoggerService) {}
 
-  async sendMessage(input: ChannelSendMessageInput, integration: ChannelIntegration): Promise<ChannelSendMessageResult> {
+  async sendMessage(
+    input: ChannelSendMessageInput,
+    integration: ChannelIntegration
+  ): Promise<ChannelSendMessageResult> {
     const apiUrl = integration.secrets.apiUrl;
     const apiToken = integration.secrets.apiToken;
 
     if (!apiUrl || !apiToken) {
-      throw new BadRequestException("Integração do WhatsApp sem apiUrl ou apiToken.");
+      throw new BadRequestException(
+        "Integração do WhatsApp sem apiUrl ou apiToken."
+      );
     }
 
     const payload = {
@@ -122,16 +128,25 @@ export class WhatsappProvider implements IChannelProvider {
   }
 
   async verifyWebhook(
-    _payload: unknown,
+    payload: unknown,
     headers: Record<string, string>,
     integration: ChannelIntegration
   ): Promise<boolean> {
-    const expectedToken = integration.secrets.webhookToken;
-    if (!expectedToken) {
-      return true;
+    const webhookSecret = this.resolveWebhookSecret(integration);
+    if (!webhookSecret) {
+      return false;
     }
-    const headerToken = headers["x-whatsapp-token"] ?? headers["x-webhook-token"];
-    return headerToken === expectedToken;
+
+    const signatureHeader = this.resolveSignatureHeader(headers);
+    if (!signatureHeader) {
+      return false;
+    }
+
+    const expectedSignature = this.createPayloadSignature(
+      payload,
+      webhookSecret
+    );
+    return this.isValidSignature(signatureHeader, expectedSignature);
   }
 
   mapInboundToContact(message: ChannelInboundMessage): ChannelContact {
@@ -152,5 +167,45 @@ export class WhatsappProvider implements IChannelProvider {
       return new Date();
     }
     return new Date(value * 1000);
+  }
+
+  private resolveWebhookSecret(integration: ChannelIntegration) {
+    const integrationSecret = integration.secrets.webhookSecret?.trim();
+    const envSecret = process.env.WHATSAPP_WEBHOOK_SECRET?.trim();
+    return integrationSecret || envSecret;
+  }
+
+  private resolveSignatureHeader(headers: Record<string, string>) {
+    const customHeaderName =
+      process.env.WHATSAPP_WEBHOOK_SIGNATURE_HEADER?.trim().toLowerCase();
+
+    if (customHeaderName) {
+      return headers[customHeaderName];
+    }
+
+    return headers["x-whatsapp-signature"] ?? headers["x-webhook-signature"];
+  }
+
+  private createPayloadSignature(payload: unknown, webhookSecret: string) {
+    return createHmac("sha256", webhookSecret)
+      .update(JSON.stringify(payload ?? {}))
+      .digest("hex");
+  }
+
+  private isValidSignature(
+    receivedSignature: string,
+    expectedSignature: string
+  ) {
+    const normalizedSignature = receivedSignature
+      .trim()
+      .replace(/^sha256=/i, "");
+    const expectedBuffer = Buffer.from(expectedSignature);
+    const receivedBuffer = Buffer.from(normalizedSignature);
+
+    if (expectedBuffer.length !== receivedBuffer.length) {
+      return false;
+    }
+
+    return timingSafeEqual(expectedBuffer, receivedBuffer);
   }
 }
