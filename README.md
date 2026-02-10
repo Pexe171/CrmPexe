@@ -20,6 +20,7 @@ Plataforma CRM com API em NestJS e front-end em Next.js, organizada como monorep
 - [Estrutura do repositório](#estrutura-do-repositório)
 - [Fluxos comuns](#fluxos-comuns)
 - [Interface](#interface)
+- [Produção com Docker](#produção-com-docker)
 - [Troubleshooting](#troubleshooting)
 - [Licença](#licença)
 
@@ -151,6 +152,68 @@ O acesso às automações é liberado quando o workspace possui aprovação (`st
 ### Barra lateral de navegação
 
 A aplicação web conta com uma barra lateral fixa no desktop e recolhível no mobile, com hierarquia por seções (início rápido, atendimento, vendas & CRM, operações e integrações). Os itens recebem ícones e destaque visual para facilitar a descoberta das funcionalidades principais.
+
+
+## Produção com Docker
+
+### Build de imagens (multi-stage)
+
+Este repositório possui Dockerfiles otimizados para produção:
+
+- `apps/api/Dockerfile`: build da API NestJS com geração do Prisma Client no build.
+- `apps/web/Dockerfile`: build do Next.js em modo `standalone` para reduzir o tamanho final da imagem.
+
+### Subir stack de produção
+
+1. Crie os arquivos de ambiente de produção (não commite segredos):
+
+```bash
+cp apps/api/.env.production.example apps/api/.env.production
+cp apps/web/.env.production.example apps/web/.env.production
+```
+
+2. Defina segredos sensíveis (`JWT_*`, `MERCADOPAGO_*`, `GEMINI_*`) via CI/CD, secret manager ou injeção segura no servidor.
+
+3. Gere os certificados de origem do Cloudflare e salve em `infra/certs/` com os nomes:
+   - `origin-cert.pem`
+   - `origin-key.pem`
+
+4. Suba os containers:
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+### Migrações Prisma em produção
+
+A API executa automaticamente, no startup do container:
+
+```bash
+npx prisma migrate deploy
+```
+
+> Não use `prisma db push` em produção.
+
+### CORS seguro
+
+Em produção, a API exige `CORS_ORIGIN` explícito e bloqueia `*`.
+
+### Reverse proxy + SSL (Cloudflare)
+
+- O arquivo `infra/nginx/default.conf` configura o Nginx na frente de `api` e `web`.
+- No Cloudflare, use modo SSL/TLS **Full (Strict)** para criptografia ponta a ponta com certificado de origem.
+
+### Disponibilidade e reinício automático
+
+Todos os serviços no `docker-compose.prod.yml` usam `restart: always`.
+
+### Armazenamento persistente
+
+Volumes persistentes incluídos:
+
+- `postgres_data`
+- `redis_data`
+- `uploads_data` (reservado para armazenamento local de arquivos da API)
 
 ## Troubleshooting
 
