@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const supportFallbackUrl = process.env.NEXT_PUBLIC_WHATSAPP_LINK || "";
 
 type IntegrationAccountType = "WHATSAPP";
 type IntegrationAccountStatus = "ACTIVE" | "INACTIVE";
@@ -29,11 +30,28 @@ type IntegrationAccountFormState = {
 type SecretFormState = {
   apiUrl: string;
   apiToken: string;
-  webhookToken: string;
+  provider: string;
+  sessionName: string;
   qrEndpoint: string;
   statusEndpoint: string;
   smsRequestEndpoint: string;
   smsVerifyEndpoint: string;
+};
+
+type WhatsappStatusResponse = {
+  qr?: string | null;
+  status?: string | null;
+  needsSupport?: boolean;
+  message?: string;
+  supportContactUrl?: string | null;
+};
+
+type WhatsappSession = {
+  id: string;
+  provider: string;
+  sessionName: string;
+  status: string;
+  updatedAt: string;
 };
 
 const emptyForm: IntegrationAccountFormState = {
@@ -45,14 +63,14 @@ const emptyForm: IntegrationAccountFormState = {
 const emptySecretForm: SecretFormState = {
   apiUrl: "",
   apiToken: "",
-  webhookToken: "",
+  provider: "EVOLUTION",
+  sessionName: "",
   qrEndpoint: "",
   statusEndpoint: "",
   smsRequestEndpoint: "",
   smsVerifyEndpoint: ""
 };
 
-const typeOptions = [{ value: "WHATSAPP", label: "WhatsApp" }];
 const statusOptions = [
   { value: "ACTIVE", label: "Ativa" },
   { value: "INACTIVE", label: "Inativa" }
@@ -60,8 +78,11 @@ const statusOptions = [
 
 export default function IntegrationsAdminPage() {
   const [accounts, setAccounts] = useState<IntegrationAccount[]>([]);
+  const [sessions, setSessions] = useState<WhatsappSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [supportMessage, setSupportMessage] = useState<string | null>(null);
+  const [supportUrl, setSupportUrl] = useState<string>(supportFallbackUrl);
   const [formState, setFormState] = useState<IntegrationAccountFormState>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
@@ -70,27 +91,14 @@ export default function IntegrationsAdminPage() {
   const [qrStatus, setQrStatus] = useState<string | null>(null);
   const [qrImageUrl, setQrImageUrl] = useState<string | null>(null);
   const [qrLoading, setQrLoading] = useState(false);
-  const [smsPhone, setSmsPhone] = useState("");
-  const [smsCode, setSmsCode] = useState("");
-  const [smsStatus, setSmsStatus] = useState<string | null>(null);
-  const [smsRequestLoading, setSmsRequestLoading] = useState(false);
-  const [smsVerifyLoading, setSmsVerifyLoading] = useState(false);
 
   const fetchAccounts = useCallback(async () => {
     setLoading(true);
     setError(null);
-
     try {
-      const response = await fetch(`${apiUrl}/api/integration-accounts`, {
-        credentials: "include"
-      });
-
-      if (!response.ok) {
-        throw new Error("Não foi possível carregar as integrações.");
-      }
-
-      const data = (await response.json()) as IntegrationAccount[];
-      setAccounts(data);
+      const response = await fetch(`${apiUrl}/api/integration-accounts`, { credentials: "include" });
+      if (!response.ok) throw new Error("Não foi possível carregar as integrações.");
+      setAccounts((await response.json()) as IntegrationAccount[]);
     } catch (fetchError) {
       setError(fetchError instanceof Error ? fetchError.message : "Erro inesperado ao carregar integrações.");
     } finally {
@@ -98,24 +106,35 @@ export default function IntegrationsAdminPage() {
     }
   }, []);
 
+  const fetchSessions = useCallback(async (accountId: string) => {
+    try {
+      const response = await fetch(`${apiUrl}/api/integration-accounts/${accountId}/whatsapp/sessions`, {
+        credentials: "include"
+      });
+      if (!response.ok) return;
+      setSessions((await response.json()) as WhatsappSession[]);
+    } catch {
+      setSessions([]);
+    }
+  }, []);
+
   useEffect(() => {
     void fetchAccounts();
   }, [fetchAccounts]);
 
+  const activeAccount = useMemo(
+    () => accounts.find((account) => account.id === selectedAccountId) ?? null,
+    [accounts, selectedAccountId]
+  );
+
   const handleChange =
     (field: keyof IntegrationAccountFormState) => (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-      setFormState((prev) => ({
-        ...prev,
-        [field]: event.target.value
-      }));
+      setFormState((prev) => ({ ...prev, [field]: event.target.value }));
     };
 
   const handleSecretChange =
-    (field: keyof SecretFormState) => (event: ChangeEvent<HTMLInputElement>) => {
-      setSecretForm((prev) => ({
-        ...prev,
-        [field]: event.target.value
-      }));
+    (field: keyof SecretFormState) => (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+      setSecretForm((prev) => ({ ...prev, [field]: event.target.value }));
     };
 
   const resetForm = () => {
@@ -128,29 +147,14 @@ export default function IntegrationsAdminPage() {
     setSubmitting(true);
     setError(null);
 
-    const payload = {
-      type: formState.type,
-      name: formState.name,
-      status: formState.status
-    };
-
     try {
-      const response = await fetch(
-        `${apiUrl}/api/integration-accounts${editingId ? `/${editingId}` : ""}`,
-        {
-          method: editingId ? "PATCH" : "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          credentials: "include",
-          body: JSON.stringify(payload)
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Não foi possível salvar a integração.");
-      }
-
+      const response = await fetch(`${apiUrl}/api/integration-accounts${editingId ? `/${editingId}` : ""}`, {
+        method: editingId ? "PATCH" : "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(formState)
+      });
+      if (!response.ok) throw new Error("Não foi possível salvar a integração.");
       resetForm();
       await fetchAccounts();
     } catch (submitError) {
@@ -160,34 +164,17 @@ export default function IntegrationsAdminPage() {
     }
   };
 
-  const handleEdit = (account: IntegrationAccount) => {
-    setEditingId(account.id);
-    setFormState({
-      type: account.type,
-      name: account.name,
-      status: account.status
-    });
-  };
-
   const handleDelete = async (accountId: string) => {
     setSubmitting(true);
     setError(null);
-
     try {
       const response = await fetch(`${apiUrl}/api/integration-accounts/${accountId}`, {
         method: "DELETE",
         credentials: "include"
       });
-
-      if (!response.ok) {
-        throw new Error("Não foi possível remover a integração.");
-      }
-
-      if (selectedAccountId === accountId) {
-        setSelectedAccountId(null);
-      }
-
+      if (!response.ok) throw new Error("Não foi possível remover a integração.");
       await fetchAccounts();
+      if (selectedAccountId === accountId) setSelectedAccountId(null);
     } catch (deleteError) {
       setError(deleteError instanceof Error ? deleteError.message : "Erro inesperado ao remover integração.");
     } finally {
@@ -195,205 +182,112 @@ export default function IntegrationsAdminPage() {
     }
   };
 
-  const activeAccount = useMemo(
-    () => accounts.find((account) => account.id === selectedAccountId) ?? null,
-    [accounts, selectedAccountId]
-  );
-
   const buildQrImageUrl = (qr: string) =>
     `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(qr)}`;
 
-  const applyQrStatus = useCallback((payload: { qr?: string | null; status?: string | null }) => {
-    setQrStatus(payload.status ?? "connecting");
-    if (payload.qr) {
-      setQrImageUrl(buildQrImageUrl(payload.qr));
-      return;
-    }
-    setQrImageUrl(null);
-  }, []);
-
-  const qrStatusLabel = useMemo(() => {
-    if (!qrStatus) {
-      return "aguardando seleção";
-    }
-    if (qrStatus === "connected") {
-      return "conectado";
-    }
-    if (qrStatus === "disconnected") {
-      return "desconectado";
-    }
-    return "conectando";
-  }, [qrStatus]);
-
-  const fetchWhatsappStatus = useCallback(async (accountId: string) => {
-    try {
-      const response = await fetch(`${apiUrl}/api/integration-accounts/${accountId}/whatsapp/status`, {
-        credentials: "include"
-      });
-
-      if (!response.ok) {
-        throw new Error("Não foi possível consultar o status do WhatsApp.");
+  const applyWhatsappResponse = useCallback(
+    (payload: WhatsappStatusResponse) => {
+      setQrStatus(payload.status ?? "connecting");
+      setQrImageUrl(payload.qr ? buildQrImageUrl(payload.qr) : null);
+      if (payload.needsSupport) {
+        setSupportMessage(payload.message || "A API do cliente não está configurada.");
+        setSupportUrl(payload.supportContactUrl || supportFallbackUrl);
+      } else {
+        setSupportMessage(null);
       }
+    },
+    []
+  );
 
-      const data = (await response.json()) as { qr?: string | null; status?: string | null };
-      applyQrStatus(data);
-    } catch (statusError) {
-      setError(statusError instanceof Error ? statusError.message : "Erro ao consultar status do WhatsApp.");
-    }
-  }, [applyQrStatus]);
+  const fetchWhatsappStatus = useCallback(
+    async (accountId: string) => {
+      try {
+        const response = await fetch(`${apiUrl}/api/integration-accounts/${accountId}/whatsapp/status`, {
+          credentials: "include"
+        });
+        if (!response.ok) throw new Error("Não foi possível consultar o status do WhatsApp.");
+        applyWhatsappResponse((await response.json()) as WhatsappStatusResponse);
+        await fetchSessions(accountId);
+      } catch (statusError) {
+        setError(statusError instanceof Error ? statusError.message : "Erro ao consultar status do WhatsApp.");
+      }
+    },
+    [applyWhatsappResponse, fetchSessions]
+  );
 
   const handleRequestQr = useCallback(async () => {
-    if (!selectedAccountId) {
-      return;
-    }
-
+    if (!selectedAccountId) return;
     setQrLoading(true);
     setError(null);
-
     try {
       const response = await fetch(`${apiUrl}/api/integration-accounts/${selectedAccountId}/whatsapp/qr`, {
         method: "POST",
         credentials: "include"
       });
-
-      if (!response.ok) {
-        throw new Error("Não foi possível gerar o QR code do WhatsApp.");
-      }
-
-      const data = (await response.json()) as { qr?: string | null; status?: string | null };
-      applyQrStatus(data);
+      if (!response.ok) throw new Error("Não foi possível gerar o QR code do WhatsApp.");
+      applyWhatsappResponse((await response.json()) as WhatsappStatusResponse);
+      await fetchSessions(selectedAccountId);
     } catch (qrError) {
       setError(qrError instanceof Error ? qrError.message : "Erro ao gerar QR code.");
     } finally {
       setQrLoading(false);
     }
-  }, [applyQrStatus, selectedAccountId]);
+  }, [applyWhatsappResponse, fetchSessions, selectedAccountId]);
 
-  const handleRequestSms = useCallback(async () => {
-    if (!selectedAccountId) {
-      return;
-    }
-
-    const trimmedPhone = smsPhone.trim();
-    if (!trimmedPhone) {
-      setError("Informe o número para receber o SMS.");
-      return;
-    }
-
-    setSmsRequestLoading(true);
+  const handleConnectEvolution = useCallback(async () => {
+    if (!selectedAccountId) return;
+    setQrLoading(true);
     setError(null);
-
     try {
-      const response = await fetch(`${apiUrl}/api/integration-accounts/${selectedAccountId}/whatsapp/sms/request`, {
+      const response = await fetch(`${apiUrl}/api/integration-accounts/${selectedAccountId}/whatsapp/evolution/connect`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        credentials: "include",
-        body: JSON.stringify({ phone: trimmedPhone })
+        credentials: "include"
       });
-
-      if (!response.ok) {
-        throw new Error("Não foi possível solicitar o SMS do WhatsApp.");
-      }
-
-      const data = (await response.json()) as { status?: string | null };
-      setSmsStatus(data.status ?? "codigo_enviado");
-    } catch (smsError) {
-      setError(smsError instanceof Error ? smsError.message : "Erro ao solicitar SMS.");
+      if (!response.ok) throw new Error("Não foi possível iniciar conexão Evolution.");
+      applyWhatsappResponse((await response.json()) as WhatsappStatusResponse);
+      await fetchSessions(selectedAccountId);
+    } catch (qrError) {
+      setError(qrError instanceof Error ? qrError.message : "Erro ao iniciar Evolution.");
     } finally {
-      setSmsRequestLoading(false);
+      setQrLoading(false);
     }
-  }, [selectedAccountId, smsPhone]);
-
-  const handleVerifySms = useCallback(async () => {
-    if (!selectedAccountId) {
-      return;
-    }
-
-    const trimmedPhone = smsPhone.trim();
-    const trimmedCode = smsCode.trim();
-
-    if (!trimmedPhone || !trimmedCode) {
-      setError("Informe o número e o código recebido por SMS.");
-      return;
-    }
-
-    setSmsVerifyLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch(`${apiUrl}/api/integration-accounts/${selectedAccountId}/whatsapp/sms/verify`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        credentials: "include",
-        body: JSON.stringify({ phone: trimmedPhone, code: trimmedCode })
-      });
-
-      if (!response.ok) {
-        throw new Error("Não foi possível validar o SMS do WhatsApp.");
-      }
-
-      const data = (await response.json()) as { status?: string | null };
-      setSmsStatus(data.status ?? "verificado");
-      void fetchWhatsappStatus(selectedAccountId);
-    } catch (smsError) {
-      setError(smsError instanceof Error ? smsError.message : "Erro ao validar SMS.");
-    } finally {
-      setSmsVerifyLoading(false);
-    }
-  }, [fetchWhatsappStatus, selectedAccountId, smsCode, smsPhone]);
+  }, [applyWhatsappResponse, fetchSessions, selectedAccountId]);
 
   useEffect(() => {
     if (!activeAccount) {
       setQrStatus(null);
       setQrImageUrl(null);
-      setSmsStatus(null);
+      setSupportMessage(null);
+      setSessions([]);
       return;
     }
 
     void fetchWhatsappStatus(activeAccount.id);
-    const interval = setInterval(() => {
-      void fetchWhatsappStatus(activeAccount.id);
-    }, 8000);
-
+    const interval = setInterval(() => void fetchWhatsappStatus(activeAccount.id), 10000);
     return () => clearInterval(interval);
   }, [activeAccount, fetchWhatsappStatus]);
 
   const handleSaveSecrets = async (event: FormEvent) => {
     event.preventDefault();
-    if (!selectedAccountId) {
-      return;
-    }
+    if (!selectedAccountId) return;
 
     setSubmitting(true);
     setError(null);
 
     const payload = Object.entries(secretForm).reduce<Record<string, string>>((acc, [key, value]) => {
       const trimmed = value.trim();
-      if (trimmed) {
-        acc[key] = trimmed;
-      }
+      if (trimmed) acc[key] = trimmed;
       return acc;
     }, {});
 
     try {
       const response = await fetch(`${apiUrl}/api/integration-accounts/${selectedAccountId}/secret`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ payload })
       });
-
-      if (!response.ok) {
-        throw new Error("Não foi possível salvar os segredos da integração.");
-      }
-
-      setSecretForm(emptySecretForm);
+      if (!response.ok) throw new Error("Não foi possível salvar os segredos da integração.");
       await fetchAccounts();
     } catch (secretError) {
       setError(secretError instanceof Error ? secretError.message : "Erro inesperado ao salvar segredos.");
@@ -402,313 +296,109 @@ export default function IntegrationsAdminPage() {
     }
   };
 
+  const qrStatusLabel = !qrStatus ? "aguardando seleção" : qrStatus === "connected" ? "conectado" : "conectando";
+
   return (
     <div className="min-h-screen bg-gray-50/50">
       <header className="border-b bg-white px-6 py-6 shadow-sm">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-2">
           <p className="text-sm font-medium text-blue-600">Admin</p>
           <h1 className="text-2xl font-semibold text-gray-900">Central de Integrações</h1>
-          <p className="text-sm text-gray-500">
-            Cadastre contas de integração e armazene credenciais criptografadas.
-          </p>
+          <p className="text-sm text-gray-500">Adicione WhatsApp via QR ou API Evolution.</p>
           <Link href="/dashboard" className="text-sm text-blue-600 hover:underline">
             Voltar ao dashboard
           </Link>
         </div>
       </header>
 
-      <main className="mx-auto grid w-full max-w-6xl gap-6 px-6 py-8 lg:grid-cols-[1fr_320px]">
+      <main className="mx-auto grid w-full max-w-6xl gap-6 px-6 py-8 lg:grid-cols-[1fr_340px]">
         <section className="rounded-xl border bg-white p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-gray-900">Integrações configuradas</h2>
-          <p className="text-sm text-gray-500">Selecione uma integração para conectar segredos.</p>
-
           <div className="mt-4 space-y-3">
             {loading && <p className="text-sm text-gray-500">Carregando integrações...</p>}
-            {!loading && accounts.length === 0 && (
-              <p className="text-sm text-gray-500">Nenhuma integração cadastrada.</p>
-            )}
+            {!loading && accounts.length === 0 && <p className="text-sm text-gray-500">Nenhuma integração cadastrada.</p>}
             {accounts.map((account) => (
-              <div
-                key={account.id}
-                className={`rounded-lg border p-4 transition ${
-                  selectedAccountId === account.id ? "border-blue-600 bg-blue-50" : "border-gray-200"
-                }`}
-              >
-                <div className="flex flex-wrap items-center justify-between gap-4">
+              <div key={account.id} className={`rounded-lg border p-4 ${selectedAccountId === account.id ? "border-blue-600 bg-blue-50" : "border-gray-200"}`}>
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <h3 className="text-base font-semibold text-gray-900">{account.name}</h3>
                     <p className="text-sm text-gray-500">Tipo: {account.type}</p>
-                    <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                      <span
-                        className={`rounded-full px-2 py-1 font-medium ${
-                          account.status === "ACTIVE"
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-gray-200 text-gray-700"
-                        }`}
-                      >
-                        {account.status === "ACTIVE" ? "Ativa" : "Inativa"}
-                      </span>
-                      <span
-                        className={`rounded-full px-2 py-1 font-medium ${
-                          account.hasSecret ? "bg-blue-100 text-blue-700" : "bg-yellow-100 text-yellow-700"
-                        }`}
-                      >
-                        {account.hasSecret ? "Credenciais salvas" : "Sem credenciais"}
-                      </span>
-                    </div>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedAccountId(account.id);
-                        setSecretForm(emptySecretForm);
-                        setQrStatus(null);
-                        setQrImageUrl(null);
-                        setSmsPhone("");
-                        setSmsCode("");
-                        setSmsStatus(null);
-                      }}
-                    >
-                      Conectar
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => handleEdit(account)}>
-                      Editar
-                    </Button>
-                    <Button variant="destructive" size="sm" onClick={() => handleDelete(account.id)}>
-                      Remover
-                    </Button>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => setSelectedAccountId(account.id)}>Conectar</Button>
+                    <Button size="sm" variant="outline" onClick={() => { setEditingId(account.id); setFormState({ type: account.type, name: account.name, status: account.status }); }}>Editar</Button>
+                    <Button size="sm" variant="outline" onClick={() => void handleDelete(account.id)} disabled={submitting}>Remover</Button>
                   </div>
                 </div>
               </div>
             ))}
           </div>
+
+          <form onSubmit={handleSubmit} className="mt-6 grid gap-4 rounded-lg border border-gray-100 p-4">
+            <h3 className="text-base font-semibold text-gray-800">{editingId ? "Editar integração" : "Nova integração"}</h3>
+            <div>
+              <label className="text-sm font-medium text-gray-700">Nome</label>
+              <input className="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" value={formState.name} onChange={handleChange("name")} placeholder="WhatsApp comercial" />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700">Status</label>
+              <select className="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" value={formState.status} onChange={handleChange("status")}>
+                {statusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+              </select>
+            </div>
+            <Button type="submit" disabled={submitting}>{editingId ? "Salvar alterações" : "Criar integração"}</Button>
+          </form>
         </section>
 
         <aside className="space-y-6">
           <section className="rounded-xl border bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900">
-              {editingId ? "Editar integração" : "Nova integração"}
-            </h2>
-            <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-              <div>
-                <label className="text-sm font-medium text-gray-700">Tipo</label>
-                <select
-                  className="mt-2 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
-                  value={formState.type}
-                  onChange={handleChange("type")}
-                  disabled={Boolean(editingId)}
-                >
-                  {typeOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">Nome da integração</label>
-                <input
-                  className="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-                  placeholder="Ex: WhatsApp Principal"
-                  value={formState.name}
-                  onChange={handleChange("name")}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">Status</label>
-                <select
-                  className="mt-2 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
-                  value={formState.status}
-                  onChange={handleChange("status")}
-                >
-                  {statusOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button disabled={submitting} type="submit">
-                  {editingId ? "Salvar alterações" : "Cadastrar"}
-                </Button>
-                {editingId && (
-                  <Button
-                    variant="outline"
-                    type="button"
-                    onClick={resetForm}
-                    disabled={submitting}
-                  >
-                    Cancelar
-                  </Button>
-                )}
-              </div>
+            <h2 className="text-lg font-semibold text-gray-900">Credenciais</h2>
+            <form onSubmit={handleSaveSecrets} className="mt-4 space-y-3">
+              <input className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" placeholder="API URL" value={secretForm.apiUrl} onChange={handleSecretChange("apiUrl")} disabled={!activeAccount} />
+              <input className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" placeholder="API Token" value={secretForm.apiToken} onChange={handleSecretChange("apiToken")} disabled={!activeAccount} />
+              <select className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" value={secretForm.provider} onChange={handleSecretChange("provider")} disabled={!activeAccount}>
+                <option value="EVOLUTION">Evolution API</option>
+                <option value="QR">QR padrão</option>
+              </select>
+              <input className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" placeholder="Nome da sessão (opcional)" value={secretForm.sessionName} onChange={handleSecretChange("sessionName")} disabled={!activeAccount} />
+              <Button type="submit" disabled={!activeAccount || submitting}>Salvar credenciais</Button>
             </form>
           </section>
 
           <section className="rounded-xl border bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900">Segredos da integração</h2>
-            <p className="text-sm text-gray-500">
-              {activeAccount
-                ? `Conecte credenciais para ${activeAccount.name}.`
-                : "Selecione uma integração para conectar."}
-            </p>
-            <div className="mt-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-700">
-              Para WhatsApp API via token, basta preencher API URL e API Token.
+            <h2 className="text-lg font-semibold text-gray-900">Conectar WhatsApp</h2>
+            <p className="text-sm text-gray-500">Status: {qrStatusLabel}</p>
+            {qrImageUrl ? (<>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={qrImageUrl} alt="QR code do WhatsApp" className="mt-4 h-60 w-60" />
+            </>) : <div className="mt-4 rounded border border-dashed p-4 text-center text-sm text-gray-400">QR code aparecerá aqui.</div>}
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button disabled={!activeAccount || qrLoading} onClick={handleRequestQr}>{qrLoading ? "Gerando..." : "Gerar QR code"}</Button>
+              <Button variant="outline" disabled={!activeAccount || qrLoading} onClick={handleConnectEvolution}>Conectar via Evolution</Button>
             </div>
-            <form onSubmit={handleSaveSecrets} className="mt-4 space-y-4">
-              <div>
-                <label className="text-sm font-medium text-gray-700">API URL</label>
-                <input
-                  className="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-                  placeholder="https://api.whatsapp.com"
-                  value={secretForm.apiUrl}
-                  onChange={handleSecretChange("apiUrl")}
-                  disabled={!activeAccount}
-                />
+            {supportMessage && (
+              <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                <p>{supportMessage}</p>
+                {supportUrl && <a href={supportUrl} target="_blank" rel="noreferrer" className="mt-2 inline-block font-medium text-amber-900 underline">Entrar em contato com suporte</a>}
               </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">API Token</label>
-                <input
-                  className="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-                  placeholder="Token da API"
-                  value={secretForm.apiToken}
-                  onChange={handleSecretChange("apiToken")}
-                  disabled={!activeAccount}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">Webhook Token (opcional)</label>
-                <input
-                  className="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-                  placeholder="Token de validação"
-                  value={secretForm.webhookToken}
-                  onChange={handleSecretChange("webhookToken")}
-                  disabled={!activeAccount}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">Endpoint do QR (opcional)</label>
-                <input
-                  className="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-                  placeholder="/whatsapp/qr"
-                  value={secretForm.qrEndpoint}
-                  onChange={handleSecretChange("qrEndpoint")}
-                  disabled={!activeAccount}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">Endpoint de status (opcional)</label>
-                <input
-                  className="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-                  placeholder="/whatsapp/status"
-                  value={secretForm.statusEndpoint}
-                  onChange={handleSecretChange("statusEndpoint")}
-                  disabled={!activeAccount}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">Endpoint SMS (solicitar) (opcional)</label>
-                <input
-                  className="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-                  placeholder="/whatsapp/sms/request"
-                  value={secretForm.smsRequestEndpoint}
-                  onChange={handleSecretChange("smsRequestEndpoint")}
-                  disabled={!activeAccount}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">Endpoint SMS (validar) (opcional)</label>
-                <input
-                  className="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-                  placeholder="/whatsapp/sms/verify"
-                  value={secretForm.smsVerifyEndpoint}
-                  onChange={handleSecretChange("smsVerifyEndpoint")}
-                  disabled={!activeAccount}
-                />
-              </div>
-              <Button disabled={!activeAccount || submitting} type="submit">
-                Salvar credenciais
-              </Button>
-            </form>
+            )}
           </section>
 
           <section className="rounded-xl border bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900">Conexão via QR code</h2>
-            <p className="text-sm text-gray-500">
-              {activeAccount
-                ? "Gere o QR code e faça a leitura no WhatsApp para conectar."
-                : "Selecione uma integração para gerar o QR code."}
-            </p>
-            <div className="mt-4 space-y-4">
-              <div className="text-sm text-gray-600">
-                Status: {qrStatusLabel}
-              </div>
-              {qrImageUrl ? (
-                <div className="flex justify-center">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={qrImageUrl} alt="QR code do WhatsApp" className="h-60 w-60" />
-                </div>
-              ) : (
-                <div className="rounded-lg border border-dashed border-gray-200 p-6 text-center text-sm text-gray-400">
-                  QR code aparecerá aqui.
-                </div>
-              )}
-              <Button disabled={!activeAccount || qrLoading} onClick={handleRequestQr}>
-                {qrLoading ? "Gerando QR..." : "Gerar QR code"}
-              </Button>
-            </div>
+            <h2 className="text-lg font-semibold text-gray-900">Sessões (por perfil)</h2>
+            <p className="text-sm text-gray-500">No momento, as sessões ficam vinculadas ao perfil do usuário.</p>
+            <ul className="mt-3 space-y-2 text-sm">
+              {sessions.length === 0 && <li className="text-gray-500">Nenhuma sessão ainda.</li>}
+              {sessions.map((session) => (
+                <li key={session.id} className="rounded border border-gray-200 p-2">
+                  <p className="font-medium text-gray-800">{session.sessionName}</p>
+                  <p className="text-gray-500">Provider: {session.provider} • Status: {session.status}</p>
+                </li>
+              ))}
+            </ul>
           </section>
 
-          <section className="rounded-xl border bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900">Conexão via SMS</h2>
-            <p className="text-sm text-gray-500">
-              {activeAccount
-                ? "Digite o número, solicite o SMS e valide o código como no WhatsApp Web."
-                : "Selecione uma integração para solicitar o SMS."}
-            </p>
-            <div className="mt-4 space-y-4">
-              <div className="text-sm text-gray-600">
-                Status: {smsStatus ? smsStatus.replaceAll("_", " ") : "aguardando solicitação"}
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">Número com DDI</label>
-                <input
-                  className="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-                  placeholder="+55 11 99999-9999"
-                  value={smsPhone}
-                  onChange={(event) => setSmsPhone(event.target.value)}
-                  disabled={!activeAccount}
-                />
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button disabled={!activeAccount || smsRequestLoading} onClick={handleRequestSms}>
-                  {smsRequestLoading ? "Enviando SMS..." : "Solicitar SMS"}
-                </Button>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">Código recebido</label>
-                <input
-                  className="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-                  placeholder="123456"
-                  value={smsCode}
-                  onChange={(event) => setSmsCode(event.target.value)}
-                  disabled={!activeAccount}
-                />
-              </div>
-              <Button disabled={!activeAccount || smsVerifyLoading} onClick={handleVerifySms}>
-                {smsVerifyLoading ? "Validando..." : "Validar código"}
-              </Button>
-            </div>
-          </section>
-
-          {error && (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {error}
-            </div>
-          )}
+          {error && <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
         </aside>
       </main>
     </div>

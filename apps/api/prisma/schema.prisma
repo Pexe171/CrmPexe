@@ -237,6 +237,7 @@ model User {
   automationAccessGranted AutomationAccess[] @relation("AutomationAccessAdmin")
   automationAccessRequests AutomationAccessRequest[] @relation("AutomationAccessRequester")
   marketplaceInterests MarketplaceInterest[] @relation("MarketplaceInterestRequester")
+  whatsappSessions WhatsappSession[]
   currentWorkspace Workspace? @relation("UserCurrentWorkspace", fields: [currentWorkspaceId], references: [id])
 }
 
@@ -514,8 +515,29 @@ model IntegrationAccount {
 
   workspace Workspace @relation(fields: [workspaceId], references: [id])
   secret   IntegrationSecret?
+  sessions WhatsappSession[]
 
   @@index([workspaceId])
+}
+
+model WhatsappSession {
+  id                   String   @id @default(uuid())
+  integrationAccountId String
+  profileUserId        String
+  provider             String
+  sessionName          String
+  status               String   @default("pending")
+  qrCode               String?
+  metadata             Json?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  integrationAccount IntegrationAccount @relation(fields: [integrationAccountId], references: [id], onDelete: Cascade)
+  profileUser       User               @relation(fields: [profileUserId], references: [id], onDelete: Cascade)
+
+  @@index([integrationAccountId])
+  @@index([profileUserId])
+  @@unique([integrationAccountId, profileUserId, sessionName])
 }
 
 model IntegrationSecret {
