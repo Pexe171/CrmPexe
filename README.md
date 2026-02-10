@@ -83,6 +83,8 @@ Principais variáveis da API (`apps/api/.env`):
 - `MERCADOPAGO_*`: integração Mercado Pago
 - `WHATSAPP_WEBHOOK_SECRET`: segredo obrigatório para validar assinatura HMAC SHA-256 do webhook
 - `WHATSAPP_WEBHOOK_SIGNATURE_HEADER`: nome do header da assinatura do webhook (ex.: `x-whatsapp-signature`)
+- `RATE_LIMIT_REDIS_ENABLED`: habilita/desabilita Redis no rate limit (`true` por padrão)
+- `RATE_LIMIT_REDIS_FAILURE_POLICY`: política quando Redis estiver indisponível (`memory`, `allow` ou `deny`; padrão `memory`)
 
 Principais variáveis do Web (`apps/web/.env`):
 

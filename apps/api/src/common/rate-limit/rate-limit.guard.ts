@@ -18,7 +18,7 @@ export class RateLimitGuard implements CanActivate {
     private readonly rateLimitService: RateLimitService
   ) {}
 
-  canActivate(context: ExecutionContext) {
+  async canActivate(context: ExecutionContext) {
     const options = this.reflector.getAllAndOverride<RateLimitOptions>(
       RATE_LIMIT_METADATA_KEY,
       [context.getHandler(), context.getClass()]
@@ -43,7 +43,7 @@ export class RateLimitGuard implements CanActivate {
     }
 
     for (const entry of keys) {
-      const result = this.rateLimitService.consume(
+      const result = await this.rateLimitService.consume(
         `${options.keyPrefix ?? "default"}:${entry.key}`,
         options.max,
         options.windowMs
@@ -51,7 +51,10 @@ export class RateLimitGuard implements CanActivate {
 
       if (entry.label) {
         response.setHeader(`x-rate-limit-limit-${entry.label}`, options.max);
-        response.setHeader(`x-rate-limit-remaining-${entry.label}`, result.remaining);
+        response.setHeader(
+          `x-rate-limit-remaining-${entry.label}`,
+          result.remaining
+        );
         response.setHeader(`x-rate-limit-reset-${entry.label}`, result.resetAt);
       }
 
