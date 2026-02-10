@@ -406,10 +406,10 @@ export function SidebarNav({
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/20 text-lg font-bold text-blue-200">
-              Z
+              A
             </div>
             <div>
-              <p className="text-sm font-semibold text-slate-100">ZecaBot</p>
+              <p className="text-sm font-semibold text-slate-100">AtendeAi</p>
               <p className="text-xs text-slate-400">Automação inteligente</p>
             </div>
           </div>
@@ -422,7 +422,7 @@ export function SidebarNav({
           </button>
         </div>
 
-        <div className="mt-6 flex-1 space-y-5 overflow-y-auto pr-2">
+        <div className="mt-6 flex-1 space-y-5 overflow-y-auto pr-2 [scrollbar-color:#64748b_transparent] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-500/70 [&::-webkit-scrollbar-thumb]:border-2 [&::-webkit-scrollbar-thumb]:border-transparent [&::-webkit-scrollbar-track]:bg-transparent">
           {sections.map((section) => (
             <SidebarSection
               key={section.title}

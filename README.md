@@ -160,7 +160,11 @@ Após validar o OTP com sucesso, o front-end redireciona o usuário para `/dashb
 
 A aplicação web conta com uma barra lateral fixa no desktop e recolhível no mobile, com hierarquia por seções (início rápido, atendimento, vendas & CRM, operações e integrações). Os itens recebem ícones e destaque visual para facilitar a descoberta das funcionalidades principais.
 
+A identidade do produto no cabeçalho lateral foi padronizada para **AtendeAi**.
+
 A barra lateral também aceita itens dinâmicos com `emoji` quando não houver componente de ícone disponível, evitando falhas de renderização em seções extras carregadas por perfil (ex.: Admin e Super Admin).
+
+Para manter a consistência visual do layout escuro, o scroll interno da barra lateral usa trilha transparente e thumb com estilo discreto.
 
 ## Produção com Docker
 
