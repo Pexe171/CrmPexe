@@ -81,6 +81,8 @@ Principais variáveis da API (`apps/api/.env`):
 - `JWT_ACCESS_SECRET` e `JWT_REFRESH_SECRET`: segredos JWT
 - `SMTP_*`: envio de e-mails
 - `MERCADOPAGO_*`: integração Mercado Pago
+- `WHATSAPP_WEBHOOK_SECRET`: segredo obrigatório para validar assinatura HMAC SHA-256 do webhook
+- `WHATSAPP_WEBHOOK_SIGNATURE_HEADER`: nome do header da assinatura do webhook (ex.: `x-whatsapp-signature`)
 
 Principais variáveis do Web (`apps/web/.env`):
 
@@ -158,7 +160,6 @@ O acesso às automações é liberado quando o workspace possui aprovação (`st
 ### Fluxo de login
 
 Após validar o OTP com sucesso, o front-end redireciona o usuário para `/dashboard` (rota única pós-login).
-
 
 ## Integração WhatsApp (QR + Evolution)
 
