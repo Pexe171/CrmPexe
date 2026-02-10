@@ -174,15 +174,33 @@ cp apps/web/.env.production.example apps/web/.env.production
 
 2. Defina segredos sensíveis (`JWT_*`, `MERCADOPAGO_*`, `GEMINI_*`) via CI/CD, secret manager ou injeção segura no servidor.
 
-3. Gere os certificados de origem do Cloudflare e salve em `infra/certs/` com os nomes:
+3. Gere os certificados de origem do Cloudflare e salve em `infra/certs/` com os nomes (recomendado para SSL/TLS em modo **Full (Strict)** no Cloudflare):
    - `origin-cert.pem`
    - `origin-key.pem`
 
-4. Suba os containers:
+4. Crie o volume externo do PostgreSQL (persistência entre recriações do container):
+
+```bash
+docker volume create postgres_data
+```
+
+5. Suba os containers:
 
 ```bash
 docker compose -f docker-compose.prod.yml up -d --build
 ```
+
+### Healthchecks e ordem de subida
+
+O `docker-compose.prod.yml` inclui healthchecks para PostgreSQL e Redis. A API só inicia após os dois serviços ficarem saudáveis, reduzindo erros de conexão no boot.
+
+### Limites de recursos
+
+Para evitar saturação da VPS, os serviços de produção possuem limites de CPU e memória definidos diretamente no Compose (`cpus` e `mem_limit`). Ajuste esses valores conforme o tamanho do seu servidor.
+
+### Next.js em modo standalone
+
+O front-end já está configurado com `output: "standalone"` em `apps/web/next.config.js`, requisito do Dockerfile do web para copiar apenas os artefatos necessários de produção.
 
 ### Migrações Prisma em produção
 

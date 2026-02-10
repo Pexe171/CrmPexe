@@ -1,21 +1,35 @@
-version: "3.9"
-
 services:
   postgres:
     image: postgres:16-alpine
     restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    cpus: "1.00"
+    mem_limit: 1024m
 
   redis:
     image: redis:7-alpine
     restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
     volumes:
       - redis_data:/data
+    cpus: "0.50"
+    mem_limit: 256m
 
   api:
     build:
@@ -23,14 +37,18 @@ services:
       dockerfile: apps/api/Dockerfile
     restart: always
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     env_file:
       - apps/api/.env.production
     environment:
       NODE_ENV: production
     volumes:
       - uploads_data:/app/storage
+    cpus: "1.00"
+    mem_limit: 1024m
 
   web:
     build:
@@ -43,6 +61,8 @@ services:
       - apps/web/.env.production
     environment:
       NODE_ENV: production
+    cpus: "1.00"
+    mem_limit: 512m
 
   nginx:
     image: nginx:1.27-alpine
@@ -56,8 +76,11 @@ services:
     volumes:
       - ./infra/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
       - ./infra/certs:/etc/nginx/certs:ro
+    cpus: "0.50"
+    mem_limit: 256m
 
 volumes:
   postgres_data:
+    external: true
   redis_data:
   uploads_data:
