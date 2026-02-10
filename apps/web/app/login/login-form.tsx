@@ -8,7 +8,6 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useBranding } from "@/components/branding/branding-provider";
 import { useGlobalFeedback } from "@/components/global-feedback";
-import { getDefaultDashboardPath, normalizeUserRole } from "@/lib/rbac";
 import { useAuthOtp } from "@/lib/use-auth-otp";
 import { useLoginFlow } from "@/lib/use-login-flow";
 import { useTranslations } from "@/lib/use-translations";
@@ -23,8 +22,15 @@ export function LoginForm() {
   const { brandName, brandLogoUrl } = useBranding();
   const { t } = useTranslations();
   const { clearFeedback } = useGlobalFeedback();
-  const { formState, onChange, status, setStatus, step, setStep, resetToRequest } =
-    useLoginFlow(initialState);
+  const {
+    formState,
+    onChange,
+    status,
+    setStatus,
+    step,
+    setStep,
+    resetToRequest
+  } = useLoginFlow(initialState);
   const { isLoading, requestOtp, verifyOtp } = useAuthOtp();
   const [isPending, startTransition] = useTransition();
 
@@ -53,12 +59,8 @@ export function LoginForm() {
       return;
     }
 
-    const targetPath = getDefaultDashboardPath(
-      normalizeUserRole(result.data?.user?.role)
-    );
-
     startTransition(() => {
-      router.replace(targetPath);
+      router.replace("/dashboard");
       router.refresh();
     });
   };
@@ -78,9 +80,7 @@ export function LoginForm() {
             {brandName || t("auth.login.brand")}
           </p>
           <h1 className="text-3xl font-semibold">{t("auth.login.title")}</h1>
-          <p className="text-sm text-slate-300">
-            {t("auth.login.subtitle")}
-          </p>
+          <p className="text-sm text-slate-300">{t("auth.login.subtitle")}</p>
         </header>
 
         <form onSubmit={onSubmit} className="space-y-5">
@@ -128,7 +128,11 @@ export function LoginForm() {
             </p>
           ) : null}
 
-          <Button type="submit" className="w-full" disabled={isPending || isLoading}>
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={isPending || isLoading}
+          >
             {isPending || isLoading
               ? step === "request"
                 ? t("auth.login.requestLoading")
