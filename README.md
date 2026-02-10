@@ -21,6 +21,7 @@ Plataforma CRM com API em NestJS e front-end em Next.js, organizada como monorep
 - [Fluxos comuns](#fluxos-comuns)
 - [Integração WhatsApp (QR + Evolution)](#integração-whatsapp-qr--evolution)
 - [Interface](#interface)
+- [Workflow de CI (GitHub Actions)](#workflow-de-ci-github-actions)
 - [Produção com Docker](#produção-com-docker)
 - [Troubleshooting](#troubleshooting)
 - [Licença](#licença)
@@ -187,6 +188,32 @@ A identidade do produto no cabeçalho lateral foi padronizada para **AtendeAi**.
 A barra lateral também aceita itens dinâmicos com `emoji` quando não houver componente de ícone disponível, evitando falhas de renderização em seções extras carregadas por perfil (ex.: Admin e Super Admin).
 
 Para manter a consistência visual do layout escuro, o scroll interno da barra lateral usa trilha transparente e thumb com estilo discreto.
+
+## Workflow de CI (GitHub Actions)
+
+O repositório possui um workflow em `.github/workflows/ci.yml` com foco em qualidade e segurança de entrega.
+
+### Quando ele roda
+
+- Em `push` para `main`, `master` e `develop`
+- Em `pull_request` para `main`, `master` e `develop`
+- Manualmente via aba **Actions** (evento `workflow_dispatch`)
+
+### Etapas do pipeline
+
+1. **Quality Gate (Typecheck, Lint e Testes)**
+   - Instala dependências com lockfile congelado (`--frozen-lockfile`)
+   - Gera o Prisma Client
+   - Executa `typecheck`, `lint` e `test`
+2. **Build de produção**
+   - Só roda se o *Quality Gate* passar
+   - Reinstala dependências, gera Prisma Client e executa `pnpm build`
+
+### Boas práticas aplicadas
+
+- **Concorrência controlada**: cancela execuções antigas da mesma branch para economizar minutos de CI.
+- **Cache de dependências**: usa cache nativo de `pnpm` com `setup-node` para acelerar builds.
+- **Separação de responsabilidades**: validação e build em jobs distintos, facilitando diagnóstico.
 
 ## Produção com Docker
 
