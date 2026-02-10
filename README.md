@@ -150,6 +150,10 @@ pnpm dev:api
 
 O acesso às automações é liberado quando o workspace possui aprovação (`status=APPROVED`) para o template correspondente. Garanta que a liberação esteja registrada antes de ativar fluxos.
 
+### Fluxo de login
+
+Após validar o OTP com sucesso, o front-end redireciona o usuário para `/dashboard` (rota única pós-login).
+
 ## Interface
 
 ### Barra lateral de navegação
