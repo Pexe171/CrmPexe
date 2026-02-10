@@ -29,21 +29,36 @@ describe("AppController (e2e)", () => {
     });
   });
 
-  it("/workspaces (GET) should reject unauthenticated requests", async () => {
+  it("/workspaces (GET) should reject unauthenticated requests with expected error contract", async () => {
     const response = await request(app.getHttpServer()).get("/workspaces");
 
     expect(response.status).toBe(401);
+    expect(response.headers["content-type"]).toContain("application/json");
+    expect(response.body).toMatchObject({
+      statusCode: 401,
+      message: expect.any(String)
+    });
   });
 
-  it("/audit-logs (GET) should reject unauthenticated requests", async () => {
+  it("/audit-logs (GET) should reject unauthenticated requests with expected error contract", async () => {
     const response = await request(app.getHttpServer()).get("/audit-logs");
 
     expect(response.status).toBe(401);
+    expect(response.headers["content-type"]).toContain("application/json");
+    expect(response.body).toMatchObject({
+      statusCode: 401,
+      message: expect.any(String)
+    });
   });
 
-  it("/companies (GET) should reject unauthenticated requests", async () => {
+  it("/companies (GET) should reject unauthenticated requests with expected error contract", async () => {
     const response = await request(app.getHttpServer()).get("/companies");
 
     expect(response.status).toBe(401);
+    expect(response.headers["content-type"]).toContain("application/json");
+    expect(response.body).toMatchObject({
+      statusCode: 401,
+      message: expect.any(String)
+    });
   });
 });

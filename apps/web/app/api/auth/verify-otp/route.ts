@@ -20,11 +20,11 @@ export async function POST(request: Request) {
     );
   }
 
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
 
   if (!apiBaseUrl) {
     return NextResponse.json(
-      { message: "URL da API não configurada." },
+      { message: "NEXT_PUBLIC_API_URL não configurada." },
       { status: 500 }
     );
   }
