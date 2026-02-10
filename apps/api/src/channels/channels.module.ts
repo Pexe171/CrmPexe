@@ -8,11 +8,19 @@ import { QueuesModule } from "../queues/queues.module";
 import { ChannelsController } from "./channels.controller";
 import { ChannelsService } from "./channels.service";
 import { WhatsappProvider } from "./providers/whatsapp.provider";
+import { MockOmnichannelProvider } from "./providers/mock-omnichannel.provider";
 
 @Module({
-  imports: [PrismaModule, NotificationsModule, IntegrationAccountsModule, AutomationEngineModule, AiModule, QueuesModule],
+  imports: [
+    PrismaModule,
+    NotificationsModule,
+    IntegrationAccountsModule,
+    AutomationEngineModule,
+    AiModule,
+    QueuesModule
+  ],
   controllers: [ChannelsController],
-  providers: [ChannelsService, WhatsappProvider],
+  providers: [ChannelsService, WhatsappProvider, MockOmnichannelProvider],
   exports: [ChannelsService]
 })
 export class ChannelsModule {}

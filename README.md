@@ -20,6 +20,8 @@ Plataforma CRM com API em NestJS e front-end em Next.js, organizada como monorep
 - [Estrutura do repositório](#estrutura-do-repositório)
 - [Fluxos comuns](#fluxos-comuns)
 - [Integração WhatsApp (QR + Evolution)](#integração-whatsapp-qr--evolution)
+- [Omnichannel verdadeiro (além do WhatsApp)](#omnichannel-verdadeiro-além-do-whatsapp)
+- [Dashboard analítico avançado](#dashboard-analítico-avançado)
 - [Interface](#interface)
 - [Produção com Docker](#produção-com-docker)
 - [Troubleshooting](#troubleshooting)
@@ -182,6 +184,27 @@ Variável opcional para link de suporte:
 
 - `WHATSAPP_SUPPORT_URL` (API)
 - `NEXT_PUBLIC_WHATSAPP_LINK` (Web, fallback)
+
+## Omnichannel verdadeiro (além do WhatsApp)
+
+Além do fluxo de WhatsApp, o backend agora possui suporte de canal para integração omnichannel com mapeamento dedicado no tipo de conta de integração:
+
+- `INSTAGRAM_DIRECT`
+- `FACEBOOK_MESSENGER`
+- `EMAIL` (cenários IMAP/SMTP)
+- `VOIP` (registro de ligações e eventos)
+
+Os canais aceitos na camada de atendimento são: `whatsapp`, `instagram`, `messenger`, `email` e `voip`.
+
+## Dashboard analítico avançado
+
+O endpoint `GET /api/dashboard/sales` passa a retornar indicadores de gestão com foco em operação comercial e atendimento:
+
+- **SLA de primeira resposta**: `slaPrimeiraResposta.tempoMedioSegundos`.
+- **Conversão por etapa do funil**: `conversaoEntreEtapas` com quantidade e taxa de conversão.
+- **Produtividade por usuário/vendedor**: `produtividadeUsuarios` com conversas fechadas, mensagens enviadas e taxa de fechamento.
+
+A interface `/dashboard` consome esses dados para destacar KPIs operacionais e visão de cobertura omnichannel.
 
 ## Interface
 

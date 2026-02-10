@@ -24,6 +24,7 @@ const apiUrl = "";
 type Conversation = {
   id: string;
   status?: string | null;
+  channel?: string | null;
   lastMessageAt?: string | null;
   createdAt: string;
   contact?: {
@@ -75,6 +76,26 @@ type WorkspaceResponse = {
   workspaces: Workspace[];
 };
 
+type SalesDashboardResponse = {
+  slaPrimeiraResposta?: {
+    conversasRespondidas: number;
+    tempoMedioSegundos: number;
+  };
+  conversaoEntreEtapas?: Array<{
+    etapaOrigem: string;
+    etapaDestino: string;
+    quantidade: number;
+    taxaConversao: number;
+  }>;
+  produtividadeUsuarios?: Array<{
+    usuarioId: string;
+    nome: string;
+    mensagensEnviadas: number;
+    conversasFechadas: number;
+    taxaFechamento: number;
+  }>;
+};
+
 type DashboardClientProps = {
   role: UserRole;
   isSuperAdmin: boolean;
@@ -118,6 +139,8 @@ export default function DashboardClient({
   const [instancesCount, setInstancesCount] = useState(0);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [salesDashboard, setSalesDashboard] =
+    useState<SalesDashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -132,7 +155,8 @@ export default function DashboardClient({
           conversationsResponse,
           instancesResponse,
           workspacesResponse,
-          auditResponse
+          auditResponse,
+          salesDashboardResponse
         ] = await Promise.all([
           fetch("/api/conversations", { credentials: "include" }),
           fetch("/api/automation-instances?page=1&perPage=1", {
@@ -141,7 +165,8 @@ export default function DashboardClient({
           fetch("/api/workspaces", { credentials: "include" }),
           fetch(`/api/audit-logs?perPage=20${auditScopeQuery}`, {
             credentials: "include"
-          })
+          }),
+          fetch("/api/dashboard/sales", { credentials: "include" })
         ]);
 
         if (!conversationsResponse.ok) {
@@ -156,19 +181,31 @@ export default function DashboardClient({
         if (!auditResponse.ok) {
           throw new Error("Não foi possível carregar o histórico.");
         }
+        if (!salesDashboardResponse.ok) {
+          throw new Error(
+            "Não foi possível carregar os indicadores avançados."
+          );
+        }
 
-        const [conversationsData, instancesData, workspacesData, auditData] =
-          await Promise.all([
-            conversationsResponse.json() as Promise<Conversation[]>,
-            instancesResponse.json() as Promise<AutomationInstancesResponse>,
-            workspacesResponse.json() as Promise<WorkspaceResponse>,
-            auditResponse.json() as Promise<{ data: AuditLog[] }>
-          ]);
+        const [
+          conversationsData,
+          instancesData,
+          workspacesData,
+          auditData,
+          salesDashboardData
+        ] = await Promise.all([
+          conversationsResponse.json() as Promise<Conversation[]>,
+          instancesResponse.json() as Promise<AutomationInstancesResponse>,
+          workspacesResponse.json() as Promise<WorkspaceResponse>,
+          auditResponse.json() as Promise<{ data: AuditLog[] }>,
+          salesDashboardResponse.json() as Promise<SalesDashboardResponse>
+        ]);
 
         setConversations(conversationsData);
         setInstancesCount(instancesData.meta.total);
         setWorkspaces(workspacesData.workspaces);
         setAuditLogs(auditData.data ?? []);
+        setSalesDashboard(salesDashboardData);
       } catch (fetchError) {
         setError(
           fetchError instanceof Error
@@ -353,11 +390,35 @@ export default function DashboardClient({
     };
   }, [conversations, slaSeconds]);
 
+  const channelCoverage = useMemo(() => {
+    const supportedChannels = [
+      "whatsapp",
+      "instagram",
+      "messenger",
+      "email",
+      "voip"
+    ];
+    const normalized = new Set(
+      conversations
+        .map((conversation) => conversation.channel?.toLowerCase().trim())
+        .filter((channel): channel is string => Boolean(channel))
+    );
+
+    return {
+      ativos: supportedChannels.filter((channel) => normalized.has(channel))
+        .length,
+      total: supportedChannels.length
+    };
+  }, [conversations]);
+
   const kpiCards = [
     {
       label: "TMR (Tempo médio de resposta)",
-      value: formatDuration(conversationResponseMetrics.averageResponseSeconds),
-      helper: "Baseado no tempo entre abertura e última mensagem",
+      value: formatDuration(
+        salesDashboard?.slaPrimeiraResposta?.tempoMedioSegundos ??
+          conversationResponseMetrics.averageResponseSeconds
+      ),
+      helper: "Tempo médio da primeira resposta registrada no período",
       accent: "bg-blue-100 text-blue-700"
     },
     {
@@ -368,8 +429,11 @@ export default function DashboardClient({
     },
     {
       label: "Conversão (conversas fechadas)",
-      value: `${conversationResponseMetrics.conversionRate.toFixed(0)}%`,
-      helper: "Conversas concluídas sobre o total",
+      value: `${(
+        salesDashboard?.conversaoEntreEtapas?.[0]?.taxaConversao ??
+        conversationResponseMetrics.conversionRate
+      ).toFixed(0)}%`,
+      helper: "Melhor taxa de conversão entre etapas do funil",
       accent: "bg-purple-100 text-purple-700"
     }
   ];
@@ -658,6 +722,38 @@ export default function DashboardClient({
                   <p className="mt-2 text-xs text-slate-400">{kpi.helper}</p>
                 </div>
               ))}
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="rounded-xl border bg-slate-900 p-6 shadow-sm">
+                <p className="text-sm font-medium text-slate-400">
+                  Cobertura omnichannel
+                </p>
+                <p className="mt-2 text-2xl font-bold text-slate-100">
+                  {loading
+                    ? "-"
+                    : `${channelCoverage.ativos}/${channelCoverage.total}`}
+                </p>
+                <p className="mt-2 text-xs text-slate-400">
+                  Canais ativos (WhatsApp, Instagram, Messenger, E-mail e VoIP).
+                </p>
+              </div>
+              <div className="rounded-xl border bg-slate-900 p-6 shadow-sm">
+                <p className="text-sm font-medium text-slate-400">
+                  Produtividade (top vendedor)
+                </p>
+                <p className="mt-2 text-2xl font-bold text-slate-100">
+                  {loading
+                    ? "-"
+                    : (salesDashboard?.produtividadeUsuarios?.[0]?.nome ??
+                      "Sem dados")}
+                </p>
+                <p className="mt-2 text-xs text-slate-400">
+                  {loading
+                    ? "Carregando..."
+                    : `${salesDashboard?.produtividadeUsuarios?.[0]?.conversasFechadas ?? 0} conversas fechadas e ${salesDashboard?.produtividadeUsuarios?.[0]?.mensagensEnviadas ?? 0} mensagens enviadas`}
+                </p>
+              </div>
             </div>
           </section>
 
