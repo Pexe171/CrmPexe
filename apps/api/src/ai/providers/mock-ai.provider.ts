@@ -15,7 +15,9 @@ import {
 export class MockAiProvider implements AiProvider {
   readonly name = "mock";
 
-  async summarizeConversation(input: SummarizeConversationInput): Promise<SummarizeConversationResult> {
+  async summarizeConversation(
+    input: SummarizeConversationInput
+  ): Promise<SummarizeConversationResult> {
     if (!input.messages.length) {
       return {
         summary: "Nenhuma mensagem para resumir.",
@@ -34,10 +36,25 @@ export class MockAiProvider implements AiProvider {
     };
   }
 
-  async classifyLead(input: LeadClassificationInput): Promise<LeadClassificationResult> {
-    const combinedText = `${input.notes ?? ""} ${input.lastMessage ?? ""}`.toLowerCase();
-    const isHot = this.containsAny(combinedText, ["agendar", "contratar", "fechar", "preço", "orçamento"]);
-    const isWarm = this.containsAny(combinedText, ["avaliar", "entender", "cotação", "simular", "comparar"]);
+  async classifyLead(
+    input: LeadClassificationInput
+  ): Promise<LeadClassificationResult> {
+    const combinedText =
+      `${input.notes ?? ""} ${input.lastMessage ?? ""}`.toLowerCase();
+    const isHot = this.containsAny(combinedText, [
+      "agendar",
+      "contratar",
+      "fechar",
+      "preço",
+      "orçamento"
+    ]);
+    const isWarm = this.containsAny(combinedText, [
+      "avaliar",
+      "entender",
+      "cotação",
+      "simular",
+      "comparar"
+    ]);
 
     if (isHot) {
       return {
@@ -64,7 +81,8 @@ export class MockAiProvider implements AiProvider {
 
   async suggestReply(input: SuggestReplyInput): Promise<SuggestReplyResult> {
     const tone = input.tone ?? "neutro";
-    const greeting = tone === "formal" ? "Olá" : tone === "informal" ? "Oi" : "Olá";
+    const greeting =
+      tone === "formal" ? "Olá" : tone === "informal" ? "Oi" : "Olá";
     const goalLine = input.goal ? `Nosso objetivo é ${input.goal}.` : "";
 
     return {
@@ -75,20 +93,29 @@ export class MockAiProvider implements AiProvider {
   async extractFields(input: ExtractFieldsInput): Promise<ExtractFieldsResult> {
     const fields: Record<string, string | null> = {};
     const text = input.text;
-    const lowerText = text.toLowerCase();
-
     for (const field of input.fields) {
       const normalized = field.toLowerCase();
       if (normalized.includes("email")) {
-        fields[field] = this.matchRegex(text, /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+        fields[field] = this.matchRegex(
+          text,
+          /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i
+        );
         continue;
       }
-      if (normalized.includes("telefone") || normalized.includes("celular") || normalized.includes("whatsapp")) {
+      if (
+        normalized.includes("telefone") ||
+        normalized.includes("celular") ||
+        normalized.includes("whatsapp")
+      ) {
         fields[field] = this.matchRegex(text, /\+?\d[\d\s().-]{7,}\d/);
         continue;
       }
       if (normalized.includes("empresa")) {
-        fields[field] = this.matchAfterLabel(text, ["empresa", "companhia", "negócio"]);
+        fields[field] = this.matchAfterLabel(text, [
+          "empresa",
+          "companhia",
+          "negócio"
+        ]);
         continue;
       }
       if (normalized.includes("nome")) {
@@ -96,14 +123,26 @@ export class MockAiProvider implements AiProvider {
         continue;
       }
       if (normalized.includes("cargo")) {
-        fields[field] = this.matchAfterLabel(text, ["cargo", "função", "posição"]);
+        fields[field] = this.matchAfterLabel(text, [
+          "cargo",
+          "função",
+          "posição"
+        ]);
         continue;
       }
       if (normalized.includes("prazo")) {
-        fields[field] = this.matchAfterLabel(text, ["prazo", "entrega", "quando"]);
+        fields[field] = this.matchAfterLabel(text, [
+          "prazo",
+          "entrega",
+          "quando"
+        ]);
         continue;
       }
-      if (normalized.includes("valor") || normalized.includes("budget") || normalized.includes("orçamento")) {
+      if (
+        normalized.includes("valor") ||
+        normalized.includes("budget") ||
+        normalized.includes("orçamento")
+      ) {
         fields[field] = this.matchRegex(text, /R\$\s?\d+[\d.,]*/i);
         continue;
       }
@@ -138,7 +177,7 @@ export class MockAiProvider implements AiProvider {
 
   private matchAfterLabel(text: string, labels: string[]) {
     for (const label of labels) {
-      const pattern = new RegExp(`${label}\s*[:\-]?\s*([^\n,.]+)`, "i");
+      const pattern = new RegExp(`${label}\\s*[:-]?\\s*([^\\n,.]+)`, "i");
       const match = text.match(pattern);
       if (match?.[1]) {
         return match[1].trim();

@@ -133,6 +133,31 @@ pnpm dev:web
 - `pnpm typecheck`: checagem de tipos (na API executa `prisma generate` automaticamente antes)
 - `pnpm format`: formatação com Prettier
 
+## QA e pontos de melhoria
+
+### Checklist de QA executado
+
+Para validar a saúde do monorepo, executei o fluxo completo de qualidade:
+
+- `pnpm lint`
+- `pnpm typecheck`
+- `pnpm test`
+- `pnpm build`
+
+### Resultado atual
+
+- ✅ **Testes automatizados da API** estão passando (`32/32`).
+- ⚠️ **Lint do Web** está falhando por um volume alto de ajustes de formatação (Prettier) já existentes em múltiplas telas administrativas.
+- ⚠️ **Typecheck do Web** está falhando por incompatibilidades de tipos em componentes específicos (ex.: `asChild` em `Button` e tipagem de evento de drag-and-drop).
+- ⚠️ **Build do Web** falha como consequência dos mesmos problemas de lint/typecheck.
+
+### Melhorias recomendadas (ordem sugerida)
+
+1. **Normalizar formatação do app Web** com Prettier para reduzir ruído e destravar pipeline (`lint`/`build`).
+2. **Corrigir erros de tipagem do Web** priorizando os pontos reportados no `typecheck`.
+3. **Adicionar gate de qualidade no CI** com etapas separadas (`lint`, `typecheck`, `test`, `build`) e falha rápida.
+4. **Tratar warning de teardown nos testes da API** (Jest) com `--detectOpenHandles` para eliminar possíveis vazamentos de recursos.
+
 ## Estrutura do repositório
 
 ```

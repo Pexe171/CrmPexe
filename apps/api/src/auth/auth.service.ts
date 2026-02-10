@@ -60,7 +60,7 @@ export class AuthService {
 
   async requestOtp(
     payload: RequestOtpDto,
-    context?: { ip?: string; userAgent?: string }
+    _context?: { ip?: string; userAgent?: string }
   ) {
     const email = payload.email.toLowerCase();
     const isSignupPayload = Boolean(
