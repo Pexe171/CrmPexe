@@ -88,7 +88,10 @@ export class AuditLogsService {
     entityId: string;
     metadata?: Record<string, unknown>;
   }) {
-    const metadata = payload.metadata ?? undefined;
+    const metadata =
+      payload.metadata === undefined
+        ? undefined
+        : this.convertObjectToInputJson(payload.metadata);
 
     return this.prisma.auditLog.create({
       data: {
@@ -97,9 +100,44 @@ export class AuditLogsService {
         action: payload.action,
         entity: payload.entity,
         entityId: payload.entityId,
-        metadata: metadata as Prisma.InputJsonValue | undefined
+        metadata
       }
     });
+  }
+
+
+  private convertObjectToInputJson(value: Record<string, unknown>): Prisma.InputJsonObject {
+    const jsonObject: Record<string, Prisma.InputJsonValue | null> = {};
+
+    for (const [key, entry] of Object.entries(value)) {
+      jsonObject[key] = this.convertUnknownToInputJson(entry);
+    }
+
+    return jsonObject;
+  }
+
+  private convertUnknownToInputJson(value: unknown): Prisma.InputJsonValue | null {
+    if (value === null) {
+      return null;
+    }
+
+    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+      return value;
+    }
+
+    if (Array.isArray(value)) {
+      return value.map((entry) => this.convertUnknownToInputJson(entry));
+    }
+
+    if (this.isPlainObject(value)) {
+      return this.convertObjectToInputJson(value);
+    }
+
+    throw new BadRequestException("metadata contém valores inválidos para JSON.");
+  }
+
+  private isPlainObject(value: unknown): value is Record<string, unknown> {
+    return value !== null && typeof value === "object" && !Array.isArray(value);
   }
 
   async resolveWorkspaceId(userId: string, workspaceId?: string) {

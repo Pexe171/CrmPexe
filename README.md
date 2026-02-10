@@ -119,8 +119,8 @@ pnpm dev:web
 
 - `pnpm build`: build de todos os apps
 - `pnpm lint`: lint geral
-- `pnpm test`: testes
-- `pnpm typecheck`: checagem de tipos
+- `pnpm test`: testes (na API executa `prisma generate` automaticamente antes)
+- `pnpm typecheck`: checagem de tipos (na API executa `prisma generate` automaticamente antes)
 - `pnpm format`: formatação com Prettier
 
 ## Estrutura do repositório

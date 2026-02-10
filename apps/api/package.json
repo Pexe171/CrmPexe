@@ -8,6 +8,8 @@
   },
   "scripts": {
     "predev": "prisma generate",
+    "pretest": "prisma generate",
+    "pretypecheck": "prisma generate",
     "dev": "nest start --watch",
     "build": "nest build",
     "start": "node dist/main.js",
