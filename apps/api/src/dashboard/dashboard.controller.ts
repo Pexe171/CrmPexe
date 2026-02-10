@@ -16,15 +16,20 @@ export class DashboardController {
     @Query("startDate") startDate?: string,
     @Query("endDate") endDate?: string,
     @Query("interval") interval?: string,
-    @Query("responsaveisLimit") responsaveisLimit?: string
+    @Query("responsaveisLimit") responsaveisLimit?: string,
+    @Query("produtividadeLimit") produtividadeLimit?: string
   ) {
     const parsedLimit = Number(responsaveisLimit);
+    const parsedProdutividadeLimit = Number(produtividadeLimit);
 
     return this.dashboardService.getSalesDashboard(user.id, workspaceId, {
       startDate,
       endDate,
       interval,
-      responsaveisLimit: Number.isFinite(parsedLimit) ? parsedLimit : undefined
+      responsaveisLimit: Number.isFinite(parsedLimit) ? parsedLimit : undefined,
+      produtividadeLimit: Number.isFinite(parsedProdutividadeLimit)
+        ? parsedProdutividadeLimit
+        : undefined
     });
   }
 
@@ -45,8 +50,12 @@ export class DashboardController {
       startDate,
       endDate,
       interval,
-      templatesLimit: Number.isFinite(parsedTemplatesLimit) ? parsedTemplatesLimit : undefined,
-      errosLimit: Number.isFinite(parsedErrosLimit) ? parsedErrosLimit : undefined
+      templatesLimit: Number.isFinite(parsedTemplatesLimit)
+        ? parsedTemplatesLimit
+        : undefined,
+      errosLimit: Number.isFinite(parsedErrosLimit)
+        ? parsedErrosLimit
+        : undefined
     });
   }
 }

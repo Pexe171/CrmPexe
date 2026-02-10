@@ -104,6 +104,10 @@ enum WebhookEvent {
 enum IntegrationAccountType {
   WHATSAPP
   N8N
+  INSTAGRAM_DIRECT
+  FACEBOOK_MESSENGER
+  EMAIL
+  VOIP
 }
 
 enum IntegrationAccountStatus {
@@ -159,86 +163,86 @@ model HealthCheck {
 }
 
 model Workspace {
-  id        String   @id @default(uuid())
-  name      String
-  brandName String?
-  brandLogoUrl String?
-  brandPrimaryColor String?
+  id                  String    @id @default(uuid())
+  name                String
+  brandName           String?
+  brandLogoUrl        String?
+  brandPrimaryColor   String?
   brandSecondaryColor String?
-  customDomain String?
-  locale    String   @default("pt-BR")
-  deletedAt DateTime?
-  retentionEndsAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  customDomain        String?
+  locale              String    @default("pt-BR")
+  deletedAt           DateTime?
+  retentionEndsAt     DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
-  members     WorkspaceMember[]
-  roles       Role[]
-  permissions Permission[]
-  rolePermissions RolePermission[]
-  auditLogs   AuditLog[]
-  companies   Company[]
-  customers   Customer[]
-  contacts    Contact[]
-  deals       Deal[]
-  tagOnCompanies TagOnCompany[]
-  tagOnContacts TagOnContact[]
-  tagOnDeals     TagOnDeal[]
-  tagOnCustomers TagOnCustomer[]
-  tasks       Task[]
-  tags        Tag[]
-  customFieldDefinitions CustomFieldDefinition[]
-  currentUsers User[] @relation("UserCurrentWorkspace")
-  conversations Conversation[]
-  messages     Message[]
-  summaries    ConversationSummary[]
-  notifications Notification[]
-  activities   Activity[]
-  webhookSubscriptions WebhookSubscription[]
-  integrationAccounts IntegrationAccount[]
-  messageTemplates MessageTemplate[]
-  teams       Team[]
-  queues      Queue[]
-  knowledgeBaseArticles KnowledgeBaseArticle[]
-  cannedResponses CannedResponse[]
-  automationInstances AutomationInstance[]
-  automationAccesses AutomationAccess[]
+  members                  WorkspaceMember[]
+  roles                    Role[]
+  permissions              Permission[]
+  rolePermissions          RolePermission[]
+  auditLogs                AuditLog[]
+  companies                Company[]
+  customers                Customer[]
+  contacts                 Contact[]
+  deals                    Deal[]
+  tagOnCompanies           TagOnCompany[]
+  tagOnContacts            TagOnContact[]
+  tagOnDeals               TagOnDeal[]
+  tagOnCustomers           TagOnCustomer[]
+  tasks                    Task[]
+  tags                     Tag[]
+  customFieldDefinitions   CustomFieldDefinition[]
+  currentUsers             User[]                    @relation("UserCurrentWorkspace")
+  conversations            Conversation[]
+  messages                 Message[]
+  summaries                ConversationSummary[]
+  notifications            Notification[]
+  activities               Activity[]
+  webhookSubscriptions     WebhookSubscription[]
+  integrationAccounts      IntegrationAccount[]
+  messageTemplates         MessageTemplate[]
+  teams                    Team[]
+  queues                   Queue[]
+  knowledgeBaseArticles    KnowledgeBaseArticle[]
+  cannedResponses          CannedResponse[]
+  automationInstances      AutomationInstance[]
+  automationAccesses       AutomationAccess[]
   automationAccessRequests AutomationAccessRequest[]
-  marketplaceInterests MarketplaceInterest[]
-  variables WorkspaceVariable[]
-  subscriptions Subscription[]
-  aiUsageLogs AiUsageLog[]
+  marketplaceInterests     MarketplaceInterest[]
+  variables                WorkspaceVariable[]
+  subscriptions            Subscription[]
+  aiUsageLogs              AiUsageLog[]
 
   @@index([deletedAt])
 }
 
 model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
-  name         String
-  contact      String   @default("")
-  role         UserRole @default(USER)
-  isSuperAdmin Boolean  @default(false)
-  refreshTokenHash String?
+  id                 String   @id @default(uuid())
+  email              String   @unique
+  name               String
+  contact            String   @default("")
+  role               UserRole @default(USER)
+  isSuperAdmin       Boolean  @default(false)
+  refreshTokenHash   String?
   currentWorkspaceId String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
-  memberships WorkspaceMember[]
-  auditLogs   AuditLog[]
-  assignedTasks Task[] @relation("TaskAssignee")
-  assignedConversations Conversation[] @relation("ConversationAssignee")
-  notifications Notification[]
-  activities Activity[]
-  teamMemberships TeamMember[]
-  automationTemplatesCreated AutomationTemplate[] @relation("AutomationTemplateAdmin")
+  memberships                       WorkspaceMember[]
+  auditLogs                         AuditLog[]
+  assignedTasks                     Task[]                      @relation("TaskAssignee")
+  assignedConversations             Conversation[]              @relation("ConversationAssignee")
+  notifications                     Notification[]
+  activities                        Activity[]
+  teamMemberships                   TeamMember[]
+  automationTemplatesCreated        AutomationTemplate[]        @relation("AutomationTemplateAdmin")
   automationTemplateVersionsCreated AutomationTemplateVersion[] @relation("AutomationTemplateVersionAdmin")
-  automationInstancesCreated AutomationInstance[] @relation("AutomationInstanceUser")
-  automationAccessGranted AutomationAccess[] @relation("AutomationAccessAdmin")
-  automationAccessRequests AutomationAccessRequest[] @relation("AutomationAccessRequester")
-  marketplaceInterests MarketplaceInterest[] @relation("MarketplaceInterestRequester")
-  whatsappSessions WhatsappSession[]
-  currentWorkspace Workspace? @relation("UserCurrentWorkspace", fields: [currentWorkspaceId], references: [id])
+  automationInstancesCreated        AutomationInstance[]        @relation("AutomationInstanceUser")
+  automationAccessGranted           AutomationAccess[]          @relation("AutomationAccessAdmin")
+  automationAccessRequests          AutomationAccessRequest[]   @relation("AutomationAccessRequester")
+  marketplaceInterests              MarketplaceInterest[]       @relation("MarketplaceInterestRequester")
+  whatsappSessions                  WhatsappSession[]
+  currentWorkspace                  Workspace?                  @relation("UserCurrentWorkspace", fields: [currentWorkspaceId], references: [id])
 }
 
 model OtpCode {
@@ -257,13 +261,13 @@ model OtpCode {
 }
 
 model Subscription {
-  id        String             @id @default(uuid())
+  id          String             @id @default(uuid())
   workspaceId String?
-  provider  String
-  externalId String           @unique
-  status    SubscriptionStatus @default(PENDING)
-  createdAt DateTime           @default(now())
-  updatedAt DateTime           @updatedAt
+  provider    String
+  externalId  String             @unique
+  status      SubscriptionStatus @default(PENDING)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
 
   workspace Workspace? @relation(fields: [workspaceId], references: [id])
 
@@ -271,14 +275,14 @@ model Subscription {
 }
 
 model WorkspaceMember {
-  id          String   @id @default(uuid())
-  workspaceId String
-  userId      String
-  roleId      String
-  allowedTagIds String[] @default([])
+  id             String   @id @default(uuid())
+  workspaceId    String
+  userId         String
+  roleId         String
+  allowedTagIds  String[] @default([])
   allowedUnitIds String[] @default([])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   workspace Workspace @relation(fields: [workspaceId], references: [id])
   user      User      @relation(fields: [userId], references: [id])
@@ -298,7 +302,7 @@ model Role {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  workspace       Workspace        @relation(fields: [workspaceId], references: [id])
+  workspace       Workspace         @relation(fields: [workspaceId], references: [id])
   members         WorkspaceMember[]
   rolePermissions RolePermission[]
 
@@ -356,21 +360,21 @@ model AuditLog {
 }
 
 model Company {
-  id           String   @id @default(uuid())
+  id           String    @id @default(uuid())
   workspaceId  String
   name         String
   domain       String?
   phone        String?
   customFields Json?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
   deletedAt    DateTime?
-  version      Int      @default(1)
+  version      Int       @default(1)
 
-  workspace Workspace @relation(fields: [workspaceId], references: [id])
-  contacts   Contact[]
-  customers  Customer[]
-  tags       TagOnCompany[]
+  workspace Workspace      @relation(fields: [workspaceId], references: [id])
+  contacts  Contact[]
+  customers Customer[]
+  tags      TagOnCompany[]
 
   @@index([workspaceId])
   @@index([workspaceId, name])
@@ -402,8 +406,8 @@ model Customer {
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
 
-  workspace Workspace @relation(fields: [workspaceId], references: [id])
-  company   Company?  @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  workspace Workspace       @relation(fields: [workspaceId], references: [id])
+  company   Company?        @relation(fields: [companyId], references: [id], onDelete: SetNull)
   tags      TagOnCustomer[]
 
   @@index([workspaceId])
@@ -413,52 +417,52 @@ model Customer {
 }
 
 model Contact {
-  id          String   @id @default(uuid())
-  workspaceId String
-  name        String
-  email       String?
-  phone       String?
-  companyId   String?
-  leadScore   Int?
+  id             String    @id @default(uuid())
+  workspaceId    String
+  name           String
+  email          String?
+  phone          String?
+  companyId      String?
+  leadScore      Int?
   leadScoreLabel String?
-  customFields Json?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  deletedAt   DateTime?
-  version     Int      @default(1)
+  customFields   Json?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+  version        Int       @default(1)
 
-  workspace Workspace @relation(fields: [workspaceId], references: [id])
-  company   Company?  @relation(fields: [companyId], references: [id])
-  tags      TagOnContact[]
+  workspace     Workspace      @relation(fields: [workspaceId], references: [id])
+  company       Company?       @relation(fields: [companyId], references: [id])
+  tags          TagOnContact[]
   conversations Conversation[]
-  deals     Deal[]
+  deals         Deal[]
 
+  @@unique([workspaceId, phone])
   @@index([workspaceId])
   @@index([companyId])
-  @@unique([workspaceId, phone])
 }
 
 model Conversation {
-  id               String   @id @default(uuid())
-  workspaceId      String
-  contactId        String
-  status           ConversationStatus @default(OPEN)
-  assignedToUserId String?
-  queueId          String?
-  channel          String
-  lastMessageAt    DateTime?
-  firstResponseTimeSeconds Int? @map("first_response_time_seconds")
-  resolutionTimeSeconds Int? @map("resolution_time_seconds")
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id                       String             @id @default(uuid())
+  workspaceId              String
+  contactId                String
+  status                   ConversationStatus @default(OPEN)
+  assignedToUserId         String?
+  queueId                  String?
+  channel                  String
+  lastMessageAt            DateTime?
+  firstResponseTimeSeconds Int?               @map("first_response_time_seconds")
+  resolutionTimeSeconds    Int?               @map("resolution_time_seconds")
+  createdAt                DateTime           @default(now())
+  updatedAt                DateTime           @updatedAt
 
-  workspace Workspace @relation(fields: [workspaceId], references: [id])
-  contact   Contact   @relation(fields: [contactId], references: [id])
-  assignedToUser User? @relation("ConversationAssignee", fields: [assignedToUserId], references: [id])
-  queue     Queue?   @relation(fields: [queueId], references: [id], onDelete: SetNull)
-  messages  Message[]
-  notifications Notification[]
-  summaries ConversationSummary[]
+  workspace      Workspace             @relation(fields: [workspaceId], references: [id])
+  contact        Contact               @relation(fields: [contactId], references: [id])
+  assignedToUser User?                 @relation("ConversationAssignee", fields: [assignedToUserId], references: [id])
+  queue          Queue?                @relation(fields: [queueId], references: [id], onDelete: SetNull)
+  messages       Message[]
+  notifications  Notification[]
+  summaries      ConversationSummary[]
 
   @@index([workspaceId])
   @@index([contactId])
@@ -468,24 +472,24 @@ model Conversation {
 }
 
 model Message {
-  id               String   @id @default(uuid())
-  workspaceId      String
-  conversationId   String
-  direction        MessageDirection
-  text             String
+  id                String           @id @default(uuid())
+  workspaceId       String
+  conversationId    String
+  direction         MessageDirection
+  text              String
   providerMessageId String?
-  sentAt           DateTime
-  meta             Json?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  sentAt            DateTime
+  meta              Json?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 
   workspace    Workspace    @relation(fields: [workspaceId], references: [id])
   conversation Conversation @relation(fields: [conversationId], references: [id])
 
+  @@unique([workspaceId, providerMessageId])
   @@index([workspaceId])
   @@index([conversationId])
   @@index([workspaceId, sentAt])
-  @@unique([workspaceId, providerMessageId])
 }
 
 model ConversationSummary {
@@ -505,17 +509,17 @@ model ConversationSummary {
 }
 
 model IntegrationAccount {
-  id          String   @id @default(uuid())
+  id          String                   @id @default(uuid())
   workspaceId String
   type        IntegrationAccountType
   name        String
   status      IntegrationAccountStatus
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime                 @default(now())
+  updatedAt   DateTime                 @updatedAt
 
-  workspace Workspace @relation(fields: [workspaceId], references: [id])
-  secret   IntegrationSecret?
-  sessions WhatsappSession[]
+  workspace Workspace          @relation(fields: [workspaceId], references: [id])
+  secret    IntegrationSecret?
+  sessions  WhatsappSession[]
 
   @@index([workspaceId])
 }
@@ -533,11 +537,11 @@ model WhatsappSession {
   updatedAt            DateTime @updatedAt
 
   integrationAccount IntegrationAccount @relation(fields: [integrationAccountId], references: [id], onDelete: Cascade)
-  profileUser       User               @relation(fields: [profileUserId], references: [id], onDelete: Cascade)
+  profileUser        User               @relation(fields: [profileUserId], references: [id], onDelete: Cascade)
 
+  @@unique([integrationAccountId, profileUserId, sessionName])
   @@index([integrationAccountId])
   @@index([profileUserId])
-  @@unique([integrationAccountId, profileUserId, sessionName])
 }
 
 model IntegrationSecret {
@@ -577,7 +581,7 @@ model Team {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  workspace Workspace @relation(fields: [workspaceId], references: [id])
+  workspace Workspace    @relation(fields: [workspaceId], references: [id])
   members   TeamMember[]
   queues    Queue[]
 
@@ -594,8 +598,8 @@ model TeamMember {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team   Team    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   queues Queue[] @relation("QueueLastAssignedMember")
 
   @@unique([teamId, userId])
@@ -605,20 +609,20 @@ model TeamMember {
 }
 
 model Queue {
-  id          String   @id @default(uuid())
-  workspaceId String
-  teamId      String
-  name        String
-  channel     String
-  isActive    Boolean  @default(true)
+  id                   String   @id @default(uuid())
+  workspaceId          String
+  teamId               String
+  name                 String
+  channel              String
+  isActive             Boolean  @default(true)
   lastAssignedMemberId String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
-  workspace Workspace @relation(fields: [workspaceId], references: [id])
-  team      Team      @relation(fields: [teamId], references: [id])
-  lastAssignedMember TeamMember? @relation("QueueLastAssignedMember", fields: [lastAssignedMemberId], references: [id], onDelete: SetNull)
-  conversations Conversation[]
+  workspace          Workspace      @relation(fields: [workspaceId], references: [id])
+  team               Team           @relation(fields: [teamId], references: [id])
+  lastAssignedMember TeamMember?    @relation("QueueLastAssignedMember", fields: [lastAssignedMemberId], references: [id], onDelete: SetNull)
+  conversations      Conversation[]
 
   @@unique([workspaceId, channel])
   @@index([workspaceId])
@@ -659,21 +663,21 @@ model CannedResponse {
 }
 
 model Notification {
-  id            String   @id @default(uuid())
-  workspaceId   String
-  userId        String
+  id             String           @id @default(uuid())
+  workspaceId    String
+  userId         String
   conversationId String?
-  type          NotificationType
-  title         String
-  body          String?
-  data          Json?
-  readAt        DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  type           NotificationType
+  title          String
+  body           String?
+  data           Json?
+  readAt         DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 
-  workspace     Workspace    @relation(fields: [workspaceId], references: [id])
-  user          User         @relation(fields: [userId], references: [id])
-  conversation  Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  workspace    Workspace     @relation(fields: [workspaceId], references: [id])
+  user         User          @relation(fields: [userId], references: [id])
+  conversation Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
 
   @@index([workspaceId])
   @@index([userId])
@@ -682,22 +686,22 @@ model Notification {
 }
 
 model Deal {
-  id          String   @id @default(uuid())
-  workspaceId String
-  title       String
-  amount      Float?
-  stage       String?
-  contactId   String?
-  leadScore   Int?
+  id             String    @id @default(uuid())
+  workspaceId    String
+  title          String
+  amount         Float?
+  stage          String?
+  contactId      String?
+  leadScore      Int?
   leadScoreLabel String?
-  customFields Json?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  deletedAt   DateTime?
-  version     Int      @default(1)
+  customFields   Json?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+  version        Int       @default(1)
 
-  workspace Workspace @relation(fields: [workspaceId], references: [id])
-  contact   Contact?  @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  workspace Workspace   @relation(fields: [workspaceId], references: [id])
+  contact   Contact?    @relation(fields: [contactId], references: [id], onDelete: SetNull)
   tags      TagOnDeal[]
 
   @@index([workspaceId])
@@ -713,7 +717,7 @@ model Tag {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  workspace Workspace @relation(fields: [workspaceId], references: [id])
+  workspace Workspace       @relation(fields: [workspaceId], references: [id])
   companies TagOnCompany[]
   contacts  TagOnContact[]
   deals     TagOnDeal[]
@@ -724,15 +728,15 @@ model Tag {
 }
 
 model TagOnCompany {
-  id         String   @id @default(uuid())
+  id          String   @id @default(uuid())
   workspaceId String
-  tagId      String
-  companyId  String
-  createdAt  DateTime @default(now())
+  tagId       String
+  companyId   String
+  createdAt   DateTime @default(now())
 
   workspace Workspace @relation(fields: [workspaceId], references: [id])
-  tag      Tag     @relation(fields: [tagId], references: [id])
-  company  Company @relation(fields: [companyId], references: [id])
+  tag       Tag       @relation(fields: [tagId], references: [id])
+  company   Company   @relation(fields: [companyId], references: [id])
 
   @@unique([tagId, companyId])
   @@index([workspaceId])
@@ -741,15 +745,15 @@ model TagOnCompany {
 }
 
 model TagOnContact {
-  id         String   @id @default(uuid())
+  id          String   @id @default(uuid())
   workspaceId String
-  tagId      String
-  contactId  String
-  createdAt  DateTime @default(now())
+  tagId       String
+  contactId   String
+  createdAt   DateTime @default(now())
 
   workspace Workspace @relation(fields: [workspaceId], references: [id])
-  tag      Tag     @relation(fields: [tagId], references: [id])
-  contact  Contact @relation(fields: [contactId], references: [id])
+  tag       Tag       @relation(fields: [tagId], references: [id])
+  contact   Contact   @relation(fields: [contactId], references: [id])
 
   @@unique([tagId, contactId])
   @@index([workspaceId])
@@ -758,15 +762,15 @@ model TagOnContact {
 }
 
 model TagOnDeal {
-  id         String   @id @default(uuid())
+  id          String   @id @default(uuid())
   workspaceId String
-  tagId      String
-  dealId     String
-  createdAt  DateTime @default(now())
+  tagId       String
+  dealId      String
+  createdAt   DateTime @default(now())
 
   workspace Workspace @relation(fields: [workspaceId], references: [id])
-  tag      Tag   @relation(fields: [tagId], references: [id])
-  deal     Deal  @relation(fields: [dealId], references: [id])
+  tag       Tag       @relation(fields: [tagId], references: [id])
+  deal      Deal      @relation(fields: [dealId], references: [id])
 
   @@unique([tagId, dealId])
   @@index([workspaceId])
@@ -782,8 +786,8 @@ model TagOnCustomer {
   createdAt   DateTime @default(now())
 
   workspace Workspace @relation(fields: [workspaceId], references: [id])
-  tag       Tag      @relation(fields: [tagId], references: [id])
-  customer  Customer @relation(fields: [customerId], references: [id])
+  tag       Tag       @relation(fields: [tagId], references: [id])
+  customer  Customer  @relation(fields: [customerId], references: [id])
 
   @@unique([tagId, customerId])
   @@index([workspaceId])
@@ -792,7 +796,7 @@ model TagOnCustomer {
 }
 
 model Activity {
-  id          String   @id @default(uuid())
+  id          String         @id @default(uuid())
   workspaceId String
   userId      String
   entityType  ActivityEntity
@@ -800,9 +804,9 @@ model Activity {
   type        ActivityType
   description String
   metadata    Json?
-  occurredAt  DateTime @default(now())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  occurredAt  DateTime       @default(now())
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
 
   workspace Workspace @relation(fields: [workspaceId], references: [id])
   user      User      @relation(fields: [userId], references: [id])
@@ -814,15 +818,15 @@ model Activity {
 }
 
 model WebhookSubscription {
-  id          String   @id @default(uuid())
+  id          String       @id @default(uuid())
   workspaceId String
   event       WebhookEvent
   targetUrl   String
   secret      String?
   headers     Json?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
   workspace Workspace @relation(fields: [workspaceId], references: [id])
 
@@ -831,16 +835,16 @@ model WebhookSubscription {
 }
 
 model CustomFieldDefinition {
-  id          String   @id @default(uuid())
+  id          String            @id @default(uuid())
   workspaceId String
   entity      CustomFieldEntity
   key         String
   label       String
   type        CustomFieldType
-  required    Boolean  @default(false)
+  required    Boolean           @default(false)
   options     Json?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
 
   workspace Workspace @relation(fields: [workspaceId], references: [id])
 
@@ -850,21 +854,21 @@ model CustomFieldDefinition {
 }
 
 model Task {
-  id          String     @id @default(uuid())
-  workspaceId String
-  title       String
-  dueAt       DateTime?
-  status      TaskStatus @default(PENDING)
+  id           String     @id @default(uuid())
+  workspaceId  String
+  title        String
+  dueAt        DateTime?
+  status       TaskStatus @default(PENDING)
   assignedToId String?
-  relatedType String?
-  relatedId   String?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  deletedAt   DateTime?
-  version     Int        @default(1)
+  relatedType  String?
+  relatedId    String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  deletedAt    DateTime?
+  version      Int        @default(1)
 
-  workspace Workspace @relation(fields: [workspaceId], references: [id])
-  assignedTo User? @relation("TaskAssignee", fields: [assignedToId], references: [id])
+  workspace  Workspace @relation(fields: [workspaceId], references: [id])
+  assignedTo User?     @relation("TaskAssignee", fields: [assignedToId], references: [id])
 
   @@index([workspaceId])
   @@index([assignedToId])
@@ -873,9 +877,9 @@ model Task {
 }
 
 model AutomationTemplate {
-  id                   String   @id @default(uuid())
+  id                   String                    @id @default(uuid())
   name                 String
-  slug                 String?  @unique
+  slug                 String?                   @unique
   headline             String?
   description          String?
   version              String
@@ -884,27 +888,27 @@ model AutomationTemplate {
   definitionJson       Json
   workflowData         Json?
   requiredIntegrations String[]
-  tags                 String[] @default([])
-  capabilities         String[] @default([])
-  requirements         String[] @default([])
-  rating               Float    @default(0)
-  responseSlaSeconds   Int      @default(0)
+  tags                 String[]                  @default([])
+  capabilities         String[]                  @default([])
+  requirements         String[]                  @default([])
+  rating               Float                     @default(0)
+  responseSlaSeconds   Int                       @default(0)
   priceLabel           String?
-  isPublic             Boolean  @default(false)
+  isPublic             Boolean                   @default(false)
   status               MarketplaceTemplateStatus @default(PENDING)
   pingUrl              String?
   configJson           Json?
-  currentVersionId     String? @unique
+  currentVersionId     String?                   @unique
   createdByAdminId     String
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
 
-  createdByAdmin User @relation("AutomationTemplateAdmin", fields: [createdByAdminId], references: [id])
-  currentVersion AutomationTemplateVersion? @relation("AutomationTemplateCurrentVersion", fields: [currentVersionId], references: [id])
-  versions      AutomationTemplateVersion[]
-  instances     AutomationInstance[]
-  accessRequests AutomationAccessRequest[]
-  accesses     AutomationAccess[]
+  createdByAdmin       User                        @relation("AutomationTemplateAdmin", fields: [createdByAdminId], references: [id])
+  currentVersion       AutomationTemplateVersion?  @relation("AutomationTemplateCurrentVersion", fields: [currentVersionId], references: [id])
+  versions             AutomationTemplateVersion[]
+  instances            AutomationInstance[]
+  accessRequests       AutomationAccessRequest[]
+  accesses             AutomationAccess[]
   marketplaceInterests MarketplaceInterest[]
 
   @@index([category])
@@ -924,13 +928,13 @@ model MarketplaceCategory {
 }
 
 model MarketplaceInterest {
-  id                String                @id @default(uuid())
+  id                String                 @id @default(uuid())
   workspaceId       String
   templateId        String
   requestedByUserId String
   status            AutomationAccessStatus @default(PENDING)
-  createdAt         DateTime              @default(now())
-  updatedAt         DateTime              @updatedAt
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
 
   workspace       Workspace          @relation(fields: [workspaceId], references: [id])
   template        AutomationTemplate @relation(fields: [templateId], references: [id])
@@ -943,13 +947,13 @@ model MarketplaceInterest {
 }
 
 model AutomationAccess {
-  id               String                @id @default(uuid())
+  id               String                 @id @default(uuid())
   workspaceId      String
   templateId       String
   status           AutomationAccessStatus @default(APPROVED)
   grantedByAdminId String
-  createdAt        DateTime              @default(now())
-  updatedAt        DateTime              @updatedAt
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
 
   workspace      Workspace          @relation(fields: [workspaceId], references: [id])
   template       AutomationTemplate @relation(fields: [templateId], references: [id])
@@ -962,13 +966,13 @@ model AutomationAccess {
 }
 
 model AutomationAccessRequest {
-  id                String                @id @default(uuid())
+  id                String                 @id @default(uuid())
   workspaceId       String
   templateId        String
   requestedByUserId String
   status            AutomationAccessStatus @default(PENDING)
-  createdAt         DateTime              @default(now())
-  updatedAt         DateTime              @updatedAt
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
 
   workspace       Workspace          @relation(fields: [workspaceId], references: [id])
   template        AutomationTemplate @relation(fields: [templateId], references: [id])
@@ -990,10 +994,10 @@ model AutomationTemplateVersion {
   createdByAdminId     String
   createdAt            DateTime @default(now())
 
-  template      AutomationTemplate @relation(fields: [templateId], references: [id])
-  currentVersionTemplate AutomationTemplate? @relation("AutomationTemplateCurrentVersion")
-  createdByAdmin User @relation("AutomationTemplateVersionAdmin", fields: [createdByAdminId], references: [id])
-  instances     AutomationInstance[]
+  template               AutomationTemplate   @relation(fields: [templateId], references: [id])
+  currentVersionTemplate AutomationTemplate?  @relation("AutomationTemplateCurrentVersion")
+  createdByAdmin         User                 @relation("AutomationTemplateVersionAdmin", fields: [createdByAdminId], references: [id])
+  instances              AutomationInstance[]
 
   @@unique([templateId, version])
   @@index([templateId])
@@ -1001,23 +1005,23 @@ model AutomationTemplateVersion {
 }
 
 model AutomationInstance {
-  id              String                    @id @default(uuid())
-  workspaceId     String
-  templateId      String
-  templateVersionId String?
-  status          AutomationInstanceStatus  @default(PENDING_CONFIG)
+  id                 String                   @id @default(uuid())
+  workspaceId        String
+  templateId         String
+  templateVersionId  String?
+  status             AutomationInstanceStatus @default(PENDING_CONFIG)
   externalWorkflowId String?
-  enabled         Boolean                   @default(false)
-  configJson      Json
-  workflowData    Json?
-  createdByUserId String
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  enabled            Boolean                  @default(false)
+  configJson         Json
+  workflowData       Json?
+  createdByUserId    String
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
 
-  workspace     Workspace          @relation(fields: [workspaceId], references: [id])
-  template      AutomationTemplate @relation(fields: [templateId], references: [id])
+  workspace       Workspace                  @relation(fields: [workspaceId], references: [id])
+  template        AutomationTemplate         @relation(fields: [templateId], references: [id])
   templateVersion AutomationTemplateVersion? @relation(fields: [templateVersionId], references: [id])
-  createdByUser User               @relation("AutomationInstanceUser", fields: [createdByUserId], references: [id])
+  createdByUser   User                       @relation("AutomationInstanceUser", fields: [createdByUserId], references: [id])
 
   @@index([workspaceId])
   @@index([templateId])

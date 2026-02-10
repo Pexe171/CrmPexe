@@ -14,6 +14,7 @@ import { AiProcessingQueueService } from "../ai/ai-processing.queue";
 import { QueuesService } from "../queues/queues.service";
 import { IChannelProvider } from "./interfaces/channel-provider.interface";
 import { WhatsappProvider } from "./providers/whatsapp.provider";
+import { MockOmnichannelProvider } from "./providers/mock-omnichannel.provider";
 import {
   ChannelInboundMessage,
   ChannelContact,
@@ -33,9 +34,13 @@ export class ChannelsService {
     private readonly automationEngineService: AutomationEngineService,
     private readonly aiProcessingQueueService: AiProcessingQueueService,
     private readonly queuesService: QueuesService,
-    whatsappProvider: WhatsappProvider
+    whatsappProvider: WhatsappProvider,
+    mockOmnichannelProvider: MockOmnichannelProvider
   ) {
     this.providers.set(whatsappProvider.channel, whatsappProvider);
+    ["instagram", "messenger", "email", "voip"].forEach((channel) => {
+      this.providers.set(channel, mockOmnichannelProvider);
+    });
   }
 
   async receiveWebhook(
@@ -369,9 +374,19 @@ export class ChannelsService {
   }
 
   private resolveProvider(channel: string) {
-    if (channel === "whatsapp") {
-      return IntegrationAccountType.WHATSAPP;
+    const mapping: Record<string, IntegrationAccountType> = {
+      whatsapp: IntegrationAccountType.WHATSAPP,
+      instagram: IntegrationAccountType.INSTAGRAM_DIRECT,
+      messenger: IntegrationAccountType.FACEBOOK_MESSENGER,
+      email: IntegrationAccountType.EMAIL,
+      voip: IntegrationAccountType.VOIP
+    };
+
+    const provider = mapping[channel];
+    if (!provider) {
+      throw new BadRequestException("Canal não suportado.");
     }
-    throw new BadRequestException("Canal não suportado.");
+
+    return provider;
   }
 }
