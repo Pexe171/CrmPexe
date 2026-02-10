@@ -30,8 +30,18 @@ async function bootstrap() {
     .map((origin) => origin.trim())
     .filter(Boolean);
 
+  if (isProduction) {
+    if (corsOrigins.length === 0) {
+      throw new Error("CORS_ORIGIN deve ser definido em produção.");
+    }
+
+    if (corsOrigins.includes("*")) {
+      throw new Error("CORS_ORIGIN não pode ser '*' em produção.");
+    }
+  }
+
   app.enableCors({
-    origin: corsOrigins.length > 0 ? corsOrigins : true,
+    origin: corsOrigins,
     credentials: true
   });
   app.setGlobalPrefix("api");
