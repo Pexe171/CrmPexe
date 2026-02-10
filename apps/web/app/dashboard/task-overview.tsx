@@ -3,8 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-
 type TaskStatus = "PENDING" | "IN_PROGRESS" | "DONE" | "CANCELED";
 
 type Task = {
@@ -61,7 +59,7 @@ export function TaskOverview() {
     setError(null);
 
     try {
-      const response = await fetch(`${apiUrl}/api/tasks`, {
+      const response = await fetch("/api/tasks", {
         credentials: "include"
       });
 
@@ -72,7 +70,11 @@ export function TaskOverview() {
       const data = (await response.json()) as Task[];
       setTasks(data);
     } catch (fetchError) {
-      setError(fetchError instanceof Error ? fetchError.message : "Erro inesperado ao carregar tarefas.");
+      setError(
+        fetchError instanceof Error
+          ? fetchError.message
+          : "Erro inesperado ao carregar tarefas."
+      );
     } finally {
       setLoading(false);
     }
@@ -87,7 +89,8 @@ export function TaskOverview() {
     const sevenDaysFromNow = new Date(now);
     sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
 
-    const isOpen = (task: Task) => task.status !== "DONE" && task.status !== "CANCELED";
+    const isOpen = (task: Task) =>
+      task.status !== "DONE" && task.status !== "CANCELED";
 
     const overdue = tasks.filter((task) => {
       if (!isOpen(task) || !task.dueAt) {
@@ -112,32 +115,54 @@ export function TaskOverview() {
       <div className="col-span-4 rounded-xl border bg-white shadow-sm">
         <div className="flex items-center justify-between border-b px-6 py-4">
           <div>
-            <h3 className="text-lg font-medium text-gray-900">Tarefas do Workspace</h3>
-            <p className="text-sm text-gray-500">Acompanhe o que precisa ser entregue.</p>
+            <h3 className="text-lg font-medium text-gray-900">
+              Tarefas do Workspace
+            </h3>
+            <p className="text-sm text-gray-500">
+              Acompanhe o que precisa ser entregue.
+            </p>
           </div>
-          <Button variant="outline" size="sm" onClick={fetchTasks} disabled={loading}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchTasks}
+            disabled={loading}
+          >
             Atualizar
           </Button>
         </div>
         <div className="divide-y">
           {loading ? (
-            <div className="p-6 text-sm text-gray-500">Carregando tarefas...</div>
+            <div className="p-6 text-sm text-gray-500">
+              Carregando tarefas...
+            </div>
           ) : error ? (
             <div className="p-6 text-sm text-red-600">{error}</div>
           ) : tasks.length === 0 ? (
-            <div className="p-6 text-sm text-gray-500">Nenhuma tarefa cadastrada ainda.</div>
+            <div className="p-6 text-sm text-gray-500">
+              Nenhuma tarefa cadastrada ainda.
+            </div>
           ) : (
             tasks.slice(0, 6).map((task) => (
-              <div key={task.id} className="flex flex-col gap-3 p-6 md:flex-row md:items-center md:justify-between">
+              <div
+                key={task.id}
+                className="flex flex-col gap-3 p-6 md:flex-row md:items-center md:justify-between"
+              >
                 <div className="space-y-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-semibold text-gray-900">{task.title}</span>
-                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${statusStyles[task.status]}`}>
+                    <span className="text-sm font-semibold text-gray-900">
+                      {task.title}
+                    </span>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${statusStyles[task.status]}`}
+                    >
                       {statusLabel[task.status]}
                     </span>
                   </div>
                   <div className="text-xs text-gray-500">
-                    {task.assignedTo ? `Responsável: ${task.assignedTo.name}` : "Sem responsável"}
+                    {task.assignedTo
+                      ? `Responsável: ${task.assignedTo.name}`
+                      : "Sem responsável"}
                   </div>
                   {task.relatedType && task.relatedId ? (
                     <div className="text-xs text-gray-400">
@@ -145,7 +170,9 @@ export function TaskOverview() {
                     </div>
                   ) : null}
                 </div>
-                <div className="text-xs text-gray-500">Prazo: {formatDate(task.dueAt)}</div>
+                <div className="text-xs text-gray-500">
+                  Prazo: {formatDate(task.dueAt)}
+                </div>
               </div>
             ))
           )}
@@ -160,22 +187,35 @@ export function TaskOverview() {
         <div className="space-y-4 p-6">
           <div className="rounded-lg border border-red-100 bg-red-50 p-4">
             <p className="text-xs uppercase text-red-500">Atrasadas</p>
-            <p className="text-2xl font-semibold text-red-600">{reminders.overdue.length}</p>
+            <p className="text-2xl font-semibold text-red-600">
+              {reminders.overdue.length}
+            </p>
           </div>
           <div className="rounded-lg border border-blue-100 bg-blue-50 p-4">
             <p className="text-xs uppercase text-blue-500">Próximos 7 dias</p>
-            <p className="text-2xl font-semibold text-blue-600">{reminders.dueSoon.length}</p>
+            <p className="text-2xl font-semibold text-blue-600">
+              {reminders.dueSoon.length}
+            </p>
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-700">Próximas entregas</p>
+            <p className="text-sm font-medium text-gray-700">
+              Próximas entregas
+            </p>
             {reminders.dueSoon.length === 0 ? (
-              <p className="mt-2 text-xs text-gray-500">Nenhum prazo crítico nos próximos dias.</p>
+              <p className="mt-2 text-xs text-gray-500">
+                Nenhum prazo crítico nos próximos dias.
+              </p>
             ) : (
               <ul className="mt-2 space-y-2 text-xs text-gray-600">
                 {reminders.dueSoon.slice(0, 3).map((task) => (
-                  <li key={task.id} className="flex items-center justify-between gap-2">
+                  <li
+                    key={task.id}
+                    className="flex items-center justify-between gap-2"
+                  >
                     <span className="truncate">{task.title}</span>
-                    <span className="text-gray-500">{formatDate(task.dueAt)}</span>
+                    <span className="text-gray-500">
+                      {formatDate(task.dueAt)}
+                    </span>
                   </li>
                 ))}
               </ul>
