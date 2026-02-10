@@ -35,6 +35,10 @@ O CrmPexe é um monorepo que centraliza a API (NestJS) e a aplicação web (Next
 - pnpm 9+
 - Docker e Docker Compose
 
+> ⚠️ **Gerenciador de pacotes oficial:** este repositório usa **exclusivamente pnpm**.
+> Não use `npm install` nem `yarn`, e não adicione `package-lock.json` ou `yarn.lock` na raiz.
+> O lockfile oficial e única fonte de verdade é o `pnpm-lock.yaml`.
+
 ## Tecnologias
 
 - **API**: NestJS, Prisma, PostgreSQL

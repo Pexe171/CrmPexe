@@ -18,7 +18,23 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      
+
+      - name: Validar lockfile (pnpm exclusivo)
+        run: |
+          if [ ! -f pnpm-lock.yaml ]; then
+            echo "Erro: pnpm-lock.yaml não encontrado na raiz."
+            exit 1
+          fi
+
+          arquivos_proibidos=(package-lock.json yarn.lock npm-shrinkwrap.json bun.lockb)
+          for arquivo in "${arquivos_proibidos[@]}"; do
+            if [ -f "$arquivo" ]; then
+              echo "Erro: arquivo proibido detectado na raiz: $arquivo"
+              echo "Use exclusivamente pnpm e mantenha apenas pnpm-lock.yaml como lockfile."
+              exit 1
+            fi
+          done
+
       - uses: pnpm/action-setup@v3
         with:
           version: 9
