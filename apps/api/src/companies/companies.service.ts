@@ -42,7 +42,9 @@ export class CompaniesService {
     const domain = this.normalizeOptionalString(payload.domain);
     const phone = this.normalizeOptionalString(payload.phone);
     await this.validateCustomFields(resolvedWorkspaceId, payload.customFields);
-    const customFields = payload.customFields ?? undefined;
+    const customFields = payload.customFields === undefined
+      ? undefined
+      : this.toPrismaInputJsonObject(payload.customFields);
 
     return this.prisma.company.create({
       data: {
@@ -50,7 +52,7 @@ export class CompaniesService {
         name,
         domain,
         phone,
-        customFields: customFields as Prisma.InputJsonValue | undefined
+        customFields
       }
     });
   }
@@ -88,7 +90,9 @@ export class CompaniesService {
     if (payload.customFields !== undefined) {
       await this.validateCustomFields(resolvedWorkspaceId, payload.customFields);
     }
-    const customFields = payload.customFields ?? undefined;
+    const customFields = payload.customFields === undefined
+      ? undefined
+      : this.toPrismaInputJsonObject(payload.customFields);
 
     const updated = await this.prisma.company.updateMany({
       where: { id: company.id, workspaceId: resolvedWorkspaceId, version: payload.version },
@@ -96,7 +100,7 @@ export class CompaniesService {
         name,
         domain,
         phone,
-        customFields: customFields as Prisma.InputJsonValue | undefined,
+        customFields,
         version: { increment: 1 }
       }
     });
@@ -171,6 +175,49 @@ export class CompaniesService {
     }
     const trimmed = value?.trim();
     return trimmed ? trimmed : null;
+  }
+
+
+  private toPrismaInputJsonObject(value: Record<string, unknown> | null): Prisma.InputJsonObject | Prisma.JsonNullValueInput {
+    if (value === null) {
+      return Prisma.JsonNull;
+    }
+
+    return this.convertObjectToInputJson(value);
+  }
+
+  private convertObjectToInputJson(value: Record<string, unknown>): Prisma.InputJsonObject {
+    const jsonObject: Record<string, Prisma.InputJsonValue | null> = {};
+
+    for (const [key, entry] of Object.entries(value)) {
+      jsonObject[key] = this.convertUnknownToInputJson(entry);
+    }
+
+    return jsonObject;
+  }
+
+  private convertUnknownToInputJson(value: unknown): Prisma.InputJsonValue | null {
+    if (value === null) {
+      return null;
+    }
+
+    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+      return value;
+    }
+
+    if (Array.isArray(value)) {
+      return value.map((entry) => this.convertUnknownToInputJson(entry));
+    }
+
+    if (this.isPlainObject(value)) {
+      return this.convertObjectToInputJson(value);
+    }
+
+    throw new BadRequestException("customFields contém valores inválidos para JSON.");
+  }
+
+  private isPlainObject(value: unknown): value is Record<string, unknown> {
+    return value !== null && typeof value === "object" && !Array.isArray(value);
   }
 
   private async validateCustomFields(workspaceId: string, customFields?: Record<string, unknown> | null) {
