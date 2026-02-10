@@ -10,7 +10,8 @@ type SidebarVariant = "client" | "superadmin";
 type SidebarLink = {
   href: string;
   label: string;
-  Icon: (props: ComponentProps<"svg">) => JSX.Element;
+  Icon?: (props: ComponentProps<"svg">) => JSX.Element;
+  emoji?: string;
   helper?: string;
 };
 
@@ -343,12 +344,20 @@ const SidebarSection = ({
               onClick={onNavigate}
             >
               <span className="flex h-8 w-8 items-center justify-center rounded-md bg-white/5 text-slate-300 transition group-hover:bg-blue-500/20 group-hover:text-blue-200">
-                <link.Icon className="h-4 w-4" />
+                {link.Icon ? (
+                  <link.Icon className="h-4 w-4" />
+                ) : (
+                  <span aria-hidden="true" className="text-sm leading-none">
+                    {link.emoji ?? "•"}
+                  </span>
+                )}
               </span>
               <div>
                 <p className="font-medium">{link.label}</p>
                 {link.helper ? (
-                  <p className="text-xs text-slate-500 group-hover:text-slate-300">{link.helper}</p>
+                  <p className="text-xs text-slate-500 group-hover:text-slate-300">
+                    {link.helper}
+                  </p>
                 ) : null}
               </div>
             </Link>
@@ -359,9 +368,14 @@ const SidebarSection = ({
   );
 };
 
-export function SidebarNav({ variant, extraSections, footerActions }: SidebarNavProps) {
+export function SidebarNav({
+  variant,
+  extraSections,
+  footerActions
+}: SidebarNavProps) {
   const [open, setOpen] = useState(false);
-  const sections = variant === "superadmin" ? superAdminSections : clientSections;
+  const sections =
+    variant === "superadmin" ? superAdminSections : clientSections;
 
   return (
     <div className="relative">

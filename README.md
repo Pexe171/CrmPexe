@@ -56,6 +56,7 @@ docker compose up -d
 ```
 
 Isso inicializa:
+
 - Postgres em `localhost:5432`
 - Redis em `localhost:6379`
 - N8N em `http://localhost:5678`
@@ -70,12 +71,14 @@ cp apps/web/.env.example apps/web/.env
 ```
 
 Principais variáveis da API (`apps/api/.env`):
+
 - `DATABASE_URL`: conexão com Postgres
 - `JWT_ACCESS_SECRET` e `JWT_REFRESH_SECRET`: segredos JWT
 - `SMTP_*`: envio de e-mails
 - `MERCADOPAGO_*`: integração Mercado Pago
 
 Principais variáveis do Web (`apps/web/.env`):
+
 - `NEXT_PUBLIC_API_URL`: URL da API
 - `NEXT_PUBLIC_WHATSAPP_LINK`: link do WhatsApp
 
@@ -153,6 +156,7 @@ O acesso às automações é liberado quando o workspace possui aprovação (`st
 
 A aplicação web conta com uma barra lateral fixa no desktop e recolhível no mobile, com hierarquia por seções (início rápido, atendimento, vendas & CRM, operações e integrações). Os itens recebem ícones e destaque visual para facilitar a descoberta das funcionalidades principais.
 
+A barra lateral também aceita itens dinâmicos com `emoji` quando não houver componente de ícone disponível, evitando falhas de renderização em seções extras carregadas por perfil (ex.: Admin e Super Admin).
 
 ## Produção com Docker
 
