@@ -19,6 +19,7 @@ Plataforma CRM com API em NestJS e front-end em Next.js, organizada como monorep
 - [Scripts úteis](#scripts-úteis)
 - [Estrutura do repositório](#estrutura-do-repositório)
 - [Fluxos comuns](#fluxos-comuns)
+- [Integração WhatsApp (QR + Evolution)](#integração-whatsapp-qr--evolution)
 - [Interface](#interface)
 - [Produção com Docker](#produção-com-docker)
 - [Troubleshooting](#troubleshooting)
@@ -153,6 +154,27 @@ O acesso às automações é liberado quando o workspace possui aprovação (`st
 ### Fluxo de login
 
 Após validar o OTP com sucesso, o front-end redireciona o usuário para `/dashboard` (rota única pós-login).
+
+
+## Integração WhatsApp (QR + Evolution)
+
+A central de integrações em `/admin/integrations` permite conectar WhatsApp de duas formas:
+
+- **Via QR Code**: o usuário gera e lê o QR no WhatsApp.
+- **Via Evolution API**: com `apiUrl` e `apiToken` configurados nos segredos da integração.
+
+Se o cliente ainda não tiver API Evolution (ou API compatível), o sistema retorna um aviso de configuração ausente e exibe uma ação para contato com suporte.
+
+### Sessões do WhatsApp
+
+No estado atual do projeto, as sessões ficam **vinculadas ao perfil do usuário** (`profileUserId`) e à conta de integração.
+
+Isso permite isolar sessões por perfil enquanto o compartilhamento por workspace não é implementado.
+
+Variável opcional para link de suporte:
+
+- `WHATSAPP_SUPPORT_URL` (API)
+- `NEXT_PUBLIC_WHATSAPP_LINK` (Web, fallback)
 
 ## Interface
 
