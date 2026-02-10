@@ -19,7 +19,7 @@ import { LogoutButton } from "./logout-button";
 import { SalesFunnelBoard } from "./sales-funnel-board";
 import { TaskOverview } from "./task-overview";
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const apiUrl = "";
 
 type Conversation = {
   id: string;
@@ -109,7 +109,10 @@ const formatDuration = (seconds: number) => {
   return `${hours}h ${remainder}m`;
 };
 
-export default function DashboardClient({ role, isSuperAdmin }: DashboardClientProps) {
+export default function DashboardClient({
+  role,
+  isSuperAdmin
+}: DashboardClientProps) {
   const isAdmin = role === "ADMIN";
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [instancesCount, setInstancesCount] = useState(0);
@@ -125,11 +128,18 @@ export default function DashboardClient({ role, isSuperAdmin }: DashboardClientP
 
       try {
         const auditScopeQuery = isAdmin ? "&scope=global" : "";
-        const [conversationsResponse, instancesResponse, workspacesResponse, auditResponse] = await Promise.all([
-          fetch(`${apiUrl}/api/conversations`, { credentials: "include" }),
-          fetch(`${apiUrl}/api/automation-instances?page=1&perPage=1`, { credentials: "include" }),
-          fetch(`${apiUrl}/api/workspaces`, { credentials: "include" }),
-          fetch(`${apiUrl}/api/audit-logs?perPage=20${auditScopeQuery}`, {
+        const [
+          conversationsResponse,
+          instancesResponse,
+          workspacesResponse,
+          auditResponse
+        ] = await Promise.all([
+          fetch("/api/conversations", { credentials: "include" }),
+          fetch("/api/automation-instances?page=1&perPage=1", {
+            credentials: "include"
+          }),
+          fetch("/api/workspaces", { credentials: "include" }),
+          fetch(`/api/audit-logs?perPage=20${auditScopeQuery}`, {
             credentials: "include"
           })
         ]);
@@ -147,19 +157,24 @@ export default function DashboardClient({ role, isSuperAdmin }: DashboardClientP
           throw new Error("Não foi possível carregar o histórico.");
         }
 
-        const [conversationsData, instancesData, workspacesData, auditData] = await Promise.all([
-          (conversationsResponse.json() as Promise<Conversation[]>),
-          (instancesResponse.json() as Promise<AutomationInstancesResponse>),
-          (workspacesResponse.json() as Promise<WorkspaceResponse>),
-          (auditResponse.json() as Promise<{ data: AuditLog[] }>),
-        ]);
+        const [conversationsData, instancesData, workspacesData, auditData] =
+          await Promise.all([
+            conversationsResponse.json() as Promise<Conversation[]>,
+            instancesResponse.json() as Promise<AutomationInstancesResponse>,
+            workspacesResponse.json() as Promise<WorkspaceResponse>,
+            auditResponse.json() as Promise<{ data: AuditLog[] }>
+          ]);
 
         setConversations(conversationsData);
         setInstancesCount(instancesData.meta.total);
         setWorkspaces(workspacesData.workspaces);
         setAuditLogs(auditData.data ?? []);
       } catch (fetchError) {
-        setError(fetchError instanceof Error ? fetchError.message : "Erro inesperado ao carregar o dashboard.");
+        setError(
+          fetchError instanceof Error
+            ? fetchError.message
+            : "Erro inesperado ao carregar o dashboard."
+        );
       } finally {
         setLoading(false);
       }
@@ -290,7 +305,9 @@ export default function DashboardClient({ role, isSuperAdmin }: DashboardClientP
     return days;
   }, [auditLogs]);
 
-  const slaSeconds = Number(process.env.NEXT_PUBLIC_SLA_RESPONSE_SECONDS ?? 900);
+  const slaSeconds = Number(
+    process.env.NEXT_PUBLIC_SLA_RESPONSE_SECONDS ?? 900
+  );
 
   const conversationResponseMetrics = useMemo(() => {
     const responseTimes = conversations
@@ -298,7 +315,12 @@ export default function DashboardClient({ role, isSuperAdmin }: DashboardClientP
         if (!conversation.lastMessageAt) return null;
         const created = new Date(conversation.createdAt).getTime();
         const lastMessage = new Date(conversation.lastMessageAt).getTime();
-        if (Number.isNaN(created) || Number.isNaN(lastMessage) || lastMessage < created) return null;
+        if (
+          Number.isNaN(created) ||
+          Number.isNaN(lastMessage) ||
+          lastMessage < created
+        )
+          return null;
         return (lastMessage - created) / 1000;
       })
       .filter((value): value is number => value !== null);
@@ -310,14 +332,18 @@ export default function DashboardClient({ role, isSuperAdmin }: DashboardClientP
     const slaCompliance =
       responseTimes.length === 0
         ? 0
-        : (responseTimes.filter((value) => value <= slaSeconds).length / responseTimes.length) * 100;
+        : (responseTimes.filter((value) => value <= slaSeconds).length /
+            responseTimes.length) *
+          100;
 
     const closedConversations = conversations.filter(
       (conversation) => conversation.status === "CLOSED"
     ).length;
 
     const conversionRate =
-      conversations.length === 0 ? 0 : (closedConversations / conversations.length) * 100;
+      conversations.length === 0
+        ? 0
+        : (closedConversations / conversations.length) * 100;
 
     return {
       averageResponseSeconds,
@@ -434,13 +460,21 @@ export default function DashboardClient({ role, isSuperAdmin }: DashboardClientP
           if (!conversation.lastMessageAt) return total;
           const created = new Date(conversation.createdAt).getTime();
           const lastMessage = new Date(conversation.lastMessageAt).getTime();
-          if (Number.isNaN(created) || Number.isNaN(lastMessage) || lastMessage < created) {
+          if (
+            Number.isNaN(created) ||
+            Number.isNaN(lastMessage) ||
+            lastMessage < created
+          ) {
             return total;
           }
           return total + (lastMessage - created) / 1000;
         }, 0) / (dailyConversations.length || 1);
 
-      days.push({ label: dayLabel, count: dailyConversations.length, avgResponse });
+      days.push({
+        label: dayLabel,
+        count: dailyConversations.length,
+        avgResponse
+      });
     }
 
     return days;
@@ -448,9 +482,12 @@ export default function DashboardClient({ role, isSuperAdmin }: DashboardClientP
 
   const recentActivity = useMemo(() => {
     return auditLogs.slice(0, 6).map((log) => {
-      const metadataName = typeof log.metadata?.name === "string" ? log.metadata?.name : null;
+      const metadataName =
+        typeof log.metadata?.name === "string" ? log.metadata?.name : null;
       const actionLabel = actionLabels[log.action] ?? log.action;
-      const description = metadataName ? `${actionLabel}: ${metadataName}` : `${actionLabel} ${log.entity}`;
+      const description = metadataName
+        ? `${actionLabel}: ${metadataName}`
+        : `${actionLabel} ${log.entity}`;
       return {
         id: log.id,
         user: `Usuário ${log.userId.slice(0, 8)}`,
@@ -486,7 +523,9 @@ export default function DashboardClient({ role, isSuperAdmin }: DashboardClientP
           Painel de Controle
         </h1>
         <div className="ml-auto text-sm text-slate-400">
-          {workspaces.length ? `${workspaces.length} workspaces ativos` : "Carregando workspaces"}
+          {workspaces.length
+            ? `${workspaces.length} workspaces ativos`
+            : "Carregando workspaces"}
         </div>
       </header>
 
@@ -536,14 +575,21 @@ export default function DashboardClient({ role, isSuperAdmin }: DashboardClientP
                 highlight: "Ação"
               }
             ].map((card) => (
-              <div key={card.title} className="rounded-xl border bg-slate-900 p-6 shadow-sm">
+              <div
+                key={card.title}
+                className="rounded-xl border bg-slate-900 p-6 shadow-sm"
+              >
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-slate-100">{card.title}</p>
+                  <p className="text-sm font-semibold text-slate-100">
+                    {card.title}
+                  </p>
                   <span className="rounded-full bg-blue-500/20 px-3 py-1 text-xs font-semibold text-blue-200">
                     {card.highlight}
                   </span>
                 </div>
-                <p className="mt-3 text-sm text-slate-400">{card.description}</p>
+                <p className="mt-3 text-sm text-slate-400">
+                  {card.description}
+                </p>
               </div>
             ))}
           </section>
@@ -567,7 +613,11 @@ export default function DashboardClient({ role, isSuperAdmin }: DashboardClientP
             ))}
           </div>
 
-          <SalesFunnelBoard conversations={conversations} loading={loading} apiUrl={apiUrl} />
+          <SalesFunnelBoard
+            conversations={conversations}
+            loading={loading}
+            apiUrl={apiUrl}
+          />
 
           <TaskOverview />
 
@@ -588,10 +638,17 @@ export default function DashboardClient({ role, isSuperAdmin }: DashboardClientP
 
             <div className="grid gap-4 md:grid-cols-3">
               {kpiCards.map((kpi) => (
-                <div key={kpi.label} className="rounded-xl border bg-slate-900 p-6 shadow-sm">
+                <div
+                  key={kpi.label}
+                  className="rounded-xl border bg-slate-900 p-6 shadow-sm"
+                >
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-slate-400">{kpi.label}</span>
-                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${kpi.accent}`}>
+                    <span className="text-sm font-medium text-slate-400">
+                      {kpi.label}
+                    </span>
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-semibold ${kpi.accent}`}
+                    >
                       KPI
                     </span>
                   </div>
@@ -612,7 +669,9 @@ export default function DashboardClient({ role, isSuperAdmin }: DashboardClientP
                 </h3>
                 <p className="text-sm text-slate-400">Últimos 7 dias</p>
                 {loading ? (
-                  <div className="mt-6 text-sm text-slate-400">Carregando dados...</div>
+                  <div className="mt-6 text-sm text-slate-400">
+                    Carregando dados...
+                  </div>
                 ) : (
                   <div className="mt-6 h-[300px]">
                     <ResponsiveContainer width="100%" height="100%">
@@ -623,7 +682,11 @@ export default function DashboardClient({ role, isSuperAdmin }: DashboardClientP
                           formatter={(value) => [`${value}`, "Eventos"]}
                           cursor={{ fill: "rgba(59, 130, 246, 0.1)" }}
                         />
-                        <Bar dataKey="count" fill="#3B82F6" radius={[6, 6, 0, 0]} />
+                        <Bar
+                          dataKey="count"
+                          fill="#3B82F6"
+                          radius={[6, 6, 0, 0]}
+                        />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -642,9 +705,13 @@ export default function DashboardClient({ role, isSuperAdmin }: DashboardClientP
               </div>
               <div className="border-t">
                 {loading ? (
-                  <div className="p-6 text-sm text-slate-400">Carregando histórico...</div>
+                  <div className="p-6 text-sm text-slate-400">
+                    Carregando histórico...
+                  </div>
                 ) : recentActivity.length === 0 ? (
-                  <div className="p-6 text-sm text-slate-400">Nenhuma atividade registrada.</div>
+                  <div className="p-6 text-sm text-slate-400">
+                    Nenhuma atividade registrada.
+                  </div>
                 ) : (
                   recentActivity.map((item) => (
                     <div
@@ -690,27 +757,42 @@ export default function DashboardClient({ role, isSuperAdmin }: DashboardClientP
               </h3>
               <p className="text-sm text-slate-400">Última semana</p>
               {loading ? (
-                <div className="mt-6 text-sm text-slate-400">Carregando dados...</div>
+                <div className="mt-6 text-sm text-slate-400">
+                  Carregando dados...
+                </div>
               ) : (
                 <div className="mt-6 h-[260px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={activityChartData}>
                       <XAxis dataKey="label" stroke="#9CA3AF" fontSize={12} />
-                      <YAxis stroke="#E5E7EB" fontSize={12} allowDecimals={false} />
-                      <Tooltip formatter={(value) => [`${value}`, "Conversas"]} />
-                      <Line type="monotone" dataKey="count" stroke="#2563EB" strokeWidth={3} />
+                      <YAxis
+                        stroke="#E5E7EB"
+                        fontSize={12}
+                        allowDecimals={false}
+                      />
+                      <Tooltip
+                        formatter={(value) => [`${value}`, "Conversas"]}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="count"
+                        stroke="#2563EB"
+                        strokeWidth={3}
+                      />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
               )}
             </div>
             <div className="rounded-xl border bg-slate-900 p-6 shadow-sm">
-              <h3 className="text-lg font-medium text-slate-100">
-                TMR diário
-              </h3>
-              <p className="text-sm text-slate-400">Tempo médio de resposta por dia</p>
+              <h3 className="text-lg font-medium text-slate-100">TMR diário</h3>
+              <p className="text-sm text-slate-400">
+                Tempo médio de resposta por dia
+              </p>
               {loading ? (
-                <div className="mt-6 text-sm text-slate-400">Carregando dados...</div>
+                <div className="mt-6 text-sm text-slate-400">
+                  Carregando dados...
+                </div>
               ) : (
                 <div className="mt-6 h-[260px]">
                   <ResponsiveContainer width="100%" height="100%">
@@ -718,9 +800,17 @@ export default function DashboardClient({ role, isSuperAdmin }: DashboardClientP
                       <XAxis dataKey="label" stroke="#9CA3AF" fontSize={12} />
                       <YAxis stroke="#E5E7EB" fontSize={12} />
                       <Tooltip
-                        formatter={(value) => [formatDuration(Number(value)), "TMR"]}
+                        formatter={(value) => [
+                          formatDuration(Number(value)),
+                          "TMR"
+                        ]}
                       />
-                      <Line type="monotone" dataKey="avgResponse" stroke="#10B981" strokeWidth={3} />
+                      <Line
+                        type="monotone"
+                        dataKey="avgResponse"
+                        stroke="#10B981"
+                        strokeWidth={3}
+                      />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>

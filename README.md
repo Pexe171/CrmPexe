@@ -251,6 +251,7 @@ Volumes persistentes incluídos:
 - **Erro com Prisma**: rode `pnpm prisma:generate` e depois `pnpm prisma:migrate:dev`.
 - **Portas ocupadas**: altere as portas nos scripts ou finalize processos que estejam usando 3000/3001.
 - **401 nas variáveis do workspace**: no front-end utilize o endpoint `/api/workspace-variables` (proxy da Web) para garantir o envio de cookies de autenticação.
+- **401 no dashboard/tarefas**: no front-end utilize os endpoints internos da Web (`/api/tasks`, `/api/conversations`, `/api/automation-instances`, `/api/workspaces`, `/api/audit-logs`) para que o Next.js repasse os cookies para a API corretamente.
 
 ## Licença
 
