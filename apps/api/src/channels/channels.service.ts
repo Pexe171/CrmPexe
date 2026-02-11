@@ -15,6 +15,7 @@ import { QueuesService } from "../queues/queues.service";
 import { IChannelProvider } from "./interfaces/channel-provider.interface";
 import { WhatsappProvider } from "./providers/whatsapp.provider";
 import { MockOmnichannelProvider } from "./providers/mock-omnichannel.provider";
+import { EmailProvider } from "./providers/email.provider";
 import {
   ChannelInboundMessage,
   ChannelContact,
@@ -35,10 +36,12 @@ export class ChannelsService {
     private readonly aiProcessingQueueService: AiProcessingQueueService,
     private readonly queuesService: QueuesService,
     whatsappProvider: WhatsappProvider,
+    emailProvider: EmailProvider,
     mockOmnichannelProvider: MockOmnichannelProvider
   ) {
     this.providers.set(whatsappProvider.channel, whatsappProvider);
-    ["instagram", "messenger", "email", "voip"].forEach((channel) => {
+    this.providers.set(emailProvider.channel, emailProvider);
+    ["instagram", "messenger", "voip"].forEach((channel) => {
       this.providers.set(channel, mockOmnichannelProvider);
     });
   }

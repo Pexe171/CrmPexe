@@ -83,8 +83,10 @@ Principais variáveis da API (`apps/api/.env`):
 - `JWT_ACCESS_SECRET` e `JWT_REFRESH_SECRET`: segredos JWT
 - `SMTP_*`: envio de e-mails
 - `MERCADOPAGO_*`: integração Mercado Pago
+- `OPENAI_API_KEY`, `OPENAI_MODEL`, `OPENAI_BASE_URL`: provedor real de IA para resumo, classificação, sugestão e extração
 - `WHATSAPP_WEBHOOK_SECRET`: segredo obrigatório para validar assinatura HMAC SHA-256 do webhook
 - `WHATSAPP_WEBHOOK_SIGNATURE_HEADER`: nome do header da assinatura do webhook (ex.: `x-whatsapp-signature`)
+- `EMAIL_WEBHOOK_SIGNATURE_HEADER`: nome do header da assinatura de webhook de e-mail (ex.: `x-email-signature`)
 - `RATE_LIMIT_REDIS_ENABLED`: habilita/desabilita Redis no rate limit (`true` por padrão)
 - `RATE_LIMIT_REDIS_FAILURE_POLICY`: política quando Redis estiver indisponível (`memory`, `allow` ou `deny`; padrão `memory`)
 
@@ -215,14 +217,45 @@ Variável opcional para link de suporte:
 
 ## Omnichannel verdadeiro (além do WhatsApp)
 
-Além do fluxo de WhatsApp, o backend agora possui suporte de canal para integração omnichannel com mapeamento dedicado no tipo de conta de integração:
+### Configuração pelo painel (cliente)
+
+A configuração das APIs deve ser feita pelo cliente no painel **Admin > Integrações** (`/admin/integrations`), sem depender de hardcode no deploy.
+
+No painel, o cliente pode cadastrar contas por tipo (`WHATSAPP`, `EMAIL`, `INSTAGRAM_DIRECT`, `FACEBOOK_MESSENGER`, `VOIP`, `N8N`) e salvar os segredos da integração por workspace.
+
+Além do fluxo de WhatsApp, o backend possui suporte de canal com mapeamento dedicado no tipo de conta de integração:
 
 - `INSTAGRAM_DIRECT`
 - `FACEBOOK_MESSENGER`
-- `EMAIL` (cenários IMAP/SMTP)
-- `VOIP` (registro de ligações e eventos)
+- `EMAIL`
+- `VOIP`
 
 Os canais aceitos na camada de atendimento são: `whatsapp`, `instagram`, `messenger`, `email` e `voip`.
+
+### Envio real de e-mail
+
+O canal `email` usa provedor real SMTP (via `nodemailer`) para envio outbound.
+
+### Configuração de IA por workspace
+
+No painel `/admin/integrations`, a seção **Configuração da IA (OpenAI)** permite que o cliente salve as credenciais do provedor por workspace via variáveis:
+
+- `OPENAI_API_KEY` (sensível)
+- `OPENAI_MODEL`
+- `OPENAI_BASE_URL`
+
+Essas variáveis têm prioridade para as chamadas de IA do workspace. Quando não informadas, o backend usa fallback do ambiente (`apps/api/.env`).
+
+Segredos esperados na integração `EMAIL` (ou fallback para variáveis de ambiente da API):
+
+- `smtpHost` / `SMTP_HOST`
+- `smtpPort` / `SMTP_PORT`
+- `smtpUser` / `SMTP_USER`
+- `smtpPass` / `SMTP_PASS`
+- `smtpFrom` / `SMTP_FROM`
+- `smtpSecure` / `SMTP_SECURE` (opcional)
+
+Para webhook inbound, configure `webhookSecret` na integração e envie a assinatura HMAC SHA-256 no header definido por `EMAIL_WEBHOOK_SIGNATURE_HEADER` (padrão `x-email-signature`).
 
 ## Dashboard analítico avançado
 
@@ -287,7 +320,7 @@ cp apps/api/.env.production.example apps/api/.env.production
 cp apps/web/.env.production.example apps/web/.env.production
 ```
 
-2. Defina segredos sensíveis (`JWT_*`, `MERCADOPAGO_*`, `GEMINI_*`) via CI/CD, secret manager ou injeção segura no servidor.
+2. Defina segredos sensíveis (`JWT_*`, `MERCADOPAGO_*`, `OPENAI_*`) via CI/CD, secret manager ou injeção segura no servidor.
 
 3. Gere os certificados de origem do Cloudflare e salve em `infra/certs/` com os nomes (recomendado para SSL/TLS em modo **Full (Strict)** no Cloudflare):
    - `origin-cert.pem`

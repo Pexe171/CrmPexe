@@ -9,6 +9,7 @@ import { ChannelsController } from "./channels.controller";
 import { ChannelsService } from "./channels.service";
 import { WhatsappProvider } from "./providers/whatsapp.provider";
 import { MockOmnichannelProvider } from "./providers/mock-omnichannel.provider";
+import { EmailProvider } from "./providers/email.provider";
 
 @Module({
   imports: [
@@ -20,7 +21,7 @@ import { MockOmnichannelProvider } from "./providers/mock-omnichannel.provider";
     QueuesModule
   ],
   controllers: [ChannelsController],
-  providers: [ChannelsService, WhatsappProvider, MockOmnichannelProvider],
+  providers: [ChannelsService, WhatsappProvider, EmailProvider, MockOmnichannelProvider],
   exports: [ChannelsService]
 })
 export class ChannelsModule {}
