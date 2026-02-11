@@ -268,10 +268,27 @@ export class AutomationsService {
       resolvedWorkspaceId
     );
 
+    const instanceWithTemplateVersion =
+      await this.prisma.automationInstance.findUnique({
+        where: { id: installation.instance.id },
+        include: {
+          template: true,
+          templateVersion: true
+        }
+      });
+
     return {
       instance: installation.instance,
       provisioning,
-      workflow: installation.workflow
+      workflow: installation.workflow,
+      vinculo: instanceWithTemplateVersion
+        ? {
+            workspaceId: instanceWithTemplateVersion.workspaceId,
+            templateId: instanceWithTemplateVersion.templateId,
+            templateVersionId: instanceWithTemplateVersion.templateVersionId,
+            n8nWorkflowId: instanceWithTemplateVersion.externalWorkflowId
+          }
+        : null
     };
   }
 
@@ -486,6 +503,11 @@ export class AutomationsService {
     const shouldActivate = this.shouldAutoActivate(
       instance.configJson as Record<string, unknown>
     );
+
+    if (shouldActivate) {
+      workflowPayload.active = true;
+    }
+
     if (shouldActivate) {
       await this.n8nClient.activateWorkflow(
         integrationAccountId,
@@ -505,7 +527,12 @@ export class AutomationsService {
 
     return {
       instance: updatedInstance,
-      workflow: workflowResponse
+      workflow: workflowResponse,
+      deploy: {
+        action: instance.externalWorkflowId ? "update" : "create",
+        n8nWorkflowId: externalWorkflowId,
+        activated: shouldActivate
+      }
     };
   }
 
@@ -614,6 +641,25 @@ export class AutomationsService {
       where: { id: instance.id },
       data: {
         enabled: false
+      }
+    });
+  }
+
+  async disableAutomationAndPauseStatus(
+    userId: string,
+    instanceId: string,
+    workspaceId?: string
+  ) {
+    const instance = await this.disableAutomation(
+      userId,
+      instanceId,
+      workspaceId
+    );
+
+    return this.prisma.automationInstance.update({
+      where: { id: instance.id },
+      data: {
+        status: AutomationInstanceStatus.PENDING
       }
     });
   }

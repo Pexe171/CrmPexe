@@ -55,7 +55,11 @@ export class AutomationsController {
     @Param("id") templateId: string,
     @Body() body: CreateAutomationTemplateVersionDto
   ) {
-    return this.automationsService.createTemplateVersion(user.id, templateId, body);
+    return this.automationsService.createTemplateVersion(
+      user.id,
+      templateId,
+      body
+    );
   }
 
   @Post("automation-templates/:id/install")
@@ -165,7 +169,7 @@ export class AutomationsController {
     @Param("id") instanceId: string,
     @Headers("x-workspace-id") workspaceId?: string
   ) {
-    return this.automationsService.disableAutomation(
+    return this.automationsService.disableAutomationAndPauseStatus(
       user.id,
       instanceId,
       workspaceId
