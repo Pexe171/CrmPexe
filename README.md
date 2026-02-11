@@ -209,6 +209,18 @@ Antes de disponibilizar uma automação no marketplace, o Super Admin deve trans
 
 Esse processo garante que o template seja instalado em múltiplos workspaces sem vazar credenciais pessoais.
 
+## Momento da instalação ("mágica" do backend)
+
+Quando o usuário clica em **Instalar Agente** no marketplace, o backend executa automaticamente as etapas abaixo para gerar um fluxo exclusivo por workspace:
+
+1. **Busca do molde**: carrega o `definitionJson/workflowData` do `AutomationTemplate` aprovado.
+2. **Busca e descriptografia dos segredos**: lê as integrações ativas do workspace (`IntegrationAccount` + `IntegrationSecret`) e descriptografa os segredos.
+3. **Substituição de placeholders**: aplica `find/replace` em todo o JSON do fluxo para placeholders como `{{OPENAI_KEY}}`, `{{OPENAI_MODEL}}` e `{{OPENAI_BASE_URL}}`.
+4. **Resultado**: gera um payload final válido e funcional, isolado por cliente/workspace.
+5. **Webhook por instalação** (quando o primeiro nó é webhook): define um `path` único no formato `crmpexe-{workspaceId}-{instanceId}` para evitar colisão entre clientes.
+
+Além dos segredos de integrações, o sistema também reaproveita variáveis de workspace como fonte de placeholders.
+
 ## Integração WhatsApp (QR + Evolution)
 
 A central de integrações em `/admin/integrations` permite conectar WhatsApp de duas formas:
