@@ -221,6 +221,19 @@ Quando o usuário clica em **Instalar Agente** no marketplace, o backend executa
 
 Além dos segredos de integrações, o sistema também reaproveita variáveis de workspace como fonte de placeholders.
 
+## Comunicação com n8n no deploy e vínculo de instância
+
+No deploy de uma automação, o CRM segue um fluxo transacional para garantir rastreabilidade e controle operacional:
+
+1. **Conexão**: o backend usa a integração `N8N` ativa do workspace para autenticar na API do n8n.
+2. **Envio**: o payload final (JSON do workflow já com placeholders resolvidos) é enviado para criação/atualização no n8n.
+3. **Ativação**: quando `autoActivate` estiver habilitado (padrão), o CRM também solicita a ativação imediata do workflow no n8n.
+4. **Resposta**: o n8n retorna o identificador do fluxo, e o backend normaliza esse ID para string (`externalWorkflowId`).
+5. **Vínculo no banco**: a `AutomationInstance` persiste a relação `workspace + template + versão + n8nWorkflowId`, permitindo auditoria e operação posterior.
+6. **Controle**: ao desativar no painel, o CRM chama o endpoint de *deactivate* no n8n usando o `externalWorkflowId` salvo e mantém o estado interno sincronizado.
+
+Com isso, cada instalação fica isolada por cliente/workspace e pode ser gerenciada com segurança durante todo o ciclo de vida.
+
 ## Integração WhatsApp (QR + Evolution)
 
 A central de integrações em `/admin/integrations` permite conectar WhatsApp de duas formas:
