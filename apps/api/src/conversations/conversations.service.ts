@@ -180,8 +180,14 @@ export class ConversationsService {
       throw new BadRequestException("Texto ou template é obrigatório.");
     }
 
-    if (!conversation.contact.phone) {
-      throw new BadRequestException("Contato sem telefone para envio.");
+    const recipient =
+      conversation.channel === "email"
+        ? conversation.contact.email?.trim()
+        : conversation.contact.phone?.trim();
+
+    if (!recipient) {
+      const destination = conversation.channel === "email" ? "e-mail" : "telefone";
+      throw new BadRequestException(`Contato sem ${destination} para envio.`);
     }
 
     let template = null;
@@ -199,7 +205,7 @@ export class ConversationsService {
     const response = await this.channelsService.sendMessage(
       conversation.channel,
       {
-        to: conversation.contact.phone,
+        to: recipient,
         text: outboundText,
         template: template
           ? {

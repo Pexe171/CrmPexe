@@ -1,7 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import { AiUsageAction, AiUsageStatus, Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
-import { MockAiProvider } from "./providers/mock-ai.provider";
+import { WorkspaceVariablesService } from "../workspace-variables/workspace-variables.service";
+import { OpenAiProvider } from "./providers/openai.provider";
 import {
   ExtractFieldsInput,
   ExtractFieldsResult,
@@ -19,28 +20,39 @@ type AiAction = AiUsageAction;
 export class AiService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly provider: MockAiProvider
+    private readonly provider: OpenAiProvider,
+    private readonly workspaceVariablesService: WorkspaceVariablesService
   ) {}
 
   async summarizeConversation(
     workspaceId: string,
     input: SummarizeConversationInput
   ): Promise<SummarizeConversationResult> {
-    return this.execute(AiUsageAction.SUMMARIZE_CONVERSATION, workspaceId, input, () =>
-      this.provider.summarizeConversation(input)
-    );
+    return this.execute(AiUsageAction.SUMMARIZE_CONVERSATION, workspaceId, input, async () => {
+      const config = await this.resolveProviderConfig(workspaceId);
+      return this.provider.summarizeConversation(input, config);
+    });
   }
 
   async classifyLead(workspaceId: string, input: LeadClassificationInput): Promise<LeadClassificationResult> {
-    return this.execute(AiUsageAction.CLASSIFY_LEAD, workspaceId, input, () => this.provider.classifyLead(input));
+    return this.execute(AiUsageAction.CLASSIFY_LEAD, workspaceId, input, async () => {
+      const config = await this.resolveProviderConfig(workspaceId);
+      return this.provider.classifyLead(input, config);
+    });
   }
 
   async suggestReply(workspaceId: string, input: SuggestReplyInput): Promise<SuggestReplyResult> {
-    return this.execute(AiUsageAction.SUGGEST_REPLY, workspaceId, input, () => this.provider.suggestReply(input));
+    return this.execute(AiUsageAction.SUGGEST_REPLY, workspaceId, input, async () => {
+      const config = await this.resolveProviderConfig(workspaceId);
+      return this.provider.suggestReply(input, config);
+    });
   }
 
   async extractFields(workspaceId: string, input: ExtractFieldsInput): Promise<ExtractFieldsResult> {
-    return this.execute(AiUsageAction.EXTRACT_FIELDS, workspaceId, input, () => this.provider.extractFields(input));
+    return this.execute(AiUsageAction.EXTRACT_FIELDS, workspaceId, input, async () => {
+      const config = await this.resolveProviderConfig(workspaceId);
+      return this.provider.extractFields(input, config);
+    });
   }
 
   private async execute<TInput, TOutput>(
@@ -69,6 +81,16 @@ export class AiService {
       });
       throw error;
     }
+  }
+
+
+  private async resolveProviderConfig(workspaceId: string) {
+    const variables = await this.workspaceVariablesService.getWorkspaceVariablesMap(workspaceId);
+    return {
+      apiKey: variables.OPENAI_API_KEY,
+      model: variables.OPENAI_MODEL,
+      baseUrl: variables.OPENAI_BASE_URL
+    };
   }
 
   private async logUsage(input: {
