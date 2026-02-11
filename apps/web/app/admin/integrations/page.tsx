@@ -16,6 +16,7 @@ const supportFallbackUrl = process.env.NEXT_PUBLIC_WHATSAPP_LINK || "";
 
 type IntegrationAccountType =
   | "WHATSAPP"
+  | "OPENAI"
   | "EMAIL"
   | "INSTAGRAM_DIRECT"
   | "FACEBOOK_MESSENGER"
@@ -41,18 +42,6 @@ type IntegrationAccountFormState = {
 };
 
 type SecretFormState = Record<string, string>;
-
-type WorkspaceVariable = {
-  key: string;
-  value: string | null;
-  isSensitive: boolean;
-};
-
-type AiConfigState = {
-  apiKey: string;
-  model: string;
-  baseUrl: string;
-};
 
 type WhatsappStatusResponse = {
   qr?: string | null;
@@ -80,6 +69,7 @@ type SecretField = {
 
 const typeOptions: Array<{ value: IntegrationAccountType; label: string }> = [
   { value: "WHATSAPP", label: "WhatsApp" },
+  { value: "OPENAI", label: "OpenAI" },
   { value: "EMAIL", label: "E-mail (SMTP)" },
   { value: "INSTAGRAM_DIRECT", label: "Instagram Direct" },
   { value: "FACEBOOK_MESSENGER", label: "Facebook Messenger" },
@@ -131,6 +121,26 @@ const secretFieldsByType: Record<IntegrationAccountType, SecretField[]> = {
       key: "smsVerifyEndpoint",
       label: "SMS Verify Endpoint",
       placeholder: "/whatsapp/sms/verify"
+    }
+  ],
+  OPENAI: [
+    {
+      key: "apiKey",
+      label: "OpenAI API Key",
+      placeholder: "sk-...",
+      type: "password",
+      required: true
+    },
+    {
+      key: "model",
+      label: "Modelo",
+      placeholder: "gpt-4o-mini",
+      required: true
+    },
+    {
+      key: "baseUrl",
+      label: "Base URL",
+      placeholder: "https://api.openai.com/v1"
     }
   ],
   EMAIL: [
@@ -224,12 +234,6 @@ const emptyForm: IntegrationAccountFormState = {
   status: "ACTIVE"
 };
 
-const emptyAiForm: AiConfigState = {
-  apiKey: "",
-  model: "gpt-4o-mini",
-  baseUrl: "https://api.openai.com/v1"
-};
-
 const statusOptions = [
   { value: "ACTIVE", label: "Ativa" },
   { value: "INACTIVE", label: "Inativa" }
@@ -265,9 +269,6 @@ export default function IntegrationsAdminPage() {
     getDefaultSecretForm(emptyForm.type)
   );
 
-  const [aiForm, setAiForm] = useState<AiConfigState>(emptyAiForm);
-  const [savingAi, setSavingAi] = useState(false);
-
   const [submitting, setSubmitting] = useState(false);
   const [qrStatus, setQrStatus] = useState<string | null>(null);
   const [qrImageUrl, setQrImageUrl] = useState<string | null>(null);
@@ -295,33 +296,6 @@ export default function IntegrationsAdminPage() {
     }
   }, []);
 
-  const fetchAiVariables = useCallback(async () => {
-    try {
-      const response = await fetch("/api/workspace-variables", {
-        credentials: "include"
-      });
-      if (!response.ok) {
-        throw new Error("Não foi possível carregar as credenciais de IA.");
-      }
-
-      const variables = (await response.json()) as WorkspaceVariable[];
-      const map = variables.reduce<Record<string, WorkspaceVariable>>(
-        (acc, variable) => {
-          acc[variable.key] = variable;
-          return acc;
-        },
-        {}
-      );
-
-      setAiForm({
-        apiKey: "",
-        model: map.OPENAI_MODEL?.value ?? emptyAiForm.model,
-        baseUrl: map.OPENAI_BASE_URL?.value ?? emptyAiForm.baseUrl
-      });
-    } catch {
-      // não bloqueia a tela
-    }
-  }, []);
 
   const fetchSessions = useCallback(async (accountId: string) => {
     try {
@@ -342,8 +316,7 @@ export default function IntegrationsAdminPage() {
 
   useEffect(() => {
     void fetchAccounts();
-    void fetchAiVariables();
-  }, [fetchAccounts, fetchAiVariables]);
+  }, [fetchAccounts]);
 
   const activeAccount = useMemo(
     () => accounts.find((account) => account.id === selectedAccountId) ?? null,
@@ -368,10 +341,6 @@ export default function IntegrationsAdminPage() {
       setSecretForm((prev) => ({ ...prev, [field]: event.target.value }));
     };
 
-  const handleAiChange =
-    (field: keyof AiConfigState) => (event: ChangeEvent<HTMLInputElement>) => {
-      setAiForm((prev) => ({ ...prev, [field]: event.target.value }));
-    };
 
   const resetForm = () => {
     setFormState(emptyForm);
@@ -622,52 +591,6 @@ export default function IntegrationsAdminPage() {
     }
   };
 
-  const handleSaveAiConfig = async (event: FormEvent) => {
-    event.preventDefault();
-    setSavingAi(true);
-    setError(null);
-    setSuccess(null);
-
-    const payloads = [
-      { key: "OPENAI_API_KEY", value: aiForm.apiKey.trim(), isSensitive: true },
-      { key: "OPENAI_MODEL", value: aiForm.model.trim(), isSensitive: false },
-      {
-        key: "OPENAI_BASE_URL",
-        value: aiForm.baseUrl.trim(),
-        isSensitive: false
-      }
-    ];
-
-    try {
-      for (const payload of payloads) {
-        if (!payload.value) {
-          continue;
-        }
-
-        const response = await fetch("/api/workspace-variables", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) {
-          throw new Error("Não foi possível salvar a configuração da IA.");
-        }
-      }
-
-      setAiForm((prev) => ({ ...prev, apiKey: "" }));
-      setSuccess("Configuração da IA salva com sucesso.");
-    } catch (saveError) {
-      setError(
-        saveError instanceof Error
-          ? saveError.message
-          : "Erro inesperado ao salvar configuração da IA."
-      );
-    } finally {
-      setSavingAi(false);
-    }
-  };
 
   const qrStatusLabel = !qrStatus
     ? "aguardando seleção"
@@ -684,8 +607,8 @@ export default function IntegrationsAdminPage() {
             Central de Integrações
           </h1>
           <p className="text-sm text-gray-500">
-            Configure APIs reais do cliente por canal (WhatsApp, E-mail e mais)
-            e as credenciais da IA.
+            Configure as integrações do cliente (OpenAI, WhatsApp, E-mail e mais)
+            com segredos criptografados por workspace.
           </p>
           <Link
             href="/dashboard"
@@ -944,58 +867,6 @@ export default function IntegrationsAdminPage() {
             </>
           )}
 
-          <section className="rounded-xl border bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Configuração da IA (OpenAI)
-            </h2>
-            <p className="mt-1 text-sm text-gray-500">
-              Essas credenciais ficam no workspace e podem ser fornecidas pelo
-              próprio cliente no painel.
-            </p>
-            <form onSubmit={handleSaveAiConfig} className="mt-4 space-y-3">
-              <div>
-                <label className="text-xs font-medium text-gray-700">
-                  OpenAI API Key
-                </label>
-                <input
-                  type="password"
-                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-                  placeholder="sk-..."
-                  value={aiForm.apiKey}
-                  onChange={handleAiChange("apiKey")}
-                />
-                <p className="mt-1 text-xs text-gray-500">
-                  Por segurança, a chave não é exibida após salvar. Informe
-                  novamente apenas se quiser atualizar.
-                </p>
-              </div>
-              <div>
-                <label className="text-xs font-medium text-gray-700">
-                  Modelo
-                </label>
-                <input
-                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-                  placeholder="gpt-4o-mini"
-                  value={aiForm.model}
-                  onChange={handleAiChange("model")}
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-gray-700">
-                  Base URL
-                </label>
-                <input
-                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-                  placeholder="https://api.openai.com/v1"
-                  value={aiForm.baseUrl}
-                  onChange={handleAiChange("baseUrl")}
-                />
-              </div>
-              <Button type="submit" disabled={savingAi}>
-                {savingAi ? "Salvando..." : "Salvar configuração de IA"}
-              </Button>
-            </form>
-          </section>
 
           {success && (
             <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
