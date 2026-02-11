@@ -87,6 +87,12 @@ const clientSections: SidebarSectionData[] = [
     title: "Integrações",
     links: [
       {
+        href: "/dashboard/integrations",
+        label: "Credenciais",
+        Icon: KeyIcon,
+        helper: "OpenAI e SMTP por workspace"
+      },
+      {
         href: "/marketplace",
         label: "Agentes",
         Icon: PuzzleIcon,
@@ -234,6 +240,24 @@ function BeakerIcon(props: ComponentProps<"svg">) {
   );
 }
 
+function KeyIcon(props: ComponentProps<"svg">) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <circle cx="7.5" cy="15.5" r="3.5" />
+      <path d="M10.5 13.5L21 3" />
+      <path d="M16 3h5v5" />
+      <path d="M13.5 10.5l2 2" />
+    </svg>
+  );
+}
 function PuzzleIcon(props: ComponentProps<"svg">) {
   return (
     <svg
