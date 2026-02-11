@@ -284,6 +284,38 @@ export default function AutomationTemplatesAdminPage() {
       </header>
 
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-10">
+        <section className="rounded-2xl border border-blue-200 bg-blue-50 p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-blue-900">
+            Passo 1: preparar o molde do JSON n8n
+          </h2>
+          <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-blue-900/90">
+            <li>
+              Crie e valide o fluxo no n8n antes de publicar no marketplace.
+            </li>
+            <li>Exporte o JSON original do fluxo.</li>
+            <li>
+              Substitua credenciais pessoais por variáveis com formato
+              <code className="mx-1 rounded bg-blue-100 px-1.5 py-0.5 text-xs">
+                {"{{NOME_DA_VARIAVEL}}"}
+              </code>
+              , como
+              <code className="mx-1 rounded bg-blue-100 px-1.5 py-0.5 text-xs">
+                {"{{OPENAI_KEY}}"}
+              </code>
+              e
+              <code className="mx-1 rounded bg-blue-100 px-1.5 py-0.5 text-xs">
+                {"{{WHATSAPP_TOKEN}}"}
+              </code>
+              .
+            </li>
+            <li>
+              Cole esse JSON “temperado” no campo
+              <span className="mx-1 font-semibold">Definition JSON</span>
+              para registrar o template.
+            </li>
+          </ol>
+        </section>
+
         {error ? (
           <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
