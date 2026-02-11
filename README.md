@@ -152,7 +152,7 @@ Para validar a saúde do monorepo, executei o fluxo completo de qualidade:
 - ✅ **Typecheck** concluído com sucesso no monorepo.
 - ✅ **Testes automatizados da API** passando (`32/32`).
 - ✅ **Build (API + Web)** concluído com sucesso.
-- ⚠️ Permanecem apenas *warnings* não bloqueantes no Web:
+- ⚠️ Permanecem apenas _warnings_ não bloqueantes no Web:
   - uso de `<img>` em telas de login/cadastro (recomendação de migrar para `next/image`);
   - tipo `Workspace` importado e não utilizado em `/super-admin/marketplace`.
 
@@ -238,6 +238,8 @@ O canal `email` usa provedor real SMTP (via `nodemailer`) para envio outbound.
 
 ### Configuração de IA por workspace
 
+A partir desta entrega, o frontend também possui a tela dedicada **Configurações > Integrações e credenciais** em `/dashboard/integrations`, onde o usuário final do workspace pode informar `OPENAI_API_KEY` e as credenciais SMTP sem depender da área administrativa avançada. A interface aplica identidade visual temática por bloco (IA em tons violeta/índigo e SMTP em tons âmbar/laranja) para facilitar leitura e contexto de configuração.
+
 No painel `/admin/integrations`, a seção **Configuração da IA (OpenAI)** permite que o cliente salve as credenciais do provedor por workspace via variáveis:
 
 - `OPENAI_API_KEY` (sensível)
@@ -266,7 +268,6 @@ O endpoint `GET /api/dashboard/sales` passa a retornar indicadores de gestão co
 - **Produtividade por usuário/vendedor**: `produtividadeUsuarios` com conversas fechadas, mensagens enviadas e taxa de fechamento.
 
 A interface `/dashboard` consome esses dados para destacar KPIs operacionais e visão de cobertura omnichannel.
-
 
 ## Onboarding de workspace
 

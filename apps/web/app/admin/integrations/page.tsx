@@ -134,31 +134,87 @@ const secretFieldsByType: Record<IntegrationAccountType, SecretField[]> = {
     }
   ],
   EMAIL: [
-    { key: "smtpHost", label: "SMTP Host", placeholder: "smtp.gmail.com", required: true },
+    {
+      key: "smtpHost",
+      label: "SMTP Host",
+      placeholder: "smtp.gmail.com",
+      required: true
+    },
     { key: "smtpPort", label: "SMTP Port", placeholder: "465", required: true },
-    { key: "smtpUser", label: "SMTP User", placeholder: "seu-email@dominio.com", required: true },
-    { key: "smtpPass", label: "SMTP Pass", placeholder: "senha de app", type: "password", required: true },
-    { key: "smtpFrom", label: "SMTP From", placeholder: "CrmPexe <seu-email@dominio.com>", required: true },
+    {
+      key: "smtpUser",
+      label: "SMTP User",
+      placeholder: "seu-email@dominio.com",
+      required: true
+    },
+    {
+      key: "smtpPass",
+      label: "SMTP Pass",
+      placeholder: "senha de app",
+      type: "password",
+      required: true
+    },
+    {
+      key: "smtpFrom",
+      label: "SMTP From",
+      placeholder: "CrmPexe <seu-email@dominio.com>",
+      required: true
+    },
     { key: "smtpSecure", label: "SMTP Secure", placeholder: "true ou false" },
-    { key: "webhookSecret", label: "Webhook Secret", placeholder: "segredo para validar inbound", type: "password" }
+    {
+      key: "webhookSecret",
+      label: "Webhook Secret",
+      placeholder: "segredo para validar inbound",
+      type: "password"
+    }
   ],
   INSTAGRAM_DIRECT: [
     { key: "apiUrl", label: "API URL", placeholder: "https://..." },
-    { key: "apiToken", label: "API Token", placeholder: "Token", type: "password" },
-    { key: "webhookSecret", label: "Webhook Secret", placeholder: "Assinatura", type: "password" }
+    {
+      key: "apiToken",
+      label: "API Token",
+      placeholder: "Token",
+      type: "password"
+    },
+    {
+      key: "webhookSecret",
+      label: "Webhook Secret",
+      placeholder: "Assinatura",
+      type: "password"
+    }
   ],
   FACEBOOK_MESSENGER: [
     { key: "apiUrl", label: "API URL", placeholder: "https://..." },
-    { key: "apiToken", label: "API Token", placeholder: "Token", type: "password" },
-    { key: "webhookSecret", label: "Webhook Secret", placeholder: "Assinatura", type: "password" }
+    {
+      key: "apiToken",
+      label: "API Token",
+      placeholder: "Token",
+      type: "password"
+    },
+    {
+      key: "webhookSecret",
+      label: "Webhook Secret",
+      placeholder: "Assinatura",
+      type: "password"
+    }
   ],
   VOIP: [
     { key: "apiUrl", label: "API URL", placeholder: "https://..." },
-    { key: "apiToken", label: "API Token", placeholder: "Token", type: "password" }
+    {
+      key: "apiToken",
+      label: "API Token",
+      placeholder: "Token",
+      type: "password"
+    }
   ],
   N8N: [
     { key: "baseUrl", label: "Base URL", placeholder: "https://seu-n8n" },
-    { key: "apiKey", label: "API Key", placeholder: "chave do n8n", type: "password" }
+    {
+      key: "apiKey",
+      label: "API Key",
+      placeholder: "chave do n8n",
+      type: "password"
+    }
   ]
 };
 
@@ -179,7 +235,9 @@ const statusOptions = [
   { value: "INACTIVE", label: "Inativa" }
 ];
 
-const getDefaultSecretForm = (type: IntegrationAccountType): SecretFormState => {
+const getDefaultSecretForm = (
+  type: IntegrationAccountType
+): SecretFormState => {
   const fields = secretFieldsByType[type] ?? [];
   return fields.reduce<SecretFormState>((acc, field) => {
     acc[field.key] = field.key === "provider" ? "EVOLUTION" : "";
@@ -200,7 +258,9 @@ export default function IntegrationsAdminPage() {
   const [formState, setFormState] =
     useState<IntegrationAccountFormState>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(
+    null
+  );
   const [secretForm, setSecretForm] = useState<SecretFormState>(
     getDefaultSecretForm(emptyForm.type)
   );
@@ -245,10 +305,13 @@ export default function IntegrationsAdminPage() {
       }
 
       const variables = (await response.json()) as WorkspaceVariable[];
-      const map = variables.reduce<Record<string, WorkspaceVariable>>((acc, variable) => {
-        acc[variable.key] = variable;
-        return acc;
-      }, {});
+      const map = variables.reduce<Record<string, WorkspaceVariable>>(
+        (acc, variable) => {
+          acc[variable.key] = variable;
+          return acc;
+        },
+        {}
+      );
 
       setAiForm({
         apiKey: "",
@@ -289,13 +352,14 @@ export default function IntegrationsAdminPage() {
 
   const isWhatsappSelected = activeAccount?.type === "WHATSAPP";
   const activeSecretFields = activeAccount
-    ? secretFieldsByType[activeAccount.type] ?? []
+    ? (secretFieldsByType[activeAccount.type] ?? [])
     : [];
 
   const handleChange =
     (field: keyof IntegrationAccountFormState) =>
     (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-      const value = event.target.value as IntegrationAccountFormState[keyof IntegrationAccountFormState];
+      const value = event.target
+        .value as IntegrationAccountFormState[keyof IntegrationAccountFormState];
       setFormState((prev) => ({ ...prev, [field]: value }));
     };
 
@@ -305,8 +369,7 @@ export default function IntegrationsAdminPage() {
     };
 
   const handleAiChange =
-    (field: keyof AiConfigState) =>
-    (event: ChangeEvent<HTMLInputElement>) => {
+    (field: keyof AiConfigState) => (event: ChangeEvent<HTMLInputElement>) => {
       setAiForm((prev) => ({ ...prev, [field]: event.target.value }));
     };
 
@@ -386,18 +449,23 @@ export default function IntegrationsAdminPage() {
   const buildQrImageUrl = (qr: string) =>
     `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(qr)}`;
 
-  const applyWhatsappResponse = useCallback((payload: WhatsappStatusResponse) => {
-    setQrStatus(payload.status ?? "connecting");
-    setQrImageUrl(payload.qr ? buildQrImageUrl(payload.qr) : null);
+  const applyWhatsappResponse = useCallback(
+    (payload: WhatsappStatusResponse) => {
+      setQrStatus(payload.status ?? "connecting");
+      setQrImageUrl(payload.qr ? buildQrImageUrl(payload.qr) : null);
 
-    if (payload.needsSupport) {
-      setSupportMessage(payload.message || "A API do cliente não está configurada.");
-      setSupportUrl(payload.supportContactUrl || supportFallbackUrl);
-      return;
-    }
+      if (payload.needsSupport) {
+        setSupportMessage(
+          payload.message || "A API do cliente não está configurada."
+        );
+        setSupportUrl(payload.supportContactUrl || supportFallbackUrl);
+        return;
+      }
 
-    setSupportMessage(null);
-  }, []);
+      setSupportMessage(null);
+    },
+    []
+  );
 
   const fetchWhatsappStatus = useCallback(
     async (accountId: string) => {
@@ -411,7 +479,9 @@ export default function IntegrationsAdminPage() {
         if (!response.ok) {
           throw new Error("Não foi possível consultar o status do WhatsApp.");
         }
-        applyWhatsappResponse((await response.json()) as WhatsappStatusResponse);
+        applyWhatsappResponse(
+          (await response.json()) as WhatsappStatusResponse
+        );
         await fetchSessions(accountId);
       } catch (statusError) {
         setError(
@@ -498,7 +568,10 @@ export default function IntegrationsAdminPage() {
     }
 
     void fetchWhatsappStatus(activeAccount.id);
-    const interval = setInterval(() => void fetchWhatsappStatus(activeAccount.id), 10000);
+    const interval = setInterval(
+      () => void fetchWhatsappStatus(activeAccount.id),
+      10000
+    );
     return () => clearInterval(interval);
   }, [activeAccount, fetchWhatsappStatus]);
 
@@ -558,7 +631,11 @@ export default function IntegrationsAdminPage() {
     const payloads = [
       { key: "OPENAI_API_KEY", value: aiForm.apiKey.trim(), isSensitive: true },
       { key: "OPENAI_MODEL", value: aiForm.model.trim(), isSensitive: false },
-      { key: "OPENAI_BASE_URL", value: aiForm.baseUrl.trim(), isSensitive: false }
+      {
+        key: "OPENAI_BASE_URL",
+        value: aiForm.baseUrl.trim(),
+        isSensitive: false
+      }
     ];
 
     try {
@@ -607,9 +684,13 @@ export default function IntegrationsAdminPage() {
             Central de Integrações
           </h1>
           <p className="text-sm text-gray-500">
-            Configure APIs reais do cliente por canal (WhatsApp, E-mail e mais) e as credenciais da IA.
+            Configure APIs reais do cliente por canal (WhatsApp, E-mail e mais)
+            e as credenciais da IA.
           </p>
-          <Link href="/dashboard" className="text-sm text-blue-600 hover:underline">
+          <Link
+            href="/dashboard"
+            className="text-sm text-blue-600 hover:underline"
+          >
             Voltar ao dashboard
           </Link>
         </div>
@@ -622,9 +703,13 @@ export default function IntegrationsAdminPage() {
           </h2>
 
           <div className="mt-4 space-y-3">
-            {loading && <p className="text-sm text-gray-500">Carregando integrações...</p>}
+            {loading && (
+              <p className="text-sm text-gray-500">Carregando integrações...</p>
+            )}
             {!loading && accounts.length === 0 && (
-              <p className="text-sm text-gray-500">Nenhuma integração cadastrada.</p>
+              <p className="text-sm text-gray-500">
+                Nenhuma integração cadastrada.
+              </p>
             )}
 
             {accounts.map((account) => (
@@ -634,9 +719,13 @@ export default function IntegrationsAdminPage() {
               >
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <h3 className="text-base font-semibold text-gray-900">{account.name}</h3>
+                    <h3 className="text-base font-semibold text-gray-900">
+                      {account.name}
+                    </h3>
                     <p className="text-sm text-gray-500">
-                      Tipo: {typeOptions.find((item) => item.value === account.type)?.label ?? account.type}
+                      Tipo:{" "}
+                      {typeOptions.find((item) => item.value === account.type)
+                        ?.label ?? account.type}
                     </p>
                   </div>
                   <div className="flex gap-2">
@@ -678,7 +767,10 @@ export default function IntegrationsAdminPage() {
             ))}
           </div>
 
-          <form onSubmit={handleSubmit} className="mt-6 grid gap-4 rounded-lg border border-gray-100 p-4">
+          <form
+            onSubmit={handleSubmit}
+            className="mt-6 grid gap-4 rounded-lg border border-gray-100 p-4"
+          >
             <h3 className="text-base font-semibold text-gray-800">
               {editingId ? "Editar integração" : "Nova integração"}
             </h3>
@@ -709,7 +801,9 @@ export default function IntegrationsAdminPage() {
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-700">Status</label>
+              <label className="text-sm font-medium text-gray-700">
+                Status
+              </label>
               <select
                 className="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
                 value={formState.status}
@@ -731,7 +825,9 @@ export default function IntegrationsAdminPage() {
 
         <aside className="space-y-6">
           <section className="rounded-xl border bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900">Credenciais da integração</h2>
+            <h2 className="text-lg font-semibold text-gray-900">
+              Credenciais da integração
+            </h2>
             <p className="mt-1 text-sm text-gray-500">
               {activeAccount
                 ? `Conta selecionada: ${activeAccount.name}`
@@ -740,12 +836,16 @@ export default function IntegrationsAdminPage() {
 
             <form onSubmit={handleSaveSecrets} className="mt-4 space-y-3">
               {activeSecretFields.length === 0 && (
-                <p className="text-sm text-gray-500">Nenhum campo para o tipo selecionado.</p>
+                <p className="text-sm text-gray-500">
+                  Nenhum campo para o tipo selecionado.
+                </p>
               )}
 
               {activeSecretFields.map((field) => (
                 <div key={field.key}>
-                  <label className="text-xs font-medium text-gray-700">{field.label}</label>
+                  <label className="text-xs font-medium text-gray-700">
+                    {field.label}
+                  </label>
                   <input
                     className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
                     type={field.type ?? "text"}
@@ -767,7 +867,9 @@ export default function IntegrationsAdminPage() {
           {isWhatsappSelected && (
             <>
               <section className="rounded-xl border bg-white p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-gray-900">Conectar WhatsApp</h2>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Conectar WhatsApp
+                </h2>
                 <p className="text-sm text-gray-500">Status: {qrStatusLabel}</p>
                 {qrImageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -782,7 +884,10 @@ export default function IntegrationsAdminPage() {
                   </div>
                 )}
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <Button disabled={!activeAccount || qrLoading} onClick={handleRequestQr}>
+                  <Button
+                    disabled={!activeAccount || qrLoading}
+                    onClick={handleRequestQr}
+                  >
                     {qrLoading ? "Gerando..." : "Gerar QR code"}
                   </Button>
                   <Button
@@ -811,7 +916,9 @@ export default function IntegrationsAdminPage() {
               </section>
 
               <section className="rounded-xl border bg-white p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-gray-900">Sessões (por perfil)</h2>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Sessões (por perfil)
+                </h2>
                 <p className="text-sm text-gray-500">
                   No momento, as sessões ficam vinculadas ao perfil do usuário.
                 </p>
@@ -820,8 +927,13 @@ export default function IntegrationsAdminPage() {
                     <li className="text-gray-500">Nenhuma sessão ainda.</li>
                   )}
                   {sessions.map((session) => (
-                    <li key={session.id} className="rounded border border-gray-200 p-2">
-                      <p className="font-medium text-gray-800">{session.sessionName}</p>
+                    <li
+                      key={session.id}
+                      className="rounded border border-gray-200 p-2"
+                    >
+                      <p className="font-medium text-gray-800">
+                        {session.sessionName}
+                      </p>
                       <p className="text-gray-500">
                         Provider: {session.provider} • Status: {session.status}
                       </p>
@@ -833,13 +945,18 @@ export default function IntegrationsAdminPage() {
           )}
 
           <section className="rounded-xl border bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900">Configuração da IA (OpenAI)</h2>
+            <h2 className="text-lg font-semibold text-gray-900">
+              Configuração da IA (OpenAI)
+            </h2>
             <p className="mt-1 text-sm text-gray-500">
-              Essas credenciais ficam no workspace e podem ser fornecidas pelo próprio cliente no painel.
+              Essas credenciais ficam no workspace e podem ser fornecidas pelo
+              próprio cliente no painel.
             </p>
             <form onSubmit={handleSaveAiConfig} className="mt-4 space-y-3">
               <div>
-                <label className="text-xs font-medium text-gray-700">OpenAI API Key</label>
+                <label className="text-xs font-medium text-gray-700">
+                  OpenAI API Key
+                </label>
                 <input
                   type="password"
                   className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
@@ -848,11 +965,14 @@ export default function IntegrationsAdminPage() {
                   onChange={handleAiChange("apiKey")}
                 />
                 <p className="mt-1 text-xs text-gray-500">
-                  Por segurança, a chave não é exibida após salvar. Informe novamente apenas se quiser atualizar.
+                  Por segurança, a chave não é exibida após salvar. Informe
+                  novamente apenas se quiser atualizar.
                 </p>
               </div>
               <div>
-                <label className="text-xs font-medium text-gray-700">Modelo</label>
+                <label className="text-xs font-medium text-gray-700">
+                  Modelo
+                </label>
                 <input
                   className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
                   placeholder="gpt-4o-mini"
@@ -861,7 +981,9 @@ export default function IntegrationsAdminPage() {
                 />
               </div>
               <div>
-                <label className="text-xs font-medium text-gray-700">Base URL</label>
+                <label className="text-xs font-medium text-gray-700">
+                  Base URL
+                </label>
                 <input
                   className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
                   placeholder="https://api.openai.com/v1"
