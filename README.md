@@ -19,6 +19,7 @@ Plataforma CRM com API em NestJS e front-end em Next.js, organizada como monorep
 - [Scripts úteis](#scripts-úteis)
 - [Estrutura do repositório](#estrutura-do-repositório)
 - [Fluxos comuns](#fluxos-comuns)
+- [Fluxo do Super Admin para publicar molde n8n](#fluxo-do-super-admin-para-publicar-molde-n8n)
 - [Integração WhatsApp (QR + Evolution)](#integração-whatsapp-qr--evolution)
 - [Omnichannel verdadeiro (além do WhatsApp)](#omnichannel-verdadeiro-além-do-whatsapp)
 - [Dashboard analítico avançado](#dashboard-analítico-avançado)
@@ -194,6 +195,19 @@ O acesso às automações é liberado quando o workspace possui aprovação (`st
 ### Fluxo de login
 
 Após validar o OTP com sucesso, o front-end redireciona o usuário para `/dashboard` (rota única pós-login).
+
+## Fluxo do Super Admin para publicar molde n8n
+
+Antes de disponibilizar uma automação no marketplace, o Super Admin deve transformar o JSON exportado do n8n em um **molde reutilizável**:
+
+1. Crie e valide o fluxo diretamente no n8n.
+2. Exporte o JSON do fluxo.
+3. Abra o JSON em um editor de texto e substitua segredos fixos por variáveis:
+   - `sk-proj-...` → `{{OPENAI_KEY}}`
+   - token do WhatsApp → `{{WHATSAPP_TOKEN}}`
+4. Publique esse JSON com variáveis no painel de Super Admin em **Templates de automação**, no campo **Definition JSON**.
+
+Esse processo garante que o template seja instalado em múltiplos workspaces sem vazar credenciais pessoais.
 
 ## Integração WhatsApp (QR + Evolution)
 
