@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { proxyApiGet } from "@/lib/api-proxy";
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
@@ -14,16 +13,12 @@ const buildHeaders = (request: Request) => {
   return headers;
 };
 
-export async function GET(request: Request) {
-  return proxyApiGet(request, "/api/workspaces");
-}
-
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
 
-  if (!body?.name || !body?.password) {
+  if (!body?.code || !body?.password) {
     return NextResponse.json(
-      { message: "Nome e senha do workspace são obrigatórios." },
+      { message: "Código e senha do workspace são obrigatórios." },
       { status: 400 }
     );
   }
@@ -31,7 +26,7 @@ export async function POST(request: Request) {
   let apiResponse: Response;
 
   try {
-    apiResponse = await fetch(new URL("/api/workspaces", apiBaseUrl), {
+    apiResponse = await fetch(new URL("/api/workspaces/join", apiBaseUrl), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -41,9 +36,9 @@ export async function POST(request: Request) {
       body: JSON.stringify(body)
     });
   } catch (error) {
-    console.error("Erro ao conectar na API de workspaces:", error);
+    console.error("Erro ao conectar na API de entrada em workspace:", error);
     return NextResponse.json(
-      { message: "Não foi possível conectar à API de workspaces." },
+      { message: "Não foi possível conectar à API de entrada em workspace." },
       { status: 502 }
     );
   }
@@ -52,7 +47,9 @@ export async function POST(request: Request) {
 
   if (!apiResponse.ok) {
     return NextResponse.json(
-      { message: payload?.message ?? "Falha ao criar workspace." },
+      {
+        message: payload?.message ?? "Falha ao solicitar entrada no workspace."
+      },
       { status: apiResponse.status }
     );
   }

@@ -206,6 +206,29 @@ O endpoint `GET /api/dashboard/sales` passa a retornar indicadores de gestão co
 
 A interface `/dashboard` consome esses dados para destacar KPIs operacionais e visão de cobertura omnichannel.
 
+
+## Onboarding de workspace
+
+Após o login (OTP), o usuário continua sendo redirecionado para `/dashboard`.
+
+Quando ainda não possui nenhum vínculo **aprovado** em workspace, o dashboard exibe duas ações:
+
+- **Criar Workspace** (`POST /api/workspaces`)
+  - Campos: `name` e `password`.
+  - Resultado: cria workspace, gera `code`, cria vínculo do criador como `OWNER` com status `APPROVED`, e define o workspace como atual.
+- **Entrar em Workspace** (`POST /api/workspaces/join`)
+  - Campos: `code` e `password`.
+  - Resultado: se credenciais corretas, cria/atualiza solicitação com status `PENDING` (não concede acesso imediato).
+
+Consulta de status de vínculos do usuário:
+
+- `GET /api/me/workspaces`
+
+Modelagem adicionada no Prisma:
+
+- `Workspace`: agora com `code` e `passwordHash`.
+- `WorkspaceMembership`: tabela de solicitação/vínculo (`role`: `OWNER|MEMBER`; `status`: `PENDING|APPROVED|REJECTED`).
+
 ## Interface
 
 ### Barra lateral de navegação
