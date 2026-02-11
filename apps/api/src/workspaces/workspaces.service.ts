@@ -1,21 +1,43 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import { Prisma, UserRole } from "@prisma/client";
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException
+} from "@nestjs/common";
+import {
+  Prisma,
+  UserRole,
+  WorkspaceMembershipRole,
+  WorkspaceMembershipStatus
+} from "@prisma/client";
+import { createHash, randomBytes } from "crypto";
 import { PrismaService } from "../prisma/prisma.service";
 
 @Injectable()
 export class WorkspacesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async createWorkspace(userId: string, name: string) {
-    const trimmedName = name?.trim();
+  async createWorkspace(
+    userId: string,
+    payload: { name: string; password: string }
+  ) {
+    const trimmedName = payload.name?.trim();
+    const trimmedPassword = payload.password?.trim();
+
     if (!trimmedName) {
       throw new BadRequestException("Nome do workspace é obrigatório.");
+    }
+
+    if (!trimmedPassword) {
+      throw new BadRequestException("Senha do workspace é obrigatória.");
     }
 
     return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const workspace = await tx.workspace.create({
         data: {
           name: trimmedName,
+          code: await this.generateWorkspaceCode(tx),
+          passwordHash: this.hashWorkspacePassword(trimmedPassword),
           brandName: trimmedName,
           locale: "pt-BR"
         }
@@ -37,13 +59,123 @@ export class WorkspacesService {
         }
       });
 
+      await tx.workspaceMembership.create({
+        data: {
+          workspaceId: workspace.id,
+          userId,
+          role: WorkspaceMembershipRole.OWNER,
+          status: WorkspaceMembershipStatus.APPROVED
+        }
+      });
+
       await tx.user.update({
         where: { id: userId },
         data: { currentWorkspaceId: workspace.id }
       });
 
-      return workspace;
+      return {
+        id: workspace.id,
+        name: workspace.name,
+        code: workspace.code,
+        createdAt: workspace.createdAt,
+        updatedAt: workspace.updatedAt
+      };
     });
+  }
+
+  async requestJoinWorkspace(
+    userId: string,
+    payload: { code: string; password: string }
+  ) {
+    const code = payload.code?.trim().toUpperCase();
+    const password = payload.password?.trim();
+
+    if (!code || !password) {
+      throw new BadRequestException(
+        "Código e senha do workspace são obrigatórios."
+      );
+    }
+
+    const workspace = await this.prisma.workspace.findFirst({
+      where: { code, deletedAt: null },
+      select: { id: true, code: true, passwordHash: true }
+    });
+
+    if (
+      !workspace ||
+      workspace.passwordHash !== this.hashWorkspacePassword(password)
+    ) {
+      throw new BadRequestException("Código ou senha do workspace inválidos.");
+    }
+
+    const membership = await this.prisma.workspaceMembership.upsert({
+      where: {
+        workspaceId_userId: {
+          workspaceId: workspace.id,
+          userId
+        }
+      },
+      update: {
+        status: WorkspaceMembershipStatus.PENDING,
+        role: WorkspaceMembershipRole.MEMBER
+      },
+      create: {
+        workspaceId: workspace.id,
+        userId,
+        status: WorkspaceMembershipStatus.PENDING,
+        role: WorkspaceMembershipRole.MEMBER
+      },
+      select: {
+        id: true,
+        workspaceId: true,
+        userId: true,
+        role: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true
+      }
+    });
+
+    return membership;
+  }
+
+  async listMyWorkspaces(userId: string) {
+    const memberships = await this.prisma.workspaceMembership.findMany({
+      where: {
+        userId,
+        workspace: {
+          deletedAt: null
+        }
+      },
+      include: {
+        workspace: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            brandName: true,
+            locale: true,
+            createdAt: true,
+            updatedAt: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: "desc"
+      }
+    });
+
+    return memberships.map((membership) => ({
+      workspaceId: membership.workspaceId,
+      workspaceName: membership.workspace.name,
+      workspaceCode: membership.workspace.code,
+      brandName: membership.workspace.brandName,
+      locale: membership.workspace.locale,
+      role: membership.role,
+      status: membership.status,
+      createdAt: membership.createdAt,
+      updatedAt: membership.updatedAt
+    }));
   }
 
   async listWorkspaces(userId: string) {
@@ -85,7 +217,10 @@ export class WorkspacesService {
   }
 
   async getCurrentWorkspace(userId: string, workspaceId?: string) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
     const workspace = await this.prisma.workspace.findFirst({
       where: { id: resolvedWorkspaceId, deletedAt: null },
       select: {
@@ -123,15 +258,21 @@ export class WorkspacesService {
   ) {
     await this.ensureWorkspaceAdmin(userId, workspaceId);
     const resolvedLocale =
-      payload.locale === undefined ? undefined : this.normalizeOptionalString(payload.locale) ?? "pt-BR";
+      payload.locale === undefined
+        ? undefined
+        : (this.normalizeOptionalString(payload.locale) ?? "pt-BR");
 
     const updated = await this.prisma.workspace.update({
       where: { id: workspaceId },
       data: {
         brandName: this.normalizeOptionalString(payload.brandName),
         brandLogoUrl: this.normalizeOptionalString(payload.brandLogoUrl),
-        brandPrimaryColor: this.normalizeOptionalString(payload.brandPrimaryColor),
-        brandSecondaryColor: this.normalizeOptionalString(payload.brandSecondaryColor),
+        brandPrimaryColor: this.normalizeOptionalString(
+          payload.brandPrimaryColor
+        ),
+        brandSecondaryColor: this.normalizeOptionalString(
+          payload.brandSecondaryColor
+        ),
         customDomain: this.normalizeOptionalString(payload.customDomain),
         locale: resolvedLocale
       },
@@ -322,7 +463,11 @@ export class WorkspacesService {
     };
   }
 
-  async requestWorkspaceDeletion(userId: string, workspaceId: string, reason?: string) {
+  async requestWorkspaceDeletion(
+    userId: string,
+    workspaceId: string,
+    reason?: string
+  ) {
     await this.ensureWorkspaceAdmin(userId, workspaceId);
 
     const workspace = await this.prisma.workspace.findUnique({
@@ -344,7 +489,9 @@ export class WorkspacesService {
 
     const now = new Date();
     const retentionDays = this.getRetentionDays();
-    const retentionEndsAt = new Date(now.getTime() + retentionDays * 24 * 60 * 60 * 1000);
+    const retentionEndsAt = new Date(
+      now.getTime() + retentionDays * 24 * 60 * 60 * 1000
+    );
 
     await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       await tx.workspace.update({
@@ -442,5 +589,27 @@ export class WorkspacesService {
       return parsed;
     }
     return 30;
+  }
+
+  private hashWorkspacePassword(password: string) {
+    return createHash("sha256").update(password).digest("hex");
+  }
+
+  private async generateWorkspaceCode(tx: Prisma.TransactionClient) {
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      const code = randomBytes(3).toString("hex").toUpperCase();
+      const existing = await tx.workspace.findUnique({
+        where: { code },
+        select: { id: true }
+      });
+
+      if (!existing) {
+        return code;
+      }
+    }
+
+    throw new BadRequestException(
+      "Não foi possível gerar um código de workspace único."
+    );
   }
 }

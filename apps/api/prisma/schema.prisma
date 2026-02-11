@@ -145,6 +145,17 @@ enum SubscriptionStatus {
   CANCELED
 }
 
+enum WorkspaceMembershipRole {
+  OWNER
+  MEMBER
+}
+
+enum WorkspaceMembershipStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 enum AiUsageAction {
   SUMMARIZE_CONVERSATION
   CLASSIFY_LEAD
@@ -165,6 +176,8 @@ model HealthCheck {
 model Workspace {
   id                  String    @id @default(uuid())
   name                String
+  code                String    @unique
+  passwordHash        String
   brandName           String?
   brandLogoUrl        String?
   brandPrimaryColor   String?
@@ -212,8 +225,26 @@ model Workspace {
   variables                WorkspaceVariable[]
   subscriptions            Subscription[]
   aiUsageLogs              AiUsageLog[]
+  membershipRequests       WorkspaceMembership[]
 
   @@index([deletedAt])
+}
+
+model WorkspaceMembership {
+  id          String                    @id @default(uuid())
+  workspaceId String
+  userId      String
+  role        WorkspaceMembershipRole   @default(MEMBER)
+  status      WorkspaceMembershipStatus @default(PENDING)
+  createdAt   DateTime                  @default(now())
+  updatedAt   DateTime                  @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@unique([workspaceId, userId])
+  @@index([userId, status])
+  @@index([workspaceId, status])
 }
 
 model User {
@@ -243,6 +274,7 @@ model User {
   marketplaceInterests              MarketplaceInterest[]       @relation("MarketplaceInterestRequester")
   whatsappSessions                  WhatsappSession[]
   currentWorkspace                  Workspace?                  @relation("UserCurrentWorkspace", fields: [currentWorkspaceId], references: [id])
+  workspaceMemberships              WorkspaceMembership[]
 }
 
 model OtpCode {

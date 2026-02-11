@@ -1,9 +1,9 @@
 import { IsNotEmpty, IsString } from "class-validator";
 
-export class CreateWorkspaceDto {
+export class JoinWorkspaceDto {
   @IsString()
   @IsNotEmpty()
-  name!: string;
+  code!: string;
 
   @IsString()
   @IsNotEmpty()

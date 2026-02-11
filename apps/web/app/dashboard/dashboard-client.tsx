@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -59,6 +59,16 @@ type Workspace = {
   id: string;
   name: string;
   createdAt: string;
+};
+
+type MyWorkspaceMembership = {
+  workspaceId: string;
+  workspaceName: string;
+  workspaceCode: string;
+  role: "OWNER" | "MEMBER";
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  createdAt: string;
+  updatedAt: string;
 };
 
 type AuditLog = {
@@ -144,6 +154,18 @@ export default function DashboardClient({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [myWorkspaceMemberships, setMyWorkspaceMemberships] = useState<
+    MyWorkspaceMembership[]
+  >([]);
+  const [createWorkspaceName, setCreateWorkspaceName] = useState("");
+  const [createWorkspacePassword, setCreateWorkspacePassword] = useState("");
+  const [joinWorkspaceCode, setJoinWorkspaceCode] = useState("");
+  const [joinWorkspacePassword, setJoinWorkspacePassword] = useState("");
+  const [onboardingLoading, setOnboardingLoading] = useState(false);
+  const [onboardingMessage, setOnboardingMessage] = useState<string | null>(
+    null
+  );
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -156,7 +178,8 @@ export default function DashboardClient({
           instancesResponse,
           workspacesResponse,
           auditResponse,
-          salesDashboardResponse
+          salesDashboardResponse,
+          myWorkspacesResponse
         ] = await Promise.all([
           fetch("/api/conversations", { credentials: "include" }),
           fetch("/api/automation-instances?page=1&perPage=1", {
@@ -166,7 +189,8 @@ export default function DashboardClient({
           fetch(`/api/audit-logs?perPage=20${auditScopeQuery}`, {
             credentials: "include"
           }),
-          fetch("/api/dashboard/sales", { credentials: "include" })
+          fetch("/api/dashboard/sales", { credentials: "include" }),
+          fetch("/api/me/workspaces", { credentials: "include" })
         ]);
 
         if (!conversationsResponse.ok) {
@@ -186,19 +210,24 @@ export default function DashboardClient({
             "Não foi possível carregar os indicadores avançados."
           );
         }
+        if (!myWorkspacesResponse.ok) {
+          throw new Error("Não foi possível carregar seus workspaces.");
+        }
 
         const [
           conversationsData,
           instancesData,
           workspacesData,
           auditData,
-          salesDashboardData
+          salesDashboardData,
+          myWorkspacesData
         ] = await Promise.all([
           conversationsResponse.json() as Promise<Conversation[]>,
           instancesResponse.json() as Promise<AutomationInstancesResponse>,
           workspacesResponse.json() as Promise<WorkspaceResponse>,
           auditResponse.json() as Promise<{ data: AuditLog[] }>,
-          salesDashboardResponse.json() as Promise<SalesDashboardResponse>
+          salesDashboardResponse.json() as Promise<SalesDashboardResponse>,
+          myWorkspacesResponse.json() as Promise<MyWorkspaceMembership[]>
         ]);
 
         setConversations(conversationsData);
@@ -206,6 +235,7 @@ export default function DashboardClient({
         setWorkspaces(workspacesData.workspaces);
         setAuditLogs(auditData.data ?? []);
         setSalesDashboard(salesDashboardData);
+        setMyWorkspaceMemberships(myWorkspacesData ?? []);
       } catch (fetchError) {
         setError(
           fetchError instanceof Error
@@ -544,6 +574,111 @@ export default function DashboardClient({
     return days;
   }, [conversations]);
 
+  const hasApprovedWorkspace = myWorkspaceMemberships.some(
+    (membership) => membership.status === "APPROVED"
+  );
+
+  const refreshMyWorkspaces = async () => {
+    const response = await fetch("/api/me/workspaces", {
+      credentials: "include"
+    });
+    if (!response.ok) {
+      throw new Error("Não foi possível atualizar seus workspaces.");
+    }
+    const payload = (await response.json()) as MyWorkspaceMembership[];
+    setMyWorkspaceMemberships(payload ?? []);
+  };
+
+  const handleCreateWorkspace = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setOnboardingLoading(true);
+    setOnboardingMessage(null);
+
+    try {
+      const response = await fetch("/api/workspaces", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          name: createWorkspaceName,
+          password: createWorkspacePassword
+        })
+      });
+
+      const payload = (await response.json().catch(() => null)) as {
+        message?: string;
+      } | null;
+
+      if (!response.ok) {
+        throw new Error(
+          payload?.message ?? "Não foi possível criar o workspace."
+        );
+      }
+
+      setCreateWorkspaceName("");
+      setCreateWorkspacePassword("");
+      setOnboardingMessage(
+        "Workspace criado com sucesso! Você já entrou como proprietário(a)."
+      );
+      await refreshMyWorkspaces();
+    } catch (creationError) {
+      setOnboardingMessage(
+        creationError instanceof Error
+          ? creationError.message
+          : "Erro inesperado ao criar workspace."
+      );
+    } finally {
+      setOnboardingLoading(false);
+    }
+  };
+
+  const handleJoinWorkspace = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setOnboardingLoading(true);
+    setOnboardingMessage(null);
+
+    try {
+      const response = await fetch("/api/workspaces/join", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          code: joinWorkspaceCode,
+          password: joinWorkspacePassword
+        })
+      });
+
+      const payload = (await response.json().catch(() => null)) as {
+        message?: string;
+      } | null;
+
+      if (!response.ok) {
+        throw new Error(
+          payload?.message ?? "Não foi possível solicitar entrada."
+        );
+      }
+
+      setJoinWorkspaceCode("");
+      setJoinWorkspacePassword("");
+      setOnboardingMessage(
+        "Solicitação enviada com status pendente. Aguarde a aprovação do workspace."
+      );
+      await refreshMyWorkspaces();
+    } catch (joinError) {
+      setOnboardingMessage(
+        joinError instanceof Error
+          ? joinError.message
+          : "Erro inesperado ao solicitar entrada."
+      );
+    } finally {
+      setOnboardingLoading(false);
+    }
+  };
+
   const recentActivity = useMemo(() => {
     return auditLogs.slice(0, 6).map((log) => {
       const metadataName =
@@ -616,6 +751,94 @@ export default function DashboardClient({
             <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">
               {error}
             </div>
+          ) : null}
+
+          {!hasApprovedWorkspace ? (
+            <section className="grid gap-4 lg:grid-cols-2">
+              <form
+                onSubmit={handleCreateWorkspace}
+                className="rounded-xl border bg-slate-900 p-6 shadow-sm"
+              >
+                <h3 className="text-lg font-semibold text-slate-100">
+                  Criar Workspace
+                </h3>
+                <p className="mt-1 text-sm text-slate-400">
+                  Crie seu primeiro workspace e entre automaticamente como
+                  Owner.
+                </p>
+                <div className="mt-4 space-y-3">
+                  <input
+                    className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100"
+                    placeholder="Nome do workspace"
+                    value={createWorkspaceName}
+                    onChange={(event) =>
+                      setCreateWorkspaceName(event.target.value)
+                    }
+                    required
+                  />
+                  <input
+                    type="password"
+                    className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100"
+                    placeholder="Senha do workspace"
+                    value={createWorkspacePassword}
+                    onChange={(event) =>
+                      setCreateWorkspacePassword(event.target.value)
+                    }
+                    required
+                  />
+                </div>
+                <Button className="mt-4 w-full" disabled={onboardingLoading}>
+                  {onboardingLoading ? "Criando..." : "Criar Workspace"}
+                </Button>
+              </form>
+
+              <form
+                onSubmit={handleJoinWorkspace}
+                className="rounded-xl border bg-slate-900 p-6 shadow-sm"
+              >
+                <h3 className="text-lg font-semibold text-slate-100">
+                  Entrar em Workspace
+                </h3>
+                <p className="mt-1 text-sm text-slate-400">
+                  Informe o código e a senha para enviar uma solicitação de
+                  entrada.
+                </p>
+                <div className="mt-4 space-y-3">
+                  <input
+                    className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm uppercase text-slate-100"
+                    placeholder="Código do workspace"
+                    value={joinWorkspaceCode}
+                    onChange={(event) =>
+                      setJoinWorkspaceCode(event.target.value.toUpperCase())
+                    }
+                    required
+                  />
+                  <input
+                    type="password"
+                    className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100"
+                    placeholder="Senha do workspace"
+                    value={joinWorkspacePassword}
+                    onChange={(event) =>
+                      setJoinWorkspacePassword(event.target.value)
+                    }
+                    required
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  className="mt-4 w-full"
+                  disabled={onboardingLoading}
+                >
+                  {onboardingLoading ? "Enviando..." : "Solicitar entrada"}
+                </Button>
+              </form>
+
+              {onboardingMessage ? (
+                <div className="lg:col-span-2 rounded-xl border border-blue-300 bg-blue-50 p-4 text-sm text-blue-700">
+                  {onboardingMessage}
+                </div>
+              ) : null}
+            </section>
           ) : null}
 
           <section className="grid gap-4 md:grid-cols-3">
