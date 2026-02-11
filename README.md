@@ -235,7 +235,7 @@ Variável opcional para link de suporte:
 
 A configuração das APIs deve ser feita pelo cliente no painel **Admin > Integrações** (`/admin/integrations`), sem depender de hardcode no deploy.
 
-No painel, o cliente pode cadastrar contas por tipo (`WHATSAPP`, `EMAIL`, `INSTAGRAM_DIRECT`, `FACEBOOK_MESSENGER`, `VOIP`, `N8N`) e salvar os segredos da integração por workspace.
+No painel, o cliente pode cadastrar contas por tipo (`OPENAI`, `WHATSAPP`, `EMAIL`, `INSTAGRAM_DIRECT`, `FACEBOOK_MESSENGER`, `VOIP`, `N8N`) e salvar os segredos da integração por workspace na tabela `IntegrationSecret` (payload criptografado).
 
 Além do fluxo de WhatsApp, o backend possui suporte de canal com mapeamento dedicado no tipo de conta de integração:
 
@@ -252,15 +252,15 @@ O canal `email` usa provedor real SMTP (via `nodemailer`) para envio outbound.
 
 ### Configuração de IA por workspace
 
-A partir desta entrega, o frontend também possui a tela dedicada **Configurações > Integrações e credenciais** em `/dashboard/integrations`, onde o usuário final do workspace pode informar `OPENAI_API_KEY` e as credenciais SMTP sem depender da área administrativa avançada. A interface aplica identidade visual temática por bloco (IA em tons violeta/índigo e SMTP em tons âmbar/laranja) para facilitar leitura e contexto de configuração.
+No painel `/admin/integrations`, o cliente deve criar uma integração do tipo `OPENAI` e salvar os segredos no bloco de credenciais da própria conta. Esses dados ficam persistidos de forma criptografada em `IntegrationSecret`.
 
-No painel `/admin/integrations`, a seção **Configuração da IA (OpenAI)** permite que o cliente salve as credenciais do provedor por workspace via variáveis:
+Segredos esperados na integração `OPENAI`:
 
-- `OPENAI_API_KEY` (sensível)
-- `OPENAI_MODEL`
-- `OPENAI_BASE_URL`
+- `apiKey` (sensível)
+- `model`
+- `baseUrl`
 
-Essas variáveis têm prioridade para as chamadas de IA do workspace. Quando não informadas, o backend usa fallback do ambiente (`apps/api/.env`).
+Quando as chaves não são informadas na integração, o backend mantém fallback para variáveis de ambiente (`apps/api/.env`).
 
 Segredos esperados na integração `EMAIL` (ou fallback para variáveis de ambiente da API):
 

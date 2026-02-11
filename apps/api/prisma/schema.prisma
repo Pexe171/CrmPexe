@@ -102,6 +102,7 @@ enum WebhookEvent {
 }
 
 enum IntegrationAccountType {
+  OPENAI
   WHATSAPP
   N8N
   INSTAGRAM_DIRECT
