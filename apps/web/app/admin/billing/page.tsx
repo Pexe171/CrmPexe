@@ -1,14 +1,24 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type ChangeEvent,
+  type FormEvent
+} from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { fetchWorkspaceBillingSummary, type BillingSummary } from "@/lib/billing";
+import {
+  fetchWorkspaceBillingSummary,
+  type BillingSummary
+} from "@/lib/billing";
 
 const planDetails = {
   name: "Plano Profissional",
   price: "R$ 299/mês",
-  description: "Atende times em crescimento com automações liberadas e suporte prioritário.",
+  description:
+    "Atende times em crescimento com automações liberadas e suporte prioritário.",
   features: [
     "Conversas e contatos ilimitados",
     "Automações inteligentes",
@@ -58,14 +68,19 @@ const formatCurrency = (value: number) =>
   }).format(value);
 
 const formatDate = (value: string) =>
-  new Date(value).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
+  new Date(value).toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric"
+  });
 
 export default function BillingAdminPage() {
   const [summary, setSummary] = useState<BillingSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
-  const [paymentForm, setPaymentForm] = useState<PaymentFormState>(emptyPaymentForm);
+  const [paymentForm, setPaymentForm] =
+    useState<PaymentFormState>(emptyPaymentForm);
   const [paymentFeedback, setPaymentFeedback] = useState<string | null>(null);
 
   useEffect(() => {
@@ -79,7 +94,11 @@ export default function BillingAdminPage() {
         const data = await fetchWorkspaceBillingSummary(controller.signal);
         setSummary(data);
       } catch (fetchError) {
-        setError(fetchError instanceof Error ? fetchError.message : "Erro inesperado ao carregar cobrança.");
+        setError(
+          fetchError instanceof Error
+            ? fetchError.message
+            : "Erro inesperado ao carregar cobrança."
+        );
       } finally {
         setLoading(false);
       }
@@ -91,17 +110,23 @@ export default function BillingAdminPage() {
   }, []);
 
   const isDelinquent = summary?.isDelinquent ?? false;
-  const statusLabel = summary ? statusLabels[summary.status] ?? summary.status : "Carregando...";
-  const statusClass = summary ? statusStyles[summary.status] ?? statusStyles.NO_SUBSCRIPTION : statusStyles.NO_SUBSCRIPTION;
+  const statusLabel = summary
+    ? (statusLabels[summary.status] ?? summary.status)
+    : "Carregando...";
+  const statusClass = summary
+    ? (statusStyles[summary.status] ?? statusStyles.NO_SUBSCRIPTION)
+    : statusStyles.NO_SUBSCRIPTION;
 
   const invoices = useMemo(() => summary?.invoices ?? [], [summary]);
 
-  const handlePaymentChange = (field: keyof PaymentFormState) => (event: ChangeEvent<HTMLInputElement>) => {
-    setPaymentForm((prev) => ({
-      ...prev,
-      [field]: event.target.value
-    }));
-  };
+  const handlePaymentChange =
+    (field: keyof PaymentFormState) =>
+    (event: ChangeEvent<HTMLInputElement>) => {
+      setPaymentForm((prev) => ({
+        ...prev,
+        [field]: event.target.value
+      }));
+    };
 
   const handlePaymentSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -115,9 +140,12 @@ export default function BillingAdminPage() {
       <header className="border-b bg-white px-6 py-6 shadow-sm">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-2">
           <p className="text-sm font-medium text-blue-600">Admin</p>
-          <h1 className="text-2xl font-semibold text-gray-900">Cobrança do workspace</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">
+            Cobrança do workspace
+          </h1>
           <p className="text-sm text-gray-500">
-            Acompanhe o plano, o status da assinatura e os pagamentos do workspace atual.
+            Acompanhe o plano, o status da assinatura e os pagamentos do
+            workspace atual.
           </p>
           <div className="mt-3 flex flex-wrap gap-3">
             <Link href="/dashboard">
@@ -133,7 +161,8 @@ export default function BillingAdminPage() {
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-10">
         {isDelinquent ? (
           <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            Workspace inadimplente. O envio de mensagens e automações está bloqueado até a regularização do pagamento.
+            Workspace inadimplente. O envio de mensagens e automações está
+            bloqueado até a regularização do pagamento.
           </div>
         ) : null}
 
@@ -148,9 +177,15 @@ export default function BillingAdminPage() {
             <div className="rounded-2xl border bg-white p-6 shadow-sm">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Plano atual</p>
-                  <h2 className="mt-2 text-2xl font-semibold text-gray-900">{planDetails.name}</h2>
-                  <p className="mt-1 text-sm text-gray-500">{planDetails.description}</p>
+                  <p className="text-sm font-medium text-gray-500">
+                    Plano atual
+                  </p>
+                  <h2 className="mt-2 text-2xl font-semibold text-gray-900">
+                    {planDetails.name}
+                  </h2>
+                  <p className="mt-1 text-sm text-gray-500">
+                    {planDetails.description}
+                  </p>
                 </div>
                 <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-center text-sm font-semibold text-blue-700">
                   {planDetails.price}
@@ -169,9 +204,13 @@ export default function BillingAdminPage() {
             <div className="rounded-2xl border bg-white p-6 shadow-sm">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Status da assinatura</p>
+                  <p className="text-sm font-medium text-gray-500">
+                    Status da assinatura
+                  </p>
                   <div className="mt-2 flex items-center gap-3">
-                    <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium ${statusClass}`}>
+                    <span
+                      className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium ${statusClass}`}
+                    >
                       {loading ? "Carregando..." : statusLabel}
                     </span>
                     {summary?.lastUpdatedAt ? (
@@ -184,7 +223,8 @@ export default function BillingAdminPage() {
                 <Button variant="outline">Solicitar revisão</Button>
               </div>
               <p className="mt-4 text-sm text-gray-500">
-                Caso identifique cobranças divergentes, abra um chamado com o time financeiro.
+                Caso identifique cobranças divergentes, abra um chamado com o
+                time financeiro.
               </p>
             </div>
 
@@ -194,7 +234,9 @@ export default function BillingAdminPage() {
                 <Button variant="outline">Baixar comprovantes</Button>
               </div>
               {loading ? (
-                <div className="mt-4 text-sm text-gray-500">Carregando faturas...</div>
+                <div className="mt-4 text-sm text-gray-500">
+                  Carregando faturas...
+                </div>
               ) : invoices.length === 0 ? (
                 <div className="mt-4 rounded-lg border border-dashed border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-500">
                   Nenhuma fatura disponível para este workspace.
@@ -202,15 +244,28 @@ export default function BillingAdminPage() {
               ) : (
                 <div className="mt-4 space-y-3">
                   {invoices.map((invoice) => (
-                    <div key={invoice.id} className="flex flex-col gap-2 rounded-xl border bg-gray-50 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+                    <div
+                      key={invoice.id}
+                      className="flex flex-col gap-2 rounded-xl border bg-gray-50 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between"
+                    >
                       <div>
-                        <p className="font-medium text-gray-800">Fatura #{invoice.id}</p>
-                        <p className="text-xs text-gray-500">Vencimento em {formatDate(invoice.dueDate)}</p>
+                        <p className="font-medium text-gray-800">
+                          Fatura #{invoice.id}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Vencimento em {formatDate(invoice.dueDate)}
+                        </p>
                       </div>
                       <div className="flex items-center gap-4">
-                        <span className="font-semibold text-gray-800">{formatCurrency(invoice.amount)}</span>
+                        <span className="font-semibold text-gray-800">
+                          {formatCurrency(invoice.amount)}
+                        </span>
                         <span className="rounded-full bg-white px-3 py-1 text-xs font-medium text-gray-600">
-                          {invoice.status === "PAID" ? "Pago" : invoice.status === "OVERDUE" ? "Em atraso" : "Pendente"}
+                          {invoice.status === "PAID"
+                            ? "Pago"
+                            : invoice.status === "OVERDUE"
+                              ? "Em atraso"
+                              : "Pendente"}
                         </span>
                       </div>
                     </div>
@@ -222,16 +277,22 @@ export default function BillingAdminPage() {
 
           <aside className="space-y-6">
             <div className="rounded-2xl border bg-white p-6 shadow-sm">
-              <h3 className="text-lg font-semibold text-gray-900">Método de pagamento</h3>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Método de pagamento
+              </h3>
               {summary?.paymentMethod ? (
                 <div className="mt-4 space-y-2 text-sm text-gray-600">
-                  <p>{summary.paymentMethod.brand} •••• {summary.paymentMethod.last4}</p>
+                  <p>
+                    {summary.paymentMethod.brand} ••••{" "}
+                    {summary.paymentMethod.last4}
+                  </p>
                   <p>Titular: {summary.paymentMethod.holder}</p>
                   <p>Validade: {summary.paymentMethod.expiresAt}</p>
                 </div>
               ) : (
                 <p className="mt-3 text-sm text-gray-500">
-                  Nenhum método cadastrado. Atualize para regularizar cobranças futuras.
+                  Nenhum método cadastrado. Atualize para regularizar cobranças
+                  futuras.
                 </p>
               )}
               <Button
@@ -251,8 +312,13 @@ export default function BillingAdminPage() {
             </div>
 
             {showPaymentForm ? (
-              <form onSubmit={handlePaymentSubmit} className="rounded-2xl border bg-white p-6 shadow-sm">
-                <h4 className="text-base font-semibold text-gray-800">Atualizar cartão</h4>
+              <form
+                onSubmit={handlePaymentSubmit}
+                className="rounded-2xl border bg-white p-6 shadow-sm"
+              >
+                <h4 className="text-base font-semibold text-gray-800">
+                  Atualizar cartão
+                </h4>
                 <div className="mt-4 space-y-3 text-sm text-gray-600">
                   <label className="flex flex-col gap-2">
                     Titular
@@ -297,11 +363,15 @@ export default function BillingAdminPage() {
                     </label>
                   </div>
                 </div>
-                <Button type="submit" className="mt-4 w-full bg-blue-600 hover:bg-blue-700">
+                <Button
+                  type="submit"
+                  className="mt-4 w-full bg-blue-600 hover:bg-blue-700"
+                >
                   Salvar método
                 </Button>
                 <p className="mt-3 text-xs text-gray-500">
-                  Atualização simulada para o ambiente atual. Integração real será feita via provedor de cobrança.
+                  Atualização simulada para o ambiente atual. Integração real
+                  será feita via provedor de cobrança.
                 </p>
               </form>
             ) : null}

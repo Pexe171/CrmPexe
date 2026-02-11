@@ -4,6 +4,7 @@ import {
   closestCenter,
   DndContext,
   DragEndEvent,
+  DragStartEvent,
   DragOverlay,
   PointerSensor,
   useDroppable,
@@ -78,11 +79,14 @@ const normalizeStatus = (status?: string | null): PipelineStage => {
   }
 };
 
-const buildLeadCards = (conversations: SalesFunnelBoardProps["conversations"]): LeadCard[] => {
+const buildLeadCards = (
+  conversations: SalesFunnelBoardProps["conversations"]
+): LeadCard[] => {
   return conversations.map((conversation) => {
     const leadScore = conversation.contact?.leadScore ?? 0;
     const name = conversation.contact?.name?.trim() || "Lead sem nome";
-    const lastInteractionAt = conversation.lastMessageAt ?? conversation.createdAt;
+    const lastInteractionAt =
+      conversation.lastMessageAt ?? conversation.createdAt;
 
     return {
       id: conversation.id,
@@ -111,7 +115,9 @@ const FunnelColumn = ({
     >
       <div className="flex items-start justify-between">
         <div>
-          <h4 className="text-sm font-semibold text-slate-100">{stage.label}</h4>
+          <h4 className="text-sm font-semibold text-slate-100">
+            {stage.label}
+          </h4>
           <p className="text-xs text-slate-400">{stage.description}</p>
         </div>
         <span className="rounded-full bg-blue-500/10 px-2 py-1 text-xs font-semibold text-blue-200">
@@ -154,7 +160,14 @@ const FunnelColumnDroppable = ({
 };
 
 const LeadCardItem = ({ lead }: { lead: LeadCard }) => {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({
     id: lead.id,
     data: {
       type: "card",
@@ -190,11 +203,19 @@ const LeadCardItem = ({ lead }: { lead: LeadCard }) => {
   );
 };
 
-export const SalesFunnelBoard = ({ conversations, loading, apiUrl }: SalesFunnelBoardProps) => {
-  const [leadCards, setLeadCards] = useState<LeadCard[]>(() => buildLeadCards(conversations));
+export const SalesFunnelBoard = ({
+  conversations,
+  loading,
+  apiUrl
+}: SalesFunnelBoardProps) => {
+  const [leadCards, setLeadCards] = useState<LeadCard[]>(() =>
+    buildLeadCards(conversations)
+  );
   const [activeId, setActiveId] = useState<string | null>(null);
   const [boardError, setBoardError] = useState<string | null>(null);
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } })
+  );
 
   useEffect(() => {
     setLeadCards(buildLeadCards(conversations));
@@ -207,17 +228,26 @@ export const SalesFunnelBoard = ({ conversations, loading, apiUrl }: SalesFunnel
     }));
   }, [leadCards]);
 
-  const activeLead = useMemo(() => leadCards.find((lead) => lead.id === activeId) ?? null, [leadCards, activeId]);
+  const activeLead = useMemo(
+    () => leadCards.find((lead) => lead.id === activeId) ?? null,
+    [leadCards, activeId]
+  );
 
-  const updateLeadStatus = async (leadId: string, nextStatus: PipelineStage) => {
-    const response = await fetch(`${apiUrl}/api/conversations/${leadId}/status`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      credentials: "include",
-      body: JSON.stringify({ status: nextStatus })
-    });
+  const updateLeadStatus = async (
+    leadId: string,
+    nextStatus: PipelineStage
+  ) => {
+    const response = await fetch(
+      `${apiUrl}/api/conversations/${leadId}/status`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        credentials: "include",
+        body: JSON.stringify({ status: nextStatus })
+      }
+    );
 
     if (!response.ok) {
       throw new Error("Não foi possível atualizar o status do lead.");
@@ -231,16 +261,22 @@ export const SalesFunnelBoard = ({ conversations, loading, apiUrl }: SalesFunnel
     if (!over) return;
 
     const activeLeadId = active.id as string;
-    const overData = over.data.current as { type?: string; status?: PipelineStage } | undefined;
+    const overData = over.data.current as
+      | { type?: string; status?: PipelineStage }
+      | undefined;
 
     const targetStatus = overData?.status;
     if (!targetStatus) return;
 
-    const previousStatus = leadCards.find((lead) => lead.id === activeLeadId)?.status;
+    const previousStatus = leadCards.find(
+      (lead) => lead.id === activeLeadId
+    )?.status;
     if (!previousStatus || previousStatus === targetStatus) return;
 
     setLeadCards((prev) =>
-      prev.map((lead) => (lead.id === activeLeadId ? { ...lead, status: targetStatus } : lead))
+      prev.map((lead) =>
+        lead.id === activeLeadId ? { ...lead, status: targetStatus } : lead
+      )
     );
 
     setBoardError(null);
@@ -249,15 +285,21 @@ export const SalesFunnelBoard = ({ conversations, loading, apiUrl }: SalesFunnel
         await updateLeadStatus(activeLeadId, targetStatus);
       } catch (error) {
         setLeadCards((prev) =>
-          prev.map((lead) => (lead.id === activeLeadId ? { ...lead, status: previousStatus } : lead))
+          prev.map((lead) =>
+            lead.id === activeLeadId
+              ? { ...lead, status: previousStatus }
+              : lead
+          )
         );
-        setBoardError(error instanceof Error ? error.message : "Erro ao atualizar o lead.");
+        setBoardError(
+          error instanceof Error ? error.message : "Erro ao atualizar o lead."
+        );
       }
     })();
   };
 
-  const handleDragStart = (event: { active: { id: string } }) => {
-    setActiveId(event.active.id as string);
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(String(event.active.id));
   };
 
   if (loading) {
@@ -273,9 +315,12 @@ export const SalesFunnelBoard = ({ conversations, loading, apiUrl }: SalesFunnel
     <section className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-medium text-slate-100">Funil de vendas</h3>
+          <h3 className="text-lg font-medium text-slate-100">
+            Funil de vendas
+          </h3>
           <p className="text-sm text-slate-400">
-            Arraste os cards entre as etapas para atualizar o status em tempo real.
+            Arraste os cards entre as etapas para atualizar o status em tempo
+            real.
           </p>
         </div>
       </div>
@@ -308,7 +353,8 @@ export const SalesFunnelBoard = ({ conversations, loading, apiUrl }: SalesFunnel
                 </span>
               </div>
               <p className="mt-2 text-xs text-slate-400">
-                Última interação: {activeLead.lastInteractionLabel || "sem atividade"}
+                Última interação:{" "}
+                {activeLead.lastInteractionLabel || "sem atividade"}
               </p>
             </div>
           ) : null}

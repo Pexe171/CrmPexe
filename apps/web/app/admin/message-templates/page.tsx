@@ -1,7 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState, type ChangeEvent, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useState,
+  type ChangeEvent,
+  type FormEvent
+} from "react";
 import { Button } from "@/components/ui/button";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
@@ -56,7 +62,11 @@ export default function MessageTemplatesPage() {
       const data = (await response.json()) as MessageTemplate[];
       setTemplates(data);
     } catch (fetchError) {
-      setError(fetchError instanceof Error ? fetchError.message : "Erro inesperado ao carregar templates.");
+      setError(
+        fetchError instanceof Error
+          ? fetchError.message
+          : "Erro inesperado ao carregar templates."
+      );
     } finally {
       setLoading(false);
     }
@@ -67,7 +77,8 @@ export default function MessageTemplatesPage() {
   }, [fetchTemplates]);
 
   const handleChange =
-    (field: keyof TemplateFormState) => (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    (field: keyof TemplateFormState) =>
+    (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       setFormState((prev) => ({
         ...prev,
         [field]: event.target.value
@@ -108,7 +119,11 @@ export default function MessageTemplatesPage() {
       resetForm();
       await fetchTemplates();
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Erro inesperado ao salvar template.");
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : "Erro inesperado ao salvar template."
+      );
     } finally {
       setSubmitting(false);
     }
@@ -119,10 +134,13 @@ export default function MessageTemplatesPage() {
     setError(null);
 
     try {
-      const response = await fetch(`${apiUrl}/api/message-templates/${templateId}`, {
-        method: "DELETE",
-        credentials: "include"
-      });
+      const response = await fetch(
+        `${apiUrl}/api/message-templates/${templateId}`,
+        {
+          method: "DELETE",
+          credentials: "include"
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Não foi possível remover o template.");
@@ -130,7 +148,11 @@ export default function MessageTemplatesPage() {
 
       await fetchTemplates();
     } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : "Erro inesperado ao remover template.");
+      setError(
+        deleteError instanceof Error
+          ? deleteError.message
+          : "Erro inesperado ao remover template."
+      );
     } finally {
       setSubmitting(false);
     }
@@ -145,7 +167,8 @@ export default function MessageTemplatesPage() {
             Templates de mensagem (WhatsApp)
           </h1>
           <p className="text-sm text-gray-500">
-            Cadastre modelos de mensagem reutilizáveis por workspace para envio em conversas.
+            Cadastre modelos de mensagem reutilizáveis por workspace para envio
+            em conversas.
           </p>
           <div className="mt-3 flex gap-3">
             <Link href="/dashboard">
@@ -161,7 +184,11 @@ export default function MessageTemplatesPage() {
             <h2 className="text-lg font-semibold text-gray-800">
               Templates cadastrados
             </h2>
-            <Button variant="outline" onClick={fetchTemplates} disabled={loading}>
+            <Button
+              variant="outline"
+              onClick={fetchTemplates}
+              disabled={loading}
+            >
               Atualizar lista
             </Button>
           </div>
@@ -172,15 +199,21 @@ export default function MessageTemplatesPage() {
             </div>
           ) : templates.length === 0 ? (
             <div className="rounded-xl border bg-white p-6 text-sm text-gray-500 shadow-sm">
-              Nenhum template cadastrado ainda. Use o formulário ao lado para criar o primeiro.
+              Nenhum template cadastrado ainda. Use o formulário ao lado para
+              criar o primeiro.
             </div>
           ) : (
             <div className="grid gap-4">
               {templates.map((template) => (
-                <div key={template.id} className="rounded-xl border bg-white p-5 shadow-sm">
+                <div
+                  key={template.id}
+                  className="rounded-xl border bg-white p-5 shadow-sm"
+                >
                   <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900">{template.name}</h3>
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        {template.name}
+                      </h3>
                       <p className="text-sm text-gray-500">
                         Canal: {template.channel} · Idioma: {template.language}
                       </p>
@@ -210,7 +243,8 @@ export default function MessageTemplatesPage() {
         <section className="w-full max-w-md space-y-4 rounded-xl border bg-white p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-gray-900">Novo template</h2>
           <p className="text-sm text-gray-500">
-            Defina o nome, idioma e conteúdo do template que será enviado via WhatsApp.
+            Defina o nome, idioma e conteúdo do template que será enviado via
+            WhatsApp.
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">

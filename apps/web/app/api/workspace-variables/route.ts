@@ -13,7 +13,10 @@ const buildHeaders = (request: Request) => {
   return headers;
 };
 
-const handleApiError = async (apiResponse: Response, fallbackMessage: string) => {
+const handleApiError = async (
+  apiResponse: Response,
+  fallbackMessage: string
+) => {
   const payload = await apiResponse.json().catch(() => null);
 
   return NextResponse.json(
@@ -39,7 +42,10 @@ export async function GET(request: Request) {
   }
 
   if (!apiResponse.ok) {
-    return handleApiError(apiResponse, "Falha ao carregar variáveis do workspace.");
+    return handleApiError(
+      apiResponse,
+      "Falha ao carregar variáveis do workspace."
+    );
   }
 
   const payload = await apiResponse.json().catch(() => null);
@@ -77,7 +83,10 @@ export async function POST(request: Request) {
   }
 
   if (!apiResponse.ok) {
-    return handleApiError(apiResponse, "Falha ao salvar variável do workspace.");
+    return handleApiError(
+      apiResponse,
+      "Falha ao salvar variável do workspace."
+    );
   }
 
   const payload = await apiResponse.json().catch(() => null);

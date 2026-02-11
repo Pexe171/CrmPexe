@@ -34,7 +34,9 @@ export function useAuthOtp() {
   const [isLoading, setIsLoading] = useState(false);
 
   const requestOtp = useCallback(
-    async (payload: RequestOtpPayload): Promise<AuthResult<{ expiresAt?: string }>> => {
+    async (
+      payload: RequestOtpPayload
+    ): Promise<AuthResult<{ expiresAt?: string }>> => {
       setIsLoading(true);
 
       try {
@@ -69,7 +71,9 @@ export function useAuthOtp() {
   );
 
   const verifyOtp = useCallback(
-    async (payload: VerifyOtpPayload): Promise<AuthResult<AuthVerifyResponse>> => {
+    async (
+      payload: VerifyOtpPayload
+    ): Promise<AuthResult<AuthVerifyResponse>> => {
       setIsLoading(true);
 
       try {
@@ -87,7 +91,9 @@ export function useAuthOtp() {
           return { ok: false };
         }
 
-        const data = (await response.json().catch(() => ({}))) as AuthVerifyResponse;
+        const data = (await response
+          .json()
+          .catch(() => ({}))) as AuthVerifyResponse;
         return { ok: true, data };
       } catch (error) {
         console.error("Erro ao validar OTP:", error);

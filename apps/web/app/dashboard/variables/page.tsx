@@ -43,7 +43,11 @@ export default function WorkspaceVariablesPage() {
       try {
         await fetchVariables();
       } catch (fetchError) {
-        setError(fetchError instanceof Error ? fetchError.message : "Erro ao carregar variáveis.");
+        setError(
+          fetchError instanceof Error
+            ? fetchError.message
+            : "Erro ao carregar variáveis."
+        );
       } finally {
         setLoading(false);
       }
@@ -88,7 +92,11 @@ export default function WorkspaceVariablesPage() {
       await fetchVariables();
       resetForm();
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Erro ao salvar variável.");
+      setError(
+        saveError instanceof Error
+          ? saveError.message
+          : "Erro ao salvar variável."
+      );
     } finally {
       setSaving(false);
     }
@@ -110,7 +118,9 @@ export default function WorkspaceVariablesPage() {
 
   const stats = useMemo(() => {
     const total = variables.length;
-    const sensitive = variables.filter((variable) => variable.isSensitive).length;
+    const sensitive = variables.filter(
+      (variable) => variable.isSensitive
+    ).length;
     const lastUpdated = variables
       .map((variable) => new Date(variable.updatedAt).getTime())
       .sort((a, b) => b - a)[0];
@@ -131,16 +141,22 @@ export default function WorkspaceVariablesPage() {
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-300">
                 Configurações
               </p>
-              <h1 className="mt-2 text-3xl font-semibold text-white">Variáveis do workspace</h1>
+              <h1 className="mt-2 text-3xl font-semibold text-white">
+                Variáveis do workspace
+              </h1>
               <p className="mt-2 max-w-2xl text-sm text-slate-300">
-                Centralize tokens, IDs e chaves operacionais usados nos workflows instalados. Garanta
-                consistência e segurança entre automações.
+                Centralize tokens, IDs e chaves operacionais usados nos
+                workflows instalados. Garanta consistência e segurança entre
+                automações.
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
               <Link
                 href="/dashboard"
-                className={buttonVariants({ variant: "outline", className: "border-white/20 text-white hover:border-white/40" })}
+                className={buttonVariants({
+                  variant: "outline",
+                  className: "border-white/20 text-white hover:border-white/40"
+                })}
               >
                 Voltar ao dashboard
               </Link>
@@ -159,17 +175,23 @@ export default function WorkspaceVariablesPage() {
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-white shadow-sm backdrop-blur">
               <p className="text-xs text-slate-300">Total de variáveis</p>
               <p className="mt-2 text-2xl font-semibold">{stats.total}</p>
-              <p className="mt-2 text-xs text-slate-400">Inclui visíveis e sensíveis.</p>
+              <p className="mt-2 text-xs text-slate-400">
+                Inclui visíveis e sensíveis.
+              </p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-white shadow-sm backdrop-blur">
               <p className="text-xs text-slate-300">Variáveis sensíveis</p>
               <p className="mt-2 text-2xl font-semibold">{stats.sensitive}</p>
-              <p className="mt-2 text-xs text-slate-400">Valores são criptografados.</p>
+              <p className="mt-2 text-xs text-slate-400">
+                Valores são criptografados.
+              </p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-white shadow-sm backdrop-blur">
               <p className="text-xs text-slate-300">Última atualização</p>
               <p className="mt-2 text-lg font-semibold">{stats.lastUpdated}</p>
-              <p className="mt-2 text-xs text-slate-400">Com base na lista atual.</p>
+              <p className="mt-2 text-xs text-slate-400">
+                Com base na lista atual.
+              </p>
             </div>
           </div>
         </header>
@@ -186,7 +208,9 @@ export default function WorkspaceVariablesPage() {
           <div className="rounded-2xl border border-white/10 bg-white p-6 shadow-xl">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Nova variável</h2>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Nova variável
+                </h2>
                 <p className="mt-1 text-sm text-gray-500">
                   {editingKey
                     ? `Editando "${editingKey}". Atualize apenas o valor ou altere a sensibilidade.`
@@ -242,7 +266,11 @@ export default function WorkspaceVariablesPage() {
                     Cancelar
                   </Button>
                 ) : null}
-                <Button onClick={handleSubmit} disabled={saving} className="bg-indigo-600 hover:bg-indigo-500">
+                <Button
+                  onClick={handleSubmit}
+                  disabled={saving}
+                  className="bg-indigo-600 hover:bg-indigo-500"
+                >
                   {saving ? "Salvando..." : "Salvar variável"}
                 </Button>
               </div>
@@ -252,17 +280,22 @@ export default function WorkspaceVariablesPage() {
           <div className="rounded-2xl border border-white/10 bg-slate-900/70 p-6 text-white shadow-xl">
             <h3 className="text-lg font-semibold">Boas práticas</h3>
             <p className="mt-2 text-sm text-slate-300">
-              Mantenha um padrão de nomenclatura único para facilitar a manutenção dos seus fluxos.
+              Mantenha um padrão de nomenclatura único para facilitar a
+              manutenção dos seus fluxos.
             </p>
             <div className="mt-6 space-y-4">
               {instructions.map((item) => (
-                <div key={item} className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <div
+                  key={item}
+                  className="rounded-xl border border-white/10 bg-white/5 p-4"
+                >
                   <p className="text-sm text-slate-200">{item}</p>
                 </div>
               ))}
               <div className="rounded-xl border border-white/10 bg-white/5 p-4">
                 <p className="text-sm text-slate-200">
-                  Prefira chaves em caixa alta e valores segmentados por workspace.
+                  Prefira chaves em caixa alta e valores segmentados por
+                  workspace.
                 </p>
               </div>
             </div>
@@ -272,8 +305,12 @@ export default function WorkspaceVariablesPage() {
         <section className="rounded-2xl border border-white/10 bg-white p-6 shadow-xl">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Variáveis cadastradas</h2>
-              <p className="mt-1 text-sm text-gray-500">Acompanhe o que está ativo nos workflows.</p>
+              <h2 className="text-lg font-semibold text-gray-900">
+                Variáveis cadastradas
+              </h2>
+              <p className="mt-1 text-sm text-gray-500">
+                Acompanhe o que está ativo nos workflows.
+              </p>
             </div>
             <span className="rounded-full bg-slate-100 px-4 py-1 text-xs font-semibold text-slate-600">
               {loading ? "Atualizando" : `${variables.length} variáveis`}
@@ -297,9 +334,12 @@ export default function WorkspaceVariablesPage() {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-sm font-semibold text-gray-900">{variable.key}</p>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {variable.key}
+                      </p>
                       <p className="text-xs text-gray-500">
-                        Atualizada em {new Date(variable.updatedAt).toLocaleString()}
+                        Atualizada em{" "}
+                        {new Date(variable.updatedAt).toLocaleString()}
                       </p>
                     </div>
                     {variable.isSensitive ? (
@@ -316,8 +356,14 @@ export default function WorkspaceVariablesPage() {
                     {variable.isSensitive ? "••••••••" : variable.value || "-"}
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-400">ID: {variable.id}</span>
-                    <Button variant="outline" size="sm" onClick={() => handleEdit(variable)}>
+                    <span className="text-xs text-gray-400">
+                      ID: {variable.id}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEdit(variable)}
+                    >
                       Editar
                     </Button>
                   </div>

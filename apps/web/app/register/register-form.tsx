@@ -26,8 +26,15 @@ export function RegisterForm() {
   const { brandName, brandLogoUrl } = useBranding();
   const { t } = useTranslations();
   const { clearFeedback } = useGlobalFeedback();
-  const { formState, onChange, status, setStatus, step, setStep, resetToRequest } =
-    useLoginFlow(initialState);
+  const {
+    formState,
+    onChange,
+    status,
+    setStatus,
+    step,
+    setStep,
+    resetToRequest
+  } = useLoginFlow(initialState);
   const { isLoading, requestOtp, verifyOtp } = useAuthOtp();
   const [isPending, startTransition] = useTransition();
 
@@ -192,7 +199,11 @@ export function RegisterForm() {
             </p>
           ) : null}
 
-          <Button type="submit" className="w-full" disabled={isPending || isLoading}>
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={isPending || isLoading}
+          >
             {isPending || isLoading
               ? step === "request"
                 ? t("auth.login.requestLoading")

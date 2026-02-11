@@ -59,14 +59,18 @@ const formatDate = (value: string) =>
     timeStyle: "short"
   }).format(new Date(value));
 
-const fetchMarketplaceInterests = async (signal?: AbortSignal): Promise<LeadRequest[]> => {
+const fetchMarketplaceInterests = async (
+  signal?: AbortSignal
+): Promise<LeadRequest[]> => {
   const response = await fetch(`${apiUrl}/api/marketplace/interests`, {
     credentials: "include",
     signal
   });
 
   if (!response.ok) {
-    throw new Error("Não foi possível carregar as solicitações do marketplace.");
+    throw new Error(
+      "Não foi possível carregar as solicitações do marketplace."
+    );
   }
 
   return (await response.json()) as LeadRequest[];
@@ -98,12 +102,15 @@ const toggleMarketplaceAccess = async ({
   workspaceId: string;
   enabled: boolean;
 }) => {
-  const response = await fetch(`${apiUrl}/api/marketplace/agents/${templateId}/access`, {
-    method: "PATCH",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ workspaceId, enabled })
-  });
+  const response = await fetch(
+    `${apiUrl}/api/marketplace/agents/${templateId}/access`,
+    {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ workspaceId, enabled })
+    }
+  );
 
   if (!response.ok) {
     throw new Error("Não foi possível atualizar o acesso da automação.");
@@ -142,7 +149,8 @@ const MarketplaceDashboard = () => {
     isError: hasTemplatesError
   } = useQuery({
     queryKey: ["marketplace-templates", selectedWorkspace],
-    queryFn: ({ signal }) => fetchMarketplaceTemplates(selectedWorkspace, signal),
+    queryFn: ({ signal }) =>
+      fetchMarketplaceTemplates(selectedWorkspace, signal),
     enabled: Boolean(selectedWorkspace)
   });
 
@@ -196,9 +204,12 @@ const MarketplaceDashboard = () => {
             <SidebarNav variant="superadmin" />
             <p className="text-sm font-medium text-purple-600">Super Admin</p>
           </div>
-          <h1 className="text-2xl font-semibold text-slate-100">Dashboard Marketplace</h1>
+          <h1 className="text-2xl font-semibold text-slate-100">
+            Dashboard Marketplace
+          </h1>
           <p className="text-sm text-slate-400">
-            Onde a mágica acontece: centralize catálogo, permissões e solicitações de interesse.
+            Onde a mágica acontece: centralize catálogo, permissões e
+            solicitações de interesse.
           </p>
           <div className="mt-3 flex flex-wrap gap-3">
             <Link href="/super-admin">
@@ -214,15 +225,23 @@ const MarketplaceDashboard = () => {
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-10">
         <section className="grid gap-4 md:grid-cols-3">
           <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-sm">
-            <p className="text-sm font-medium text-slate-400">Agentes no catálogo</p>
-            <p className="mt-2 text-3xl font-semibold text-slate-100">{templates.length}</p>
+            <p className="text-sm font-medium text-slate-400">
+              Agentes no catálogo
+            </p>
+            <p className="mt-2 text-3xl font-semibold text-slate-100">
+              {templates.length}
+            </p>
           </div>
           <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-sm">
             <p className="text-sm font-medium text-slate-400">Publicados</p>
-            <p className="mt-2 text-3xl font-semibold text-slate-100">{publishedCount}</p>
+            <p className="mt-2 text-3xl font-semibold text-slate-100">
+              {publishedCount}
+            </p>
           </div>
           <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-sm">
-            <p className="text-sm font-medium text-slate-400">Solicitações pendentes</p>
+            <p className="text-sm font-medium text-slate-400">
+              Solicitações pendentes
+            </p>
             <p className="mt-2 text-3xl font-semibold text-slate-100">
               {leadRequests.filter((lead) => lead.status === "PENDING").length}
             </p>
@@ -236,7 +255,8 @@ const MarketplaceDashboard = () => {
                 Gerenciar permissões por workspace
               </h2>
               <p className="text-sm text-slate-400">
-                Selecione um workspace e habilite as automações que ele poderá acessar.
+                Selecione um workspace e habilite as automações que ele poderá
+                acessar.
               </p>
             </div>
             <select
@@ -261,10 +281,13 @@ const MarketplaceDashboard = () => {
             ) : null}
             {hasTemplatesError ? (
               <div className="rounded-xl border border-slate-800 bg-slate-950 p-4 text-sm text-rose-300">
-                Não foi possível carregar as automações. Verifique a conexão com a API.
+                Não foi possível carregar as automações. Verifique a conexão com
+                a API.
               </div>
             ) : null}
-            {!isLoadingTemplates && !hasTemplatesError && templates.length === 0 ? (
+            {!isLoadingTemplates &&
+            !hasTemplatesError &&
+            templates.length === 0 ? (
               <div className="rounded-xl border border-slate-800 bg-slate-950 p-4 text-sm text-slate-400">
                 Nenhuma automação encontrada para este workspace.
               </div>
@@ -281,8 +304,12 @@ const MarketplaceDashboard = () => {
                   className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950 p-4"
                 >
                   <div>
-                    <p className="text-sm font-semibold text-slate-100">{template.name}</p>
-                    <p className="text-xs text-slate-400">{template.categoryId}</p>
+                    <p className="text-sm font-semibold text-slate-100">
+                      {template.name}
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      {template.categoryId}
+                    </p>
                   </div>
                   <label className="flex items-center gap-2 text-xs text-slate-400">
                     <span>{enabled ? "Ativo" : "Inativo"}</span>
@@ -305,14 +332,17 @@ const MarketplaceDashboard = () => {
             })}
           </div>
           <p className="mt-3 text-xs text-slate-500">
-            Workspace selecionado: <span className="text-slate-300">{selectedWorkspace}</span>
+            Workspace selecionado:{" "}
+            <span className="text-slate-300">{selectedWorkspace}</span>
           </p>
         </section>
 
         <section className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-sm">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-slate-100">Solicitações de interesse</h2>
+              <h2 className="text-lg font-semibold text-slate-100">
+                Solicitações de interesse
+              </h2>
               <p className="text-sm text-slate-400">
                 Leads internos que clicaram em “Tenho interesse” no marketplace.
               </p>
@@ -335,21 +365,33 @@ const MarketplaceDashboard = () => {
               <tbody className="divide-y divide-slate-800 bg-slate-900">
                 {isLoadingLeads ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-6 text-center text-slate-400">
+                    <td
+                      colSpan={6}
+                      className="px-4 py-6 text-center text-slate-400"
+                    >
                       Carregando solicitações...
                     </td>
                   </tr>
                 ) : null}
                 {hasLeadsError ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-6 text-center text-rose-300">
-                      Não foi possível carregar as solicitações. Verifique a API.
+                    <td
+                      colSpan={6}
+                      className="px-4 py-6 text-center text-rose-300"
+                    >
+                      Não foi possível carregar as solicitações. Verifique a
+                      API.
                     </td>
                   </tr>
                 ) : null}
-                {!isLoadingLeads && !hasLeadsError && leadRequests.length === 0 ? (
+                {!isLoadingLeads &&
+                !hasLeadsError &&
+                leadRequests.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-6 text-center text-slate-400">
+                    <td
+                      colSpan={6}
+                      className="px-4 py-6 text-center text-slate-400"
+                    >
                       Nenhuma solicitação encontrada no momento.
                     </td>
                   </tr>
@@ -357,15 +399,19 @@ const MarketplaceDashboard = () => {
                 {leadRequests.map((lead) => {
                   const isResolving =
                     resolveLeadMutation.isPending &&
-                    resolveLeadMutation.variables?.templateId === lead.template.id &&
-                    resolveLeadMutation.variables?.workspaceId === lead.workspace.id;
+                    resolveLeadMutation.variables?.templateId ===
+                      lead.template.id &&
+                    resolveLeadMutation.variables?.workspaceId ===
+                      lead.workspace.id;
 
                   return (
                     <tr key={lead.id}>
                       <td className="px-4 py-3 font-semibold text-slate-100">
                         {lead.workspace.name}
                       </td>
-                      <td className="px-4 py-3 text-slate-300">{lead.template.name}</td>
+                      <td className="px-4 py-3 text-slate-300">
+                        {lead.template.name}
+                      </td>
                       <td className="px-4 py-3 text-slate-300">
                         <div className="font-medium text-slate-100">
                           {lead.requestedByUser.name}

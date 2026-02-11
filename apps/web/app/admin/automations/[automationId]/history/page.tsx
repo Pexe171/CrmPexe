@@ -72,7 +72,8 @@ const statusStyles: Record<ExecutionStatus, string> = {
 export default function AutomationHistoryPage() {
   const params = useParams<{ automationId: string }>();
   const automationId = params?.automationId ?? "";
-  const [selectedExecution, setSelectedExecution] = useState<ExecutionRecord | null>(null);
+  const [selectedExecution, setSelectedExecution] =
+    useState<ExecutionRecord | null>(null);
 
   const executions = useMemo(
     () => [...executionData].sort((a, b) => b.date.localeCompare(a.date)),
@@ -84,15 +85,20 @@ export default function AutomationHistoryPage() {
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-8">
         <header className="space-y-2">
           <p className="text-sm font-medium text-emerald-400">Automações</p>
-          <h1 className="text-2xl font-semibold text-white">Histórico de execuções</h1>
+          <h1 className="text-2xl font-semibold text-white">
+            Histórico de execuções
+          </h1>
           <p className="text-sm text-slate-300">
-            Automação <span className="font-medium text-slate-100">{automationId}</span>
+            Automação{" "}
+            <span className="font-medium text-slate-100">{automationId}</span>
           </p>
         </header>
 
         <section className="rounded-2xl border border-blue-500/20 bg-slate-900 shadow-[0_0_0_1px_rgba(59,130,246,0.08),0_24px_60px_-32px_rgba(59,130,246,0.45)]">
           <div className="border-b border-blue-500/10 px-6 py-4">
-            <h2 className="text-base font-semibold text-slate-100">Execuções recentes</h2>
+            <h2 className="text-base font-semibold text-slate-100">
+              Execuções recentes
+            </h2>
             <p className="text-sm text-slate-400">
               Lista cronológica de execuções com detalhes de input e output.
             </p>
@@ -113,7 +119,9 @@ export default function AutomationHistoryPage() {
                 <span className="font-medium text-white">{execution.id}</span>
                 <span>{formatDate(execution.date)}</span>
                 <span>{execution.duration}</span>
-                <span className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-semibold ${statusStyles[execution.status]}`}>
+                <span
+                  className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-semibold ${statusStyles[execution.status]}`}
+                >
                   {execution.status}
                 </span>
                 <div className="flex justify-end">
@@ -130,8 +138,14 @@ export default function AutomationHistoryPage() {
           </div>
         </section>
 
-        <Sheet open={Boolean(selectedExecution)} onOpenChange={(open) => !open && setSelectedExecution(null)}>
-          <SheetContent side="right" className="gap-6 border-blue-500/20 bg-slate-950 text-slate-100">
+        <Sheet
+          open={Boolean(selectedExecution)}
+          onOpenChange={(open) => !open && setSelectedExecution(null)}
+        >
+          <SheetContent
+            side="right"
+            className="gap-6 border-blue-500/20 bg-slate-950 text-slate-100"
+          >
             <SheetHeader>
               <SheetTitle>Detalhes da execução</SheetTitle>
               <SheetDescription>
@@ -144,7 +158,9 @@ export default function AutomationHistoryPage() {
             {selectedExecution ? (
               <div className="space-y-6">
                 <div className="flex flex-wrap gap-3">
-                  <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusStyles[selectedExecution.status]}`}>
+                  <span
+                    className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusStyles[selectedExecution.status]}`}
+                  >
                     {selectedExecution.status}
                   </span>
                   <span className="inline-flex rounded-full bg-slate-800 px-3 py-1 text-xs font-semibold text-slate-200">
@@ -153,14 +169,18 @@ export default function AutomationHistoryPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <h3 className="text-sm font-semibold text-slate-100">Input (gatilho)</h3>
+                  <h3 className="text-sm font-semibold text-slate-100">
+                    Input (gatilho)
+                  </h3>
                   <pre className="whitespace-pre-wrap rounded-lg border border-blue-500/20 bg-slate-900/70 p-4 text-xs font-mono text-slate-200">
                     {selectedExecution.input}
                   </pre>
                 </div>
 
                 <div className="space-y-2">
-                  <h3 className="text-sm font-semibold text-slate-100">Output (resultado)</h3>
+                  <h3 className="text-sm font-semibold text-slate-100">
+                    Output (resultado)
+                  </h3>
                   <pre className="whitespace-pre-wrap rounded-lg border border-blue-500/20 bg-slate-900/70 p-4 text-xs font-mono text-slate-200">
                     {selectedExecution.output}
                   </pre>

@@ -74,7 +74,8 @@ export default function MinhasInstalacoesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
-  const [selectedInstance, setSelectedInstance] = useState<AutomationInstance | null>(null);
+  const [selectedInstance, setSelectedInstance] =
+    useState<AutomationInstance | null>(null);
   const [configDraft, setConfigDraft] = useState<Record<string, string>>({});
   const [newConfigKey, setNewConfigKey] = useState("");
   const [newConfigValue, setNewConfigValue] = useState("");
@@ -83,12 +84,17 @@ export default function MinhasInstalacoesPage() {
     const fetchInstances = async () => {
       try {
         const params = new URLSearchParams({ page: "1", perPage: "50" });
-        const response = await fetch(`${apiUrl}/api/automation-instances?${params.toString()}`, {
-          credentials: "include"
-        });
+        const response = await fetch(
+          `${apiUrl}/api/automation-instances?${params.toString()}`,
+          {
+            credentials: "include"
+          }
+        );
 
         if (!response.ok) {
-          throw new Error("Não foi possível carregar as instalações do marketplace.");
+          throw new Error(
+            "Não foi possível carregar as instalações do marketplace."
+          );
         }
 
         const data = (await response.json()) as AutomationInstancesResponse;
@@ -134,24 +140,32 @@ export default function MinhasInstalacoesPage() {
     setConfigDraft(nextConfig);
   }, [selectedInstance]);
 
-  const configEntries = useMemo(() => Object.entries(configDraft), [configDraft]);
+  const configEntries = useMemo(
+    () => Object.entries(configDraft),
+    [configDraft]
+  );
 
   const handleToggle = async (instance: AutomationInstance) => {
     setTogglingId(instance.id);
     setError(null);
     try {
       const action = instance.enabled ? "disable" : "enable";
-      const response = await fetch(`${apiUrl}/api/automations/${instance.id}/${action}`, {
-        method: "POST",
-        credentials: "include"
-      });
+      const response = await fetch(
+        `${apiUrl}/api/automations/${instance.id}/${action}`,
+        {
+          method: "POST",
+          credentials: "include"
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Não foi possível alterar o status da automação.");
       }
 
       const updated = (await response.json()) as AutomationInstance;
-      setInstances((prev) => prev.map((item) => (item.id === instance.id ? updated : item)));
+      setInstances((prev) =>
+        prev.map((item) => (item.id === instance.id ? updated : item))
+      );
     } catch (toggleError) {
       const message =
         toggleError instanceof Error
@@ -185,7 +199,10 @@ export default function MinhasInstalacoesPage() {
     if (!newConfigKey.trim()) {
       return;
     }
-    setConfigDraft((prev) => ({ ...prev, [newConfigKey.trim()]: newConfigValue }));
+    setConfigDraft((prev) => ({
+      ...prev,
+      [newConfigKey.trim()]: newConfigValue
+    }));
     setNewConfigKey("");
     setNewConfigValue("");
   };
@@ -198,15 +215,22 @@ export default function MinhasInstalacoesPage() {
             <p className="text-xs uppercase tracking-[0.35em] text-emerald-300">
               Marketplace · Minhas Instalações
             </p>
-            <h1 className="text-3xl font-semibold text-white">Minhas Instalações</h1>
+            <h1 className="text-3xl font-semibold text-white">
+              Minhas Instalações
+            </h1>
             <p className="max-w-2xl text-sm text-zinc-300">
-              Acompanhe todas as automações que você instalou no marketplace, controle o fluxo no
-              n8n e ajuste as variáveis específicas de cada instância.
+              Acompanhe todas as automações que você instalou no marketplace,
+              controle o fluxo no n8n e ajuste as variáveis específicas de cada
+              instância.
             </p>
           </div>
           <div className="rounded-2xl border border-zinc-800/80 bg-zinc-900/60 px-5 py-4 text-sm text-zinc-200">
-            <p className="text-xs uppercase tracking-widest text-zinc-400">Status geral</p>
-            <p className="mt-1 text-2xl font-semibold text-white">{instances.length}</p>
+            <p className="text-xs uppercase tracking-widest text-zinc-400">
+              Status geral
+            </p>
+            <p className="mt-1 text-2xl font-semibold text-white">
+              {instances.length}
+            </p>
             <p className="text-xs text-zinc-400">instalações monitoradas</p>
           </div>
         </div>
@@ -236,9 +260,12 @@ export default function MinhasInstalacoesPage() {
                   <div className="space-y-4">
                     <div className="flex items-start justify-between gap-4">
                       <div>
-                        <h2 className="text-xl font-semibold text-white">{instance.template.name}</h2>
+                        <h2 className="text-xl font-semibold text-white">
+                          {instance.template.name}
+                        </h2>
                         <p className="text-sm text-zinc-400">
-                          {instance.template.description || "Automação instalada via marketplace."}
+                          {instance.template.description ||
+                            "Automação instalada via marketplace."}
                         </p>
                       </div>
                       <span
@@ -251,7 +278,9 @@ export default function MinhasInstalacoesPage() {
                         <span className="relative flex h-2 w-2">
                           <span
                             className={`absolute inline-flex h-full w-full rounded-full ${
-                              isActive ? "animate-ping bg-emerald-400" : "bg-zinc-500"
+                              isActive
+                                ? "animate-ping bg-emerald-400"
+                                : "bg-zinc-500"
                             } opacity-75`}
                           />
                           <span
@@ -271,27 +300,42 @@ export default function MinhasInstalacoesPage() {
                         </span>
                       )}
                       <span>
-                        Instalado em <strong className="font-medium text-zinc-200">{formatDate(instance.createdAt)}</strong>
+                        Instalado em{" "}
+                        <strong className="font-medium text-zinc-200">
+                          {formatDate(instance.createdAt)}
+                        </strong>
                       </span>
-                      <span className="rounded-full border border-zinc-700/80 px-2 py-1">{instance.status}</span>
+                      <span className="rounded-full border border-zinc-700/80 px-2 py-1">
+                        {instance.status}
+                      </span>
                     </div>
 
                     <div className="rounded-2xl border border-zinc-800/80 bg-zinc-950/60 p-4">
-                      <p className="text-xs uppercase tracking-widest text-zinc-500">Variáveis da instância</p>
+                      <p className="text-xs uppercase tracking-widest text-zinc-500">
+                        Variáveis da instância
+                      </p>
                       <div className="mt-2 grid gap-2 text-sm text-zinc-200">
                         {Object.keys(instance.configJson ?? {}).length === 0 ? (
                           <span className="text-xs text-zinc-400">
-                            Nenhuma variável configurada. Use o botão de configurar para adicionar chaves.
+                            Nenhuma variável configurada. Use o botão de
+                            configurar para adicionar chaves.
                           </span>
                         ) : (
-                          Object.entries(instance.configJson ?? {}).map(([key, value]) => (
-                            <div key={key} className="flex items-center justify-between gap-4">
-                              <span className="text-xs uppercase tracking-widest text-zinc-500">{key}</span>
-                              <span className="max-w-[60%] truncate text-right text-zinc-200">
-                                {String(value)}
-                              </span>
-                            </div>
-                          ))
+                          Object.entries(instance.configJson ?? {}).map(
+                            ([key, value]) => (
+                              <div
+                                key={key}
+                                className="flex items-center justify-between gap-4"
+                              >
+                                <span className="text-xs uppercase tracking-widest text-zinc-500">
+                                  {key}
+                                </span>
+                                <span className="max-w-[60%] truncate text-right text-zinc-200">
+                                  {String(value)}
+                                </span>
+                              </div>
+                            )
+                          )
                         )}
                       </div>
                     </div>
@@ -331,27 +375,40 @@ export default function MinhasInstalacoesPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-8">
           <div className="w-full max-w-2xl rounded-3xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl">
             <div className="flex flex-col gap-2 border-b border-zinc-800 pb-4">
-              <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">Configuração</p>
+              <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">
+                Configuração
+              </p>
               <h2 className="text-2xl font-semibold text-white">
                 {selectedInstance.template.name}
               </h2>
               <p className="text-sm text-zinc-400">
-                Edite as variáveis específicas desta instância (ex.: chaves de API ou IDs de planilha).
+                Edite as variáveis específicas desta instância (ex.: chaves de
+                API ou IDs de planilha).
               </p>
             </div>
 
             <div className="mt-6 space-y-4">
               {configEntries.length === 0 ? (
-                <p className="text-sm text-zinc-400">Nenhuma variável configurada até o momento.</p>
+                <p className="text-sm text-zinc-400">
+                  Nenhuma variável configurada até o momento.
+                </p>
               ) : (
                 configEntries.map(([key, value]) => (
-                  <div key={key} className="grid gap-2 md:grid-cols-[160px_1fr] md:items-center">
-                    <label className="text-xs uppercase tracking-widest text-zinc-500">{key}</label>
+                  <div
+                    key={key}
+                    className="grid gap-2 md:grid-cols-[160px_1fr] md:items-center"
+                  >
+                    <label className="text-xs uppercase tracking-widest text-zinc-500">
+                      {key}
+                    </label>
                     <input
                       className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-emerald-500"
                       value={value}
                       onChange={(event) =>
-                        setConfigDraft((prev) => ({ ...prev, [key]: event.target.value }))
+                        setConfigDraft((prev) => ({
+                          ...prev,
+                          [key]: event.target.value
+                        }))
                       }
                     />
                   </div>
@@ -359,7 +416,9 @@ export default function MinhasInstalacoesPage() {
               )}
 
               <div className="rounded-2xl border border-zinc-800 bg-zinc-950/40 p-4">
-                <p className="text-xs uppercase tracking-widest text-zinc-500">Adicionar variável</p>
+                <p className="text-xs uppercase tracking-widest text-zinc-500">
+                  Adicionar variável
+                </p>
                 <div className="mt-3 grid gap-3 md:grid-cols-[1fr_1fr_auto]">
                   <input
                     className="rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-emerald-500"
@@ -373,7 +432,10 @@ export default function MinhasInstalacoesPage() {
                     value={newConfigValue}
                     onChange={(event) => setNewConfigValue(event.target.value)}
                   />
-                  <Button className="bg-emerald-600 text-white hover:bg-emerald-500" onClick={handleAddConfig}>
+                  <Button
+                    className="bg-emerald-600 text-white hover:bg-emerald-500"
+                    onClick={handleAddConfig}
+                  >
                     Adicionar
                   </Button>
                 </div>
@@ -387,7 +449,10 @@ export default function MinhasInstalacoesPage() {
               >
                 Cancelar
               </Button>
-              <Button className="bg-emerald-600 text-white hover:bg-emerald-500" onClick={handleSaveConfig}>
+              <Button
+                className="bg-emerald-600 text-white hover:bg-emerald-500"
+                onClick={handleSaveConfig}
+              >
                 Salvar configurações
               </Button>
             </div>

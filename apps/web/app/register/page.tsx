@@ -2,7 +2,11 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { SESSION_COOKIE } from "@/lib/auth";
-import { ROLE_COOKIE, SUPER_ADMIN_COOKIE, getDefaultDashboardPath } from "@/lib/rbac";
+import {
+  ROLE_COOKIE,
+  SUPER_ADMIN_COOKIE,
+  getDefaultDashboardPath
+} from "@/lib/rbac";
 
 import { RegisterForm } from "./register-form";
 

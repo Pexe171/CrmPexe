@@ -36,7 +36,10 @@ const normalizeHex = (value: string) => {
   if (!trimmed.startsWith("#")) return null;
   const hex = trimmed.slice(1);
   if (hex.length === 3) {
-    return `#${hex.split("").map((part) => part + part).join("")}`;
+    return `#${hex
+      .split("")
+      .map((part) => part + part)
+      .join("")}`;
   }
   if (hex.length === 6) {
     return `#${hex}`;
@@ -96,13 +99,19 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
         if (typeof document !== "undefined") {
           if (nextBranding.brandPrimaryColor) {
             applyCssVariable("--brand-primary", nextBranding.brandPrimaryColor);
-            applyCssVariable("--brand-primary-hover", nextBranding.brandPrimaryColor);
+            applyCssVariable(
+              "--brand-primary-hover",
+              nextBranding.brandPrimaryColor
+            );
             const textColor = resolveTextColor(nextBranding.brandPrimaryColor);
             if (textColor) {
               applyCssVariable("--brand-primary-text", textColor);
             }
           }
-          applyCssVariable("--brand-secondary", nextBranding.brandSecondaryColor);
+          applyCssVariable(
+            "--brand-secondary",
+            nextBranding.brandSecondaryColor
+          );
         }
 
         if (nextBranding.brandName) {

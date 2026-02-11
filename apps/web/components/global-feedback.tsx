@@ -35,11 +35,7 @@ const toneStyles: Record<FeedbackType, string> = {
   info: "border-sky-500/40 bg-sky-500/10 text-sky-100"
 };
 
-export function GlobalFeedbackProvider({
-  children
-}: {
-  children: ReactNode;
-}) {
+export function GlobalFeedbackProvider({ children }: { children: ReactNode }) {
   const [feedback, setFeedback] = useState<FeedbackState | null>(null);
   const timeoutRef = useRef<number | null>(null);
 
@@ -47,9 +43,12 @@ export function GlobalFeedbackProvider({
     setFeedback(null);
   }, []);
 
-  const showFeedback = useCallback((message: string, type: FeedbackType = "info") => {
-    setFeedback({ message, type });
-  }, []);
+  const showFeedback = useCallback(
+    (message: string, type: FeedbackType = "info") => {
+      setFeedback({ message, type });
+    },
+    []
+  );
 
   const showError = useCallback(
     (message: string) => showFeedback(message, "error"),
@@ -127,7 +126,9 @@ export function useGlobalFeedback() {
   const context = useContext(FeedbackContext);
 
   if (!context) {
-    throw new Error("useGlobalFeedback deve ser usado dentro de GlobalFeedbackProvider.");
+    throw new Error(
+      "useGlobalFeedback deve ser usado dentro de GlobalFeedbackProvider."
+    );
   }
 
   return context;

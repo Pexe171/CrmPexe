@@ -133,6 +133,34 @@ pnpm dev:web
 - `pnpm typecheck`: checagem de tipos (na API executa `prisma generate` automaticamente antes)
 - `pnpm format`: formatação com Prettier
 
+## QA e pontos de melhoria
+
+### Checklist de QA executado
+
+Para validar a saúde do monorepo, executei o fluxo completo de qualidade:
+
+- `pnpm lint`
+- `pnpm typecheck`
+- `pnpm test`
+- `pnpm build`
+
+### Resultado atual
+
+- ✅ **Lint** concluído com sucesso no monorepo.
+- ✅ **Typecheck** concluído com sucesso no monorepo.
+- ✅ **Testes automatizados da API** passando (`32/32`).
+- ✅ **Build (API + Web)** concluído com sucesso.
+- ⚠️ Permanecem apenas *warnings* não bloqueantes no Web:
+  - uso de `<img>` em telas de login/cadastro (recomendação de migrar para `next/image`);
+  - tipo `Workspace` importado e não utilizado em `/super-admin/marketplace`.
+
+### Melhorias recomendadas (ordem sugerida)
+
+1. **Migrar imagens para `next/image`** nas telas de autenticação para otimização de LCP.
+2. **Remover import não utilizado** em `super-admin/marketplace` para zerar warnings de lint.
+3. **Adicionar gate de qualidade no CI** com etapas separadas (`lint`, `typecheck`, `test`, `build`) e falha rápida.
+4. **Tratar warning de teardown dos testes da API** (Jest) com `--detectOpenHandles` para eliminar possíveis vazamentos de recursos.
+
 ## Estrutura do repositório
 
 ```

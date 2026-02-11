@@ -2,7 +2,12 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { SESSION_COOKIE } from "@/lib/auth";
-import { ROLE_COOKIE, SUPER_ADMIN_COOKIE, normalizeSuperAdminFlag, normalizeUserRole } from "@/lib/rbac";
+import {
+  ROLE_COOKIE,
+  SUPER_ADMIN_COOKIE,
+  normalizeSuperAdminFlag,
+  normalizeUserRole
+} from "@/lib/rbac";
 
 import DashboardClient from "./dashboard-client";
 

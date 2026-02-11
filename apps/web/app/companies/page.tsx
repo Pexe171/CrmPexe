@@ -1,7 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ChangeEvent,
+  type FormEvent
+} from "react";
 import { SidebarNav } from "@/components/sidebar-nav";
 import { Button } from "@/components/ui/button";
 
@@ -41,7 +48,10 @@ export default function CompaniesPage() {
   const totalCompanies = companies.length;
   const lastUpdatedCompany = companies
     .slice()
-    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0];
+    .sort(
+      (a, b) =>
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+    )[0];
 
   const fetchCompanies = useCallback(async () => {
     setLoading(true);
@@ -59,7 +69,11 @@ export default function CompaniesPage() {
       const data = (await response.json()) as Company[];
       setCompanies(data);
     } catch (fetchError) {
-      setError(fetchError instanceof Error ? fetchError.message : "Erro inesperado ao carregar empresas.");
+      setError(
+        fetchError instanceof Error
+          ? fetchError.message
+          : "Erro inesperado ao carregar empresas."
+      );
     } finally {
       setLoading(false);
     }
@@ -82,7 +96,8 @@ export default function CompaniesPage() {
   }, [formState.customFields]);
 
   const handleChange =
-    (field: keyof CompanyFormState) => (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    (field: keyof CompanyFormState) =>
+    (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       setFormState((prev) => ({
         ...prev,
         [field]: event.target.value
@@ -107,7 +122,8 @@ export default function CompaniesPage() {
     };
 
     try {
-      const response = await fetch(`${apiUrl}/api/companies${editingId ? `/${editingId}` : ""}`,
+      const response = await fetch(
+        `${apiUrl}/api/companies${editingId ? `/${editingId}` : ""}`,
         {
           method: editingId ? "PATCH" : "POST",
           headers: {
@@ -125,7 +141,11 @@ export default function CompaniesPage() {
       resetForm();
       await fetchCompanies();
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Erro inesperado ao salvar empresa.");
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : "Erro inesperado ao salvar empresa."
+      );
     } finally {
       setSubmitting(false);
     }
@@ -137,7 +157,9 @@ export default function CompaniesPage() {
       name: company.name,
       domain: company.domain ?? "",
       phone: company.phone ?? "",
-      customFields: company.customFields ? JSON.stringify(company.customFields, null, 2) : ""
+      customFields: company.customFields
+        ? JSON.stringify(company.customFields, null, 2)
+        : ""
     });
   };
 
@@ -157,7 +179,11 @@ export default function CompaniesPage() {
 
       await fetchCompanies();
     } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : "Erro inesperado ao remover empresa.");
+      setError(
+        deleteError instanceof Error
+          ? deleteError.message
+          : "Erro inesperado ao remover empresa."
+      );
     } finally {
       setSubmitting(false);
     }
@@ -175,7 +201,8 @@ export default function CompaniesPage() {
             Cadastre e gerencie empresas do seu workspace
           </h1>
           <p className="text-sm text-slate-400">
-            Mantenha o cadastro de contas atualizado para facilitar relacionamentos e automações.
+            Mantenha o cadastro de contas atualizado para facilitar
+            relacionamentos e automações.
           </p>
           <div className="mt-3 flex gap-3">
             <Link href="/dashboard">
@@ -192,23 +219,31 @@ export default function CompaniesPage() {
         <section className="flex-1 space-y-4">
           <div className="grid gap-4 md:grid-cols-3">
             <div className="rounded-xl border bg-slate-900 p-5 shadow-sm">
-              <p className="text-sm font-medium text-slate-400">Empresas cadastradas</p>
+              <p className="text-sm font-medium text-slate-400">
+                Empresas cadastradas
+              </p>
               <p className="mt-2 text-2xl font-semibold text-slate-100">
                 {loading ? "-" : totalCompanies}
               </p>
             </div>
             <div className="rounded-xl border bg-slate-900 p-5 shadow-sm">
-              <p className="text-sm font-medium text-slate-400">Última atualização</p>
+              <p className="text-sm font-medium text-slate-400">
+                Última atualização
+              </p>
               <p className="mt-2 text-sm font-semibold text-slate-100">
                 {loading
                   ? "-"
                   : lastUpdatedCompany?.updatedAt
-                    ? new Date(lastUpdatedCompany.updatedAt).toLocaleDateString("pt-BR")
+                    ? new Date(lastUpdatedCompany.updatedAt).toLocaleDateString(
+                        "pt-BR"
+                      )
                     : "-"}
               </p>
             </div>
             <div className="rounded-xl border bg-slate-900 p-5 shadow-sm">
-              <p className="text-sm font-medium text-slate-400">Status do cadastro</p>
+              <p className="text-sm font-medium text-slate-400">
+                Status do cadastro
+              </p>
               <p className="mt-2 text-sm font-semibold text-slate-100">
                 {loading ? "Carregando..." : "Base pronta para automações"}
               </p>
@@ -218,7 +253,11 @@ export default function CompaniesPage() {
             <h2 className="text-lg font-semibold text-slate-100">
               Empresas cadastradas
             </h2>
-            <Button variant="outline" onClick={fetchCompanies} disabled={loading}>
+            <Button
+              variant="outline"
+              onClick={fetchCompanies}
+              disabled={loading}
+            >
               Atualizar lista
             </Button>
           </div>
@@ -229,24 +268,37 @@ export default function CompaniesPage() {
             </div>
           ) : companies.length === 0 ? (
             <div className="rounded-xl border bg-slate-900 p-6 text-sm text-slate-400 shadow-sm">
-              Nenhuma empresa cadastrada ainda. Use o formulário ao lado para criar a primeira.
+              Nenhuma empresa cadastrada ainda. Use o formulário ao lado para
+              criar a primeira.
             </div>
           ) : (
             <div className="grid gap-4">
               {companies.map((company) => (
-                <div key={company.id} className="rounded-xl border bg-slate-900 p-5 shadow-sm">
+                <div
+                  key={company.id}
+                  className="rounded-xl border bg-slate-900 p-5 shadow-sm"
+                >
                   <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                     <div>
-                      <h3 className="text-lg font-semibold text-slate-100">{company.name}</h3>
+                      <h3 className="text-lg font-semibold text-slate-100">
+                        {company.name}
+                      </h3>
                       <p className="text-sm text-slate-400">
-                        {company.domain ? company.domain : "Domínio não informado"}
+                        {company.domain
+                          ? company.domain
+                          : "Domínio não informado"}
                       </p>
                       <p className="text-sm text-slate-400">
-                        {company.phone ? company.phone : "Telefone não informado"}
+                        {company.phone
+                          ? company.phone
+                          : "Telefone não informado"}
                       </p>
                     </div>
                     <div className="flex gap-2">
-                      <Button variant="outline" onClick={() => handleEdit(company)}>
+                      <Button
+                        variant="outline"
+                        onClick={() => handleEdit(company)}
+                      >
                         Editar
                       </Button>
                       <Button
@@ -259,9 +311,13 @@ export default function CompaniesPage() {
                     </div>
                   </div>
                   <div className="mt-4 rounded-lg bg-slate-950 px-4 py-3 text-xs text-slate-300">
-                    <p className="font-semibold text-slate-200">Custom fields</p>
+                    <p className="font-semibold text-slate-200">
+                      Custom fields
+                    </p>
                     <pre className="mt-2 whitespace-pre-wrap text-xs text-slate-300">
-                      {company.customFields ? JSON.stringify(company.customFields, null, 2) : "Nenhum campo adicional."}
+                      {company.customFields
+                        ? JSON.stringify(company.customFields, null, 2)
+                        : "Nenhum campo adicional."}
                     </pre>
                   </div>
                 </div>
@@ -279,7 +335,10 @@ export default function CompaniesPage() {
           </p>
           <form className="mt-4 space-y-3" onSubmit={handleSubmit}>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-200" htmlFor="company-name">
+              <label
+                className="text-sm font-medium text-slate-200"
+                htmlFor="company-name"
+              >
                 Nome da empresa
               </label>
               <input
@@ -293,7 +352,10 @@ export default function CompaniesPage() {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-200" htmlFor="company-domain">
+              <label
+                className="text-sm font-medium text-slate-200"
+                htmlFor="company-domain"
+              >
                 Domínio
               </label>
               <input
@@ -306,7 +368,10 @@ export default function CompaniesPage() {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-200" htmlFor="company-phone">
+              <label
+                className="text-sm font-medium text-slate-200"
+                htmlFor="company-phone"
+              >
                 Telefone
               </label>
               <input
@@ -319,7 +384,10 @@ export default function CompaniesPage() {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-200" htmlFor="company-custom-fields">
+              <label
+                className="text-sm font-medium text-slate-200"
+                htmlFor="company-custom-fields"
+              >
                 Custom fields (JSON)
               </label>
               <textarea
@@ -331,7 +399,9 @@ export default function CompaniesPage() {
                 className="w-full rounded-lg border border-slate-800 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
               />
               {formState.customFields.trim() && !parsedCustomFields && (
-                <p className="text-xs text-red-500">JSON inválido. Corrija para salvar.</p>
+                <p className="text-xs text-red-500">
+                  JSON inválido. Corrija para salvar.
+                </p>
               )}
             </div>
             {error && <p className="text-sm text-red-500">{error}</p>}
@@ -339,9 +409,17 @@ export default function CompaniesPage() {
               <Button
                 type="submit"
                 className="flex-1 bg-blue-600 hover:bg-blue-700"
-                disabled={submitting || (formState.customFields.trim().length > 0 && !parsedCustomFields)}
+                disabled={
+                  submitting ||
+                  (formState.customFields.trim().length > 0 &&
+                    !parsedCustomFields)
+                }
               >
-                {submitting ? "Salvando..." : editingId ? "Atualizar empresa" : "Criar empresa"}
+                {submitting
+                  ? "Salvando..."
+                  : editingId
+                    ? "Atualizar empresa"
+                    : "Criar empresa"}
               </Button>
               {editingId && (
                 <Button type="button" variant="outline" onClick={resetForm}>
@@ -353,8 +431,9 @@ export default function CompaniesPage() {
           <div className="mt-6 rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-700">
             <p className="font-semibold">Boas práticas</p>
             <p className="mt-2">
-              Cadastre domínio e telefone para enriquecer conversas, deals e relatórios. Os campos
-              customizados ajudam a personalizar o CRM por segmento.
+              Cadastre domínio e telefone para enriquecer conversas, deals e
+              relatórios. Os campos customizados ajudam a personalizar o CRM por
+              segmento.
             </p>
           </div>
         </aside>

@@ -1,13 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ChangeEvent,
+  type FormEvent
+} from "react";
 import { Button } from "@/components/ui/button";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 type CustomFieldEntity = "COMPANY" | "CONTACT" | "DEAL";
-type CustomFieldType = "TEXT" | "NUMBER" | "DATE" | "SELECT" | "MULTI_SELECT" | "BOOLEAN";
+type CustomFieldType =
+  | "TEXT"
+  | "NUMBER"
+  | "DATE"
+  | "SELECT"
+  | "MULTI_SELECT"
+  | "BOOLEAN";
 
 type CustomFieldDefinition = {
   id: string;
@@ -68,9 +81,12 @@ export default function CustomFieldsAdminPage() {
 
     try {
       const query = entity ? `?entity=${entity}` : "";
-      const response = await fetch(`${apiUrl}/api/custom-field-definitions${query}`, {
-        credentials: "include"
-      });
+      const response = await fetch(
+        `${apiUrl}/api/custom-field-definitions${query}`,
+        {
+          credentials: "include"
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Não foi possível carregar os campos customizados.");
@@ -79,7 +95,11 @@ export default function CustomFieldsAdminPage() {
       const data = (await response.json()) as CustomFieldDefinition[];
       setDefinitions(data);
     } catch (fetchError) {
-      setError(fetchError instanceof Error ? fetchError.message : "Erro inesperado ao carregar campos.");
+      setError(
+        fetchError instanceof Error
+          ? fetchError.message
+          : "Erro inesperado ao carregar campos."
+      );
     } finally {
       setLoading(false);
     }
@@ -99,14 +119,22 @@ export default function CustomFieldsAdminPage() {
       .filter((option) => option.length > 0);
   }, [formState.options]);
 
-  const requiresOptions = formState.type === "SELECT" || formState.type === "MULTI_SELECT";
-  const hasInvalidOptions = requiresOptions && (!parsedOptions || parsedOptions.length === 0);
+  const requiresOptions =
+    formState.type === "SELECT" || formState.type === "MULTI_SELECT";
+  const hasInvalidOptions =
+    requiresOptions && (!parsedOptions || parsedOptions.length === 0);
 
   const handleChange =
-    (field: keyof CustomFieldFormState) => (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-      const value = field === "required"
-        ? (event.target as HTMLInputElement).checked
-        : event.target.value;
+    (field: keyof CustomFieldFormState) =>
+    (
+      event: ChangeEvent<
+        HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+      >
+    ) => {
+      const value =
+        field === "required"
+          ? (event.target as HTMLInputElement).checked
+          : event.target.value;
       setFormState((prev) => ({
         ...prev,
         [field]: value
@@ -152,7 +180,11 @@ export default function CustomFieldsAdminPage() {
       resetForm();
       await fetchDefinitions(formState.entity);
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Erro inesperado ao salvar campo.");
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : "Erro inesperado ao salvar campo."
+      );
     } finally {
       setSubmitting(false);
     }
@@ -175,10 +207,13 @@ export default function CustomFieldsAdminPage() {
     setError(null);
 
     try {
-      const response = await fetch(`${apiUrl}/api/custom-field-definitions/${definitionId}`, {
-        method: "DELETE",
-        credentials: "include"
-      });
+      const response = await fetch(
+        `${apiUrl}/api/custom-field-definitions/${definitionId}`,
+        {
+          method: "DELETE",
+          credentials: "include"
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Não foi possível remover o campo customizado.");
@@ -186,7 +221,11 @@ export default function CustomFieldsAdminPage() {
 
       await fetchDefinitions(formState.entity);
     } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : "Erro inesperado ao remover campo.");
+      setError(
+        deleteError instanceof Error
+          ? deleteError.message
+          : "Erro inesperado ao remover campo."
+      );
     } finally {
       setSubmitting(false);
     }
@@ -201,7 +240,8 @@ export default function CustomFieldsAdminPage() {
             Campos customizados por entidade
           </h1>
           <p className="text-sm text-gray-500">
-            Crie e gerencie definições de campos para empresas, contatos e negócios.
+            Crie e gerencie definições de campos para empresas, contatos e
+            negócios.
           </p>
           <div className="mt-3 flex gap-3">
             <Link href="/dashboard">
@@ -218,7 +258,10 @@ export default function CustomFieldsAdminPage() {
               Campos cadastrados
             </h2>
             <div className="flex items-center gap-3">
-              <label className="text-sm font-medium text-gray-700" htmlFor="entity-filter">
+              <label
+                className="text-sm font-medium text-gray-700"
+                htmlFor="entity-filter"
+              >
                 Entidade
               </label>
               <select
@@ -233,7 +276,11 @@ export default function CustomFieldsAdminPage() {
                   </option>
                 ))}
               </select>
-              <Button variant="outline" onClick={() => fetchDefinitions(formState.entity)} disabled={loading}>
+              <Button
+                variant="outline"
+                onClick={() => fetchDefinitions(formState.entity)}
+                disabled={loading}
+              >
                 Atualizar lista
               </Button>
             </div>
@@ -250,10 +297,15 @@ export default function CustomFieldsAdminPage() {
           ) : (
             <div className="grid gap-4">
               {definitions.map((definition) => (
-                <div key={definition.id} className="rounded-xl border bg-white p-5 shadow-sm">
+                <div
+                  key={definition.id}
+                  className="rounded-xl border bg-white p-5 shadow-sm"
+                >
                   <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900">{definition.label}</h3>
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        {definition.label}
+                      </h3>
                       <p className="text-sm text-gray-500">
                         {definition.key} · {definition.type.replace("_", " ")}
                         {definition.required ? " · obrigatório" : ""}
@@ -265,7 +317,10 @@ export default function CustomFieldsAdminPage() {
                       )}
                     </div>
                     <div className="flex gap-2">
-                      <Button variant="outline" onClick={() => handleEdit(definition)}>
+                      <Button
+                        variant="outline"
+                        onClick={() => handleEdit(definition)}
+                      >
                         Editar
                       </Button>
                       <Button
@@ -288,11 +343,15 @@ export default function CustomFieldsAdminPage() {
             {editingId ? "Editar campo" : "Novo campo"}
           </h2>
           <p className="mt-1 text-sm text-gray-500">
-            Defina a chave técnica e o tipo do campo que ficará disponível no CRM.
+            Defina a chave técnica e o tipo do campo que ficará disponível no
+            CRM.
           </p>
           <form className="mt-4 space-y-3" onSubmit={handleSubmit}>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700" htmlFor="field-entity">
+              <label
+                className="text-sm font-medium text-gray-700"
+                htmlFor="field-entity"
+              >
                 Entidade
               </label>
               <select
@@ -309,7 +368,10 @@ export default function CustomFieldsAdminPage() {
               </select>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700" htmlFor="field-key">
+              <label
+                className="text-sm font-medium text-gray-700"
+                htmlFor="field-key"
+              >
                 Chave (key)
               </label>
               <input
@@ -323,7 +385,10 @@ export default function CustomFieldsAdminPage() {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700" htmlFor="field-label">
+              <label
+                className="text-sm font-medium text-gray-700"
+                htmlFor="field-label"
+              >
                 Label
               </label>
               <input
@@ -337,7 +402,10 @@ export default function CustomFieldsAdminPage() {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700" htmlFor="field-type">
+              <label
+                className="text-sm font-medium text-gray-700"
+                htmlFor="field-type"
+              >
                 Tipo
               </label>
               <select
@@ -366,7 +434,10 @@ export default function CustomFieldsAdminPage() {
               </label>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700" htmlFor="field-options">
+              <label
+                className="text-sm font-medium text-gray-700"
+                htmlFor="field-options"
+              >
                 Opções (separadas por vírgula)
               </label>
               <textarea
@@ -378,7 +449,9 @@ export default function CustomFieldsAdminPage() {
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
               />
               {hasInvalidOptions && (
-                <p className="text-xs text-red-500">Inclua pelo menos uma opção para campos de seleção.</p>
+                <p className="text-xs text-red-500">
+                  Inclua pelo menos uma opção para campos de seleção.
+                </p>
               )}
             </div>
             {error && <p className="text-sm text-red-500">{error}</p>}
@@ -388,7 +461,11 @@ export default function CustomFieldsAdminPage() {
                 className="flex-1 bg-blue-600 hover:bg-blue-700"
                 disabled={submitting || hasInvalidOptions}
               >
-                {submitting ? "Salvando..." : editingId ? "Atualizar campo" : "Criar campo"}
+                {submitting
+                  ? "Salvando..."
+                  : editingId
+                    ? "Atualizar campo"
+                    : "Criar campo"}
               </Button>
               {editingId && (
                 <Button type="button" variant="outline" onClick={resetForm}>

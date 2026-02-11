@@ -69,11 +69,17 @@ export default function SuperAdminPage() {
   }, []);
 
   const totalMensagens = useMemo(() => {
-    return workspaces.reduce((total, workspace) => total + workspace.uso.mensagens, 0);
+    return workspaces.reduce(
+      (total, workspace) => total + workspace.uso.mensagens,
+      0
+    );
   }, [workspaces]);
 
   const totalAutomacoes = useMemo(() => {
-    return workspaces.reduce((total, workspace) => total + workspace.uso.automacoes, 0);
+    return workspaces.reduce(
+      (total, workspace) => total + workspace.uso.automacoes,
+      0
+    );
   }, [workspaces]);
 
   return (
@@ -84,9 +90,12 @@ export default function SuperAdminPage() {
             <SidebarNav variant="superadmin" />
             <p className="text-sm font-medium text-purple-600">Super Admin</p>
           </div>
-          <h1 className="text-2xl font-semibold text-slate-100">Visão geral dos workspaces</h1>
+          <h1 className="text-2xl font-semibold text-slate-100">
+            Visão geral dos workspaces
+          </h1>
           <p className="text-sm text-slate-400">
-            Acompanhe planos, status e consumo de mensagens/automações em todos os workspaces.
+            Acompanhe planos, status e consumo de mensagens/automações em todos
+            os workspaces.
           </p>
           <div className="mt-3 flex flex-wrap gap-3">
             <Link href="/dashboard">
@@ -114,19 +123,25 @@ export default function SuperAdminPage() {
 
         <section className="grid gap-4 md:grid-cols-3">
           <div className="rounded-2xl border bg-slate-900 p-6 shadow-sm">
-            <p className="text-sm font-medium text-slate-400">Workspaces monitorados</p>
+            <p className="text-sm font-medium text-slate-400">
+              Workspaces monitorados
+            </p>
             <p className="mt-2 text-3xl font-semibold text-slate-100">
               {loading ? "-" : workspaces.length}
             </p>
           </div>
           <div className="rounded-2xl border bg-slate-900 p-6 shadow-sm">
-            <p className="text-sm font-medium text-slate-400">Mensagens processadas</p>
+            <p className="text-sm font-medium text-slate-400">
+              Mensagens processadas
+            </p>
             <p className="mt-2 text-3xl font-semibold text-slate-100">
               {loading ? "-" : totalMensagens}
             </p>
           </div>
           <div className="rounded-2xl border bg-slate-900 p-6 shadow-sm">
-            <p className="text-sm font-medium text-slate-400">Automações ativas</p>
+            <p className="text-sm font-medium text-slate-400">
+              Automações ativas
+            </p>
             <p className="mt-2 text-3xl font-semibold text-slate-100">
               {loading ? "-" : totalAutomacoes}
             </p>
@@ -136,8 +151,12 @@ export default function SuperAdminPage() {
         <section className="rounded-2xl border bg-slate-900 p-6 shadow-sm">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-slate-100">Workspaces</h2>
-              <p className="text-sm text-slate-400">Status, plano e uso consolidado.</p>
+              <h2 className="text-lg font-semibold text-slate-100">
+                Workspaces
+              </h2>
+              <p className="text-sm text-slate-400">
+                Status, plano e uso consolidado.
+              </p>
             </div>
           </div>
 
@@ -156,13 +175,19 @@ export default function SuperAdminPage() {
               <tbody className="divide-y">
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="py-6 text-center text-sm text-slate-400">
+                    <td
+                      colSpan={6}
+                      className="py-6 text-center text-sm text-slate-400"
+                    >
                       Carregando workspaces...
                     </td>
                   </tr>
                 ) : workspaces.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-6 text-center text-sm text-slate-400">
+                    <td
+                      colSpan={6}
+                      className="py-6 text-center text-sm text-slate-400"
+                    >
                       Nenhum workspace encontrado.
                     </td>
                   </tr>
@@ -179,7 +204,9 @@ export default function SuperAdminPage() {
                       <td className="py-4 pr-4">{workspace.uso.mensagens}</td>
                       <td className="py-4 pr-4">{workspace.uso.automacoes}</td>
                       <td className="py-4 pr-4">
-                        {formatDate(workspace.updatedAtPlano ?? workspace.updatedAt)}
+                        {formatDate(
+                          workspace.updatedAtPlano ?? workspace.updatedAt
+                        )}
                       </td>
                     </tr>
                   ))
@@ -192,7 +219,9 @@ export default function SuperAdminPage() {
         <section className="rounded-2xl border bg-slate-900 p-6 shadow-sm">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-slate-100">Logs de erro</h2>
+              <h2 className="text-lg font-semibold text-slate-100">
+                Logs de erro
+              </h2>
               <p className="text-sm text-slate-400">
                 Últimas falhas registradas em serviços de IA.
               </p>
@@ -212,13 +241,19 @@ export default function SuperAdminPage() {
               <tbody className="divide-y">
                 {loading ? (
                   <tr>
-                    <td colSpan={4} className="py-6 text-center text-sm text-slate-400">
+                    <td
+                      colSpan={4}
+                      className="py-6 text-center text-sm text-slate-400"
+                    >
                       Carregando logs...
                     </td>
                   </tr>
                 ) : errorLogs.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="py-6 text-center text-sm text-slate-400">
+                    <td
+                      colSpan={4}
+                      className="py-6 text-center text-sm text-slate-400"
+                    >
                       Nenhum log de erro encontrado.
                     </td>
                   </tr>
