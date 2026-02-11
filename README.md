@@ -215,9 +215,10 @@ Quando o usuário clica em **Instalar Agente** no marketplace, o backend executa
 
 1. **Busca do molde**: carrega o `definitionJson/workflowData` do `AutomationTemplate` aprovado.
 2. **Busca e descriptografia dos segredos**: lê as integrações ativas do workspace (`IntegrationAccount` + `IntegrationSecret`) e descriptografa os segredos.
-3. **Substituição de placeholders**: aplica `find/replace` em todo o JSON do fluxo para placeholders como `{{OPENAI_KEY}}`, `{{OPENAI_MODEL}}` e `{{OPENAI_BASE_URL}}`.
-4. **Resultado**: gera um payload final válido e funcional, isolado por cliente/workspace.
-5. **Webhook por instalação** (quando o primeiro nó é webhook): define um `path` único no formato `crmpexe-{workspaceId}-{instanceId}` para evitar colisão entre clientes.
+3. **Substituição de placeholders**: aplica substituição global em todo o JSON do fluxo (todas as ocorrências por string), evitando cenários em que apenas o primeiro token `{{OPENAI_KEY}}` seria trocado.
+4. **Pré-voo obrigatório**: antes do deploy, valida se placeholders obrigatórios foram resolvidos. Se faltar a chave da OpenAI, retorna o erro: `Por favor, configure sua Integração com OpenAI antes de instalar este agente.`
+5. **Resultado**: gera um payload final válido e funcional, isolado por cliente/workspace.
+6. **Webhook por instalação** (quando o primeiro nó é webhook): define um `path` único no formato `crmpexe-{workspaceId}-{instanceId}` para evitar colisão entre clientes.
 
 Além dos segredos de integrações, o sistema também reaproveita variáveis de workspace como fonte de placeholders.
 
@@ -227,10 +228,11 @@ No deploy de uma automação, o CRM segue um fluxo transacional para garantir ra
 
 1. **Conexão**: o backend usa a integração `N8N` ativa do workspace para autenticar na API do n8n.
 2. **Envio**: o payload final (JSON do workflow já com placeholders resolvidos) é enviado para criação/atualização no n8n.
-3. **Ativação**: quando `autoActivate` estiver habilitado (padrão), o CRM também solicita a ativação imediata do workflow no n8n.
-4. **Resposta**: o n8n retorna o identificador do fluxo, e o backend normaliza esse ID para string (`externalWorkflowId`).
-5. **Vínculo no banco**: a `AutomationInstance` persiste a relação `workspace + template + versão + n8nWorkflowId`, permitindo auditoria e operação posterior.
-6. **Controle**: ao desativar no painel, o CRM chama o endpoint de *deactivate* no n8n usando o `externalWorkflowId` salvo e mantém o estado interno sincronizado.
+3. **Ativação no payload**: o backend envia sempre `active: true` no JSON de criação/atualização do workflow no n8n, evitando fluxos criados em estado pausado.
+4. **Ativação operacional**: após criar/atualizar, o CRM também chama o endpoint de ativação do workflow no n8n.
+5. **Resposta**: o n8n retorna o identificador do fluxo, e o backend normaliza esse ID para string (`externalWorkflowId`).
+6. **Vínculo no banco**: a `AutomationInstance` persiste a relação `workspace + template + versão + n8nWorkflowId`, permitindo auditoria e operação posterior.
+7. **Controle**: ao desativar no painel, o CRM chama o endpoint de *deactivate* no n8n usando o `externalWorkflowId` salvo e mantém o estado interno sincronizado.
 
 Com isso, cada instalação fica isolada por cliente/workspace e pode ser gerenciada com segurança durante todo o ciclo de vida.
 

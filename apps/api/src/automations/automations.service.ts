@@ -478,11 +478,13 @@ export class AutomationsService {
       resolvedWorkspaceId,
       workspaceVariables
     );
+    this.ensureInstallationPreflight(instance, placeholders);
     const workflowPayload = await this.buildWorkflowPayload(
       instance,
       workspaceVariables,
       placeholders
     );
+    workflowPayload.active = true;
 
     const workflowResponse = instance.externalWorkflowId
       ? await this.n8nClient.updateWorkflow(
@@ -500,27 +502,17 @@ export class AutomationsService {
       instance.externalWorkflowId
     );
 
-    const shouldActivate = this.shouldAutoActivate(
-      instance.configJson as Record<string, unknown>
+    await this.n8nClient.activateWorkflow(
+      integrationAccountId,
+      externalWorkflowId
     );
-
-    if (shouldActivate) {
-      workflowPayload.active = true;
-    }
-
-    if (shouldActivate) {
-      await this.n8nClient.activateWorkflow(
-        integrationAccountId,
-        externalWorkflowId
-      );
-    }
 
     const updatedInstance = await this.prisma.automationInstance.update({
       where: { id: instance.id },
       data: {
         status: AutomationInstanceStatus.ACTIVE,
         externalWorkflowId,
-        enabled: shouldActivate
+        enabled: true
       },
       include: { template: true }
     });
@@ -531,7 +523,7 @@ export class AutomationsService {
       deploy: {
         action: instance.externalWorkflowId ? "update" : "create",
         n8nWorkflowId: externalWorkflowId,
-        activated: shouldActivate
+        activated: true
       }
     };
   }
@@ -834,6 +826,94 @@ export class AutomationsService {
     definitionRecord.nodes = nodes;
   }
 
+  private ensureInstallationPreflight(
+    instance: {
+      template: {
+        requiredIntegrations?: string[];
+        definitionJson: Prisma.JsonValue;
+        currentVersion?: {
+          definitionJson: Prisma.JsonValue;
+          requiredIntegrations?: string[];
+        } | null;
+      };
+      templateVersion?: {
+        definitionJson: Prisma.JsonValue;
+        requiredIntegrations?: string[];
+      } | null;
+      workflowData?: Prisma.JsonValue | null;
+    },
+    placeholders: Record<string, string>
+  ) {
+    const requiredIntegrations = this.getRequiredIntegrations(instance);
+    const definitionJson = this.resolveDefinitionJson(instance);
+    const requiredPlaceholders = this.extractPlaceholderKeys(definitionJson);
+    const openAiIsRequired =
+      requiredIntegrations.includes(IntegrationAccountType.OPENAI) ||
+      requiredPlaceholders.has("OPENAI_KEY") ||
+      requiredPlaceholders.has("OPENAI_API_KEY");
+
+    if (openAiIsRequired && !placeholders.OPENAI_KEY?.trim()) {
+      throw new BadRequestException(
+        "Por favor, configure sua Integração com OpenAI antes de instalar este agente."
+      );
+    }
+
+    const unresolvedPlaceholders = [...requiredPlaceholders].filter(
+      (key) => !placeholders[key]?.trim()
+    );
+
+    if (unresolvedPlaceholders.length > 0) {
+      throw new BadRequestException(
+        `Não foi possível instalar a automação. Configure as variáveis necessárias antes de continuar: ${unresolvedPlaceholders.join(
+          ", "
+        )}.`
+      );
+    }
+  }
+
+  private getRequiredIntegrations(instance: {
+    template: {
+      requiredIntegrations?: string[];
+      currentVersion?: { requiredIntegrations?: string[] } | null;
+    };
+    templateVersion?: { requiredIntegrations?: string[] } | null;
+  }) {
+    const baseRequiredIntegrations =
+      instance.templateVersion?.requiredIntegrations ??
+      instance.template.currentVersion?.requiredIntegrations ??
+      instance.template.requiredIntegrations ??
+      [];
+
+    return baseRequiredIntegrations
+      .map((entry) => entry?.trim().toUpperCase())
+      .filter((entry): entry is string => Boolean(entry));
+  }
+
+  private extractPlaceholderKeys(value: unknown, found = new Set<string>()) {
+    if (typeof value === "string") {
+      const matches = value.match(/\{\{([A-Z0-9_]+)\}\}/g) ?? [];
+      for (const match of matches) {
+        found.add(match.replace(/\{|\}/g, ""));
+      }
+      return found;
+    }
+
+    if (Array.isArray(value)) {
+      value.forEach((entry) => this.extractPlaceholderKeys(entry, found));
+      return found;
+    }
+
+    if (!value || typeof value !== "object") {
+      return found;
+    }
+
+    Object.values(value).forEach((entry) =>
+      this.extractPlaceholderKeys(entry, found)
+    );
+
+    return found;
+  }
+
   private toPlaceholderKey(rawKey: string) {
     return rawKey
       .trim()
@@ -942,13 +1022,6 @@ export class AutomationsService {
       where: { templateId: template.id },
       orderBy: { createdAt: "desc" }
     });
-  }
-
-  private shouldAutoActivate(configJson: Record<string, unknown>) {
-    if (Object.prototype.hasOwnProperty.call(configJson, "autoActivate")) {
-      return Boolean(configJson.autoActivate);
-    }
-    return true;
   }
 
   private async getN8nIntegrationAccountId(workspaceId: string) {
