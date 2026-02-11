@@ -19,6 +19,7 @@ import { InstallAutomationTemplateDto } from "./dto/install-automation-template.
 import { UpdateAutomationInstanceVersionDto } from "./dto/update-automation-instance-version.dto";
 import { N8nClient } from "../n8n/n8n.client";
 import { WorkspaceVariablesService } from "../workspace-variables/workspace-variables.service";
+import { IntegrationCryptoService } from "../integration-accounts/integration-crypto.service";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_PER_PAGE = 20;
@@ -30,7 +31,8 @@ export class AutomationsService {
     private readonly prisma: PrismaService,
     private readonly connectors: AutomationConnectorsService,
     private readonly n8nClient: N8nClient,
-    private readonly workspaceVariablesService: WorkspaceVariablesService
+    private readonly workspaceVariablesService: WorkspaceVariablesService,
+    private readonly integrationCryptoService: IntegrationCryptoService
   ) {}
 
   async listTemplates() {
@@ -201,7 +203,10 @@ export class AutomationsService {
       payload.versionId,
       payload.version
     );
-    const templateSnapshot = this.getTemplateSnapshot(template, templateVersion);
+    const templateSnapshot = this.getTemplateSnapshot(
+      template,
+      templateVersion
+    );
 
     const configJson = this.normalizeJson(
       payload.configJson ?? {},
@@ -209,9 +214,7 @@ export class AutomationsService {
     );
     const workflowDataSource =
       template.workflowData ?? templateSnapshot.definitionJson;
-    const workflowData = this.cloneJson(
-      workflowDataSource as Prisma.JsonValue
-    );
+    const workflowData = this.cloneJson(workflowDataSource as Prisma.JsonValue);
 
     const instance = await this.prisma.automationInstance.create({
       data: {
@@ -405,7 +408,10 @@ export class AutomationsService {
     const [items, total] = await Promise.all([
       this.prisma.automationInstance.findMany({
         where,
-        include: { template: { include: { currentVersion: true } }, templateVersion: true },
+        include: {
+          template: { include: { currentVersion: true } },
+          templateVersion: true
+        },
         orderBy: { createdAt: "desc" },
         skip,
         take: safePerPage
@@ -435,7 +441,10 @@ export class AutomationsService {
     );
     const instance = await this.prisma.automationInstance.findFirst({
       where: { id: instanceId, workspaceId: resolvedWorkspaceId },
-      include: { template: { include: { currentVersion: true } }, templateVersion: true }
+      include: {
+        template: { include: { currentVersion: true } },
+        templateVersion: true
+      }
     });
 
     if (!instance) {
@@ -448,9 +457,14 @@ export class AutomationsService {
       await this.workspaceVariablesService.getWorkspaceVariablesMap(
         resolvedWorkspaceId
       );
-    const workflowPayload = this.buildWorkflowPayload(
-      instance,
+    const placeholders = await this.buildWorkflowPlaceholders(
+      resolvedWorkspaceId,
       workspaceVariables
+    );
+    const workflowPayload = await this.buildWorkflowPayload(
+      instance,
+      workspaceVariables,
+      placeholders
     );
 
     const workflowResponse = instance.externalWorkflowId
@@ -532,7 +546,11 @@ export class AutomationsService {
       }
     });
 
-    return this.installAutomationInstance(userId, instance.id, resolvedWorkspaceId);
+    return this.installAutomationInstance(
+      userId,
+      instance.id,
+      resolvedWorkspaceId
+    );
   }
 
   async enableAutomation(
@@ -600,23 +618,33 @@ export class AutomationsService {
     });
   }
 
-  private buildWorkflowPayload(
+  private async buildWorkflowPayload(
     instance: {
       id: string;
       workspaceId: string;
-      template: { name: string; definitionJson: Prisma.JsonValue; currentVersion?: { definitionJson: Prisma.JsonValue } | null };
+      template: {
+        name: string;
+        definitionJson: Prisma.JsonValue;
+        currentVersion?: { definitionJson: Prisma.JsonValue } | null;
+      };
       templateVersion?: { definitionJson: Prisma.JsonValue } | null;
       configJson: Prisma.JsonValue;
       workflowData?: Prisma.JsonValue | null;
     },
-    workspaceVariables: Record<string, string>
+    workspaceVariables: Record<string, string>,
+    placeholders: Record<string, string>
   ) {
     const definitionJson = this.resolveDefinitionJson(instance);
-    const definition = this.cloneJson(definitionJson);
+    const definition = this.replacePlaceholdersInJson(
+      this.cloneJson(definitionJson),
+      placeholders
+    );
     const configJson = this.cloneJson(instance.configJson);
     const definitionRecord = this.asRecord(definition);
     const metaFromDefinition = this.asRecord(definitionRecord.meta);
     const settingsFromDefinition = this.asRecord(definitionRecord.settings);
+
+    this.applyWebhookPathForWorkspace(instance, definitionRecord);
 
     const workflowPayload = {
       ...definitionRecord,
@@ -638,9 +666,143 @@ export class AutomationsService {
     return workflowPayload as Record<string, unknown>;
   }
 
+  private async buildWorkflowPlaceholders(
+    workspaceId: string,
+    workspaceVariables: Record<string, string>
+  ) {
+    const placeholders: Record<string, string> = {};
+
+    for (const [key, value] of Object.entries(workspaceVariables)) {
+      const normalizedKey = this.toPlaceholderKey(key);
+      if (normalizedKey && value?.trim()) {
+        placeholders[normalizedKey] = value.trim();
+      }
+    }
+
+    const accounts = await this.prisma.integrationAccount.findMany({
+      where: {
+        workspaceId,
+        status: IntegrationAccountStatus.ACTIVE
+      },
+      include: {
+        secret: {
+          select: { encryptedPayload: true }
+        }
+      }
+    });
+
+    for (const account of accounts) {
+      if (!account.secret?.encryptedPayload) {
+        continue;
+      }
+
+      const secrets = this.integrationCryptoService.decrypt(
+        account.secret.encryptedPayload
+      );
+      const accountType = account.type.toUpperCase();
+
+      for (const [secretKey, secretValue] of Object.entries(secrets)) {
+        const normalizedSecretKey = this.toPlaceholderKey(secretKey);
+        const normalizedSecretValue = secretValue?.trim();
+
+        if (!normalizedSecretKey || !normalizedSecretValue) {
+          continue;
+        }
+
+        placeholders[`${accountType}_${normalizedSecretKey}`] =
+          normalizedSecretValue;
+
+        if (account.type === IntegrationAccountType.OPENAI) {
+          if (normalizedSecretKey === "API_KEY") {
+            placeholders.OPENAI_KEY = normalizedSecretValue;
+            placeholders.OPENAI_API_KEY = normalizedSecretValue;
+          }
+
+          if (normalizedSecretKey === "MODEL") {
+            placeholders.OPENAI_MODEL = normalizedSecretValue;
+          }
+
+          if (normalizedSecretKey === "BASE_URL") {
+            placeholders.OPENAI_BASE_URL = normalizedSecretValue;
+          }
+        }
+      }
+    }
+
+    return placeholders;
+  }
+
+  private replacePlaceholdersInJson(
+    value: unknown,
+    placeholders: Record<string, string>
+  ): unknown {
+    if (typeof value === "string") {
+      return value.replace(
+        /\{\{([A-Z0-9_]+)\}\}/g,
+        (match, key) => placeholders[key] ?? match
+      );
+    }
+
+    if (Array.isArray(value)) {
+      return value.map((item) =>
+        this.replacePlaceholdersInJson(item, placeholders)
+      );
+    }
+
+    if (!value || typeof value !== "object") {
+      return value;
+    }
+
+    const updatedEntries = Object.entries(value).map(([key, entryValue]) => [
+      key,
+      this.replacePlaceholdersInJson(entryValue, placeholders)
+    ]);
+
+    return Object.fromEntries(updatedEntries);
+  }
+
+  private applyWebhookPathForWorkspace(
+    instance: { id: string; workspaceId: string },
+    definitionRecord: Record<string, unknown>
+  ) {
+    const nodes = Array.isArray(definitionRecord.nodes)
+      ? definitionRecord.nodes
+      : null;
+
+    if (!nodes || nodes.length === 0) {
+      return;
+    }
+
+    const firstNode = this.asRecord(nodes[0]);
+    const nodeType =
+      typeof firstNode.type === "string" ? firstNode.type.toLowerCase() : "";
+
+    if (!nodeType.includes("webhook")) {
+      return;
+    }
+
+    const parameters = this.asRecord(firstNode.parameters);
+    parameters.path = `crmpexe-${instance.workspaceId}-${instance.id}`;
+    firstNode.parameters = parameters;
+    nodes[0] = firstNode;
+    definitionRecord.nodes = nodes;
+  }
+
+  private toPlaceholderKey(rawKey: string) {
+    return rawKey
+      .trim()
+      .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+      .replace(/[^a-zA-Z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .toUpperCase();
+  }
+
   private resolveDefinitionJson(instance: {
     workflowData?: Prisma.JsonValue | null;
-    template: { definitionJson: Prisma.JsonValue; currentVersion?: { definitionJson: Prisma.JsonValue } | null };
+    template: {
+      definitionJson: Prisma.JsonValue;
+      currentVersion?: { definitionJson: Prisma.JsonValue } | null;
+    };
     templateVersion?: { definitionJson: Prisma.JsonValue } | null;
   }) {
     if (instance.workflowData) {
@@ -659,8 +821,14 @@ export class AutomationsService {
   }
 
   private getTemplateSnapshot(
-    template: { definitionJson: Prisma.JsonValue; requiredIntegrations: string[] },
-    templateVersion?: { definitionJson: Prisma.JsonValue; requiredIntegrations: string[] } | null
+    template: {
+      definitionJson: Prisma.JsonValue;
+      requiredIntegrations: string[];
+    },
+    templateVersion?: {
+      definitionJson: Prisma.JsonValue;
+      requiredIntegrations: string[];
+    } | null
   ) {
     if (templateVersion) {
       return {
@@ -676,14 +844,23 @@ export class AutomationsService {
   }
 
   private async resolveTemplateVersion(
-    template: { id: string; currentVersionId?: string | null; currentVersion?: { id: string; definitionJson: Prisma.JsonValue; requiredIntegrations: string[] } | null },
+    template: {
+      id: string;
+      currentVersionId?: string | null;
+      currentVersion?: {
+        id: string;
+        definitionJson: Prisma.JsonValue;
+        requiredIntegrations: string[];
+      } | null;
+    },
     versionId?: string,
     version?: string
   ) {
     if (versionId) {
-      const versionEntry = await this.prisma.automationTemplateVersion.findFirst({
-        where: { id: versionId, templateId: template.id }
-      });
+      const versionEntry =
+        await this.prisma.automationTemplateVersion.findFirst({
+          where: { id: versionId, templateId: template.id }
+        });
 
       if (!versionEntry) {
         throw new NotFoundException("Versão do template não encontrada.");
@@ -693,9 +870,10 @@ export class AutomationsService {
     }
 
     if (version) {
-      const versionEntry = await this.prisma.automationTemplateVersion.findFirst({
-        where: { templateId: template.id, version }
-      });
+      const versionEntry =
+        await this.prisma.automationTemplateVersion.findFirst({
+          where: { templateId: template.id, version }
+        });
 
       if (!versionEntry) {
         throw new NotFoundException("Versão do template não encontrada.");
