@@ -17,6 +17,7 @@ Plataforma CRM com API em NestJS e front-end em Next.js, organizada como monorep
   - [Rodar apenas API](#rodar-apenas-api)
   - [Rodar apenas Web](#rodar-apenas-web)
 - [Scripts úteis](#scripts-úteis)
+- [Limpeza técnica recente](#limpeza-técnica-recente)
 - [Estrutura do repositório](#estrutura-do-repositório)
 - [Fluxos comuns](#fluxos-comuns)
 - [Fluxo do Super Admin para publicar molde n8n](#fluxo-do-super-admin-para-publicar-molde-n8n)
@@ -135,6 +136,12 @@ pnpm dev:web
 - `pnpm test`: testes (na API executa `prisma generate` automaticamente antes)
 - `pnpm typecheck`: checagem de tipos (na API executa `prisma generate` automaticamente antes)
 - `pnpm format`: formatação com Prettier
+
+## Limpeza técnica recente
+
+- Removidas dependências não utilizadas da API: `@nestjs/passport`, `passport` e `passport-jwt` (e o tipo `@types/passport-jwt`).
+- Removido o arquivo vazio `apps/api/install_fix.sh`, que não possuía uso no fluxo de build, execução ou deploy.
+- Atualizado o `pnpm-lock.yaml` para refletir a redução de dependências do workspace.
 
 ## QA e pontos de melhoria
 
