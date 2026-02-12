@@ -4,8 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import { SidebarNav } from "@/components/sidebar-nav";
 import { Button } from "@/components/ui/button";
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-
 type Workspace = {
   id: string;
   name: string;
@@ -35,6 +33,7 @@ export default function WorkspacesPage() {
     null
   );
   const [workspaceName, setWorkspaceName] = useState("");
+  const [workspacePassword, setWorkspacePassword] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,7 +53,7 @@ export default function WorkspacesPage() {
     setError(null);
 
     try {
-      const response = await fetch(`${apiUrl}/api/workspaces`, {
+      const response = await fetch("/api/workspaces", {
         credentials: "include"
       });
 
@@ -82,19 +81,20 @@ export default function WorkspacesPage() {
 
   const handleCreateWorkspace = async () => {
     const trimmedName = workspaceName.trim();
-    if (!trimmedName) return;
+    const trimmedPassword = workspacePassword.trim();
+    if (!trimmedName || !trimmedPassword) return;
 
     setSaving(true);
     setError(null);
 
     try {
-      const response = await fetch(`${apiUrl}/api/workspaces`, {
+      const response = await fetch("/api/workspaces", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
         credentials: "include",
-        body: JSON.stringify({ name: trimmedName })
+        body: JSON.stringify({ name: trimmedName, password: trimmedPassword })
       });
 
       if (!response.ok) {
@@ -102,6 +102,7 @@ export default function WorkspacesPage() {
       }
 
       setWorkspaceName("");
+      setWorkspacePassword("");
       await fetchWorkspaces();
     } catch (createError) {
       setError(
@@ -121,13 +122,10 @@ export default function WorkspacesPage() {
     setError(null);
 
     try {
-      const response = await fetch(
-        `${apiUrl}/api/workspaces/${workspaceId}/switch`,
-        {
-          method: "POST",
-          credentials: "include"
-        }
-      );
+      const response = await fetch(`/api/workspaces/${workspaceId}/switch`, {
+        method: "POST",
+        credentials: "include"
+      });
 
       if (!response.ok) {
         throw new Error("Não foi possível trocar de workspace.");
@@ -272,9 +270,25 @@ export default function WorkspacesPage() {
               value={workspaceName}
               onChange={(event) => setWorkspaceName(event.target.value)}
             />
+            <label
+              className="text-sm font-medium text-slate-200"
+              htmlFor="workspace-password"
+            >
+              Senha do workspace
+            </label>
+            <input
+              id="workspace-password"
+              type="password"
+              placeholder="Defina uma senha"
+              className="w-full rounded-lg border border-slate-800 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+              value={workspacePassword}
+              onChange={(event) => setWorkspacePassword(event.target.value)}
+            />
             <Button
               className="w-full bg-blue-600 hover:bg-blue-700"
-              disabled={saving || !workspaceName.trim()}
+              disabled={
+                saving || !workspaceName.trim() || !workspacePassword.trim()
+              }
               onClick={handleCreateWorkspace}
             >
               {saving ? "Salvando..." : "Criar workspace"}

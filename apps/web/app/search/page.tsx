@@ -5,8 +5,6 @@ import { useEffect, useMemo, useState } from "react";
 import { SidebarNav } from "@/components/sidebar-nav";
 import { Button } from "@/components/ui/button";
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-
 type SearchResult = {
   contacts: Array<{
     id: string;
@@ -85,7 +83,7 @@ export default function GlobalSearchPage() {
       setError(null);
       try {
         const response = await fetch(
-          `${apiUrl}/api/global-search?query=${encodeURIComponent(query)}`,
+          `/api/global-search?query=${encodeURIComponent(query)}`,
           {
             credentials: "include"
           }
