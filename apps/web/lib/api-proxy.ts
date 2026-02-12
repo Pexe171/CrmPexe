@@ -20,12 +20,17 @@ const getAccessTokenFromCookie = (cookieHeader: string) => {
 export const buildApiHeaders = (request: Request) => {
   const headers = new Headers();
   const cookieHeader = request.headers.get("cookie");
+  const authorizationHeader = request.headers.get("authorization");
+
+  if (authorizationHeader) {
+    headers.set("authorization", authorizationHeader);
+  }
 
   if (cookieHeader) {
     headers.set("cookie", cookieHeader);
 
     const accessToken = getAccessTokenFromCookie(cookieHeader);
-    if (accessToken) {
+    if (accessToken && !headers.has("authorization")) {
       headers.set("authorization", `Bearer ${accessToken}`);
     }
   }
