@@ -15,6 +15,9 @@ import {
 const ACCESS_TOKEN_COOKIE = "access_token";
 const REFRESH_TOKEN_COOKIE = "refresh_token";
 
+const escapeRegExp = (value: string) =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 const extractCookieValue = (setCookieHeaders: string[], cookieName: string) => {
   for (const setCookieHeader of setCookieHeaders) {
     const [firstChunk = ""] = setCookieHeader.split(";");
@@ -26,6 +29,27 @@ const extractCookieValue = (setCookieHeaders: string[], cookieName: string) => {
   }
 
   return null;
+};
+
+const extractCookieValueFromRawHeader = (
+  rawSetCookieHeader: string,
+  cookieName: string
+) => {
+  if (!rawSetCookieHeader.trim()) {
+    return null;
+  }
+
+  const cookiePattern = new RegExp(
+    `(?:^|,\\s*)${escapeRegExp(cookieName)}=([^;]*)`,
+    "i"
+  );
+  const match = rawSetCookieHeader.match(cookiePattern);
+
+  if (!match?.[1]) {
+    return null;
+  }
+
+  return decodeURIComponent(match[1]);
 };
 
 export async function POST(request: Request) {
@@ -112,8 +136,12 @@ export async function POST(request: Request) {
     response.headers.append("set-cookie", cookie);
   });
 
-  const accessToken = extractCookieValue(setCookies, ACCESS_TOKEN_COOKIE);
-  const refreshToken = extractCookieValue(setCookies, REFRESH_TOKEN_COOKIE);
+  const accessToken =
+    extractCookieValue(setCookies, ACCESS_TOKEN_COOKIE) ??
+    extractCookieValueFromRawHeader(rawSetCookieHeader, ACCESS_TOKEN_COOKIE);
+  const refreshToken =
+    extractCookieValue(setCookies, REFRESH_TOKEN_COOKIE) ??
+    extractCookieValueFromRawHeader(rawSetCookieHeader, REFRESH_TOKEN_COOKIE);
 
   console.info("[verify-otp] accessToken disponível:", Boolean(accessToken));
   console.info("[verify-otp] refreshToken disponível:", Boolean(refreshToken));
