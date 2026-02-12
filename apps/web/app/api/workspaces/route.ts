@@ -1,11 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { apiBaseUrl, buildApiHeaders, proxyApiGet } from "@/lib/api-proxy";
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   return proxyApiGet(request, "/api/workspaces");
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const cookieHeader = request.headers.get("cookie");
   const body = await request.json().catch(() => null);
 
   if (!body?.name || !body?.password) {
@@ -18,12 +19,16 @@ export async function POST(request: Request) {
   let apiResponse: Response;
 
   try {
+    const headers = buildApiHeaders(request);
+    headers.set("Content-Type", "application/json");
+
+    if (cookieHeader) {
+      headers.set("cookie", cookieHeader);
+    }
+
     apiResponse = await fetch(new URL("/api/workspaces", apiBaseUrl), {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...Object.fromEntries(buildApiHeaders(request).entries())
-      },
+      headers,
       credentials: "include",
       body: JSON.stringify(body)
     });
