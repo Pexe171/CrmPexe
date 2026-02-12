@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { getSetCookieHeaders } from "@/lib/set-cookie";
+
 import { SESSION_COOKIE, SESSION_MAX_AGE } from "@/lib/auth";
 import {
   ROLE_COOKIE,
@@ -75,15 +77,7 @@ export async function POST(request: Request) {
   }
 
   const response = NextResponse.json({ ok: true, user: apiPayload ?? null });
-  const headersWithCookies = apiResponse.headers as Headers & {
-    getSetCookie?: () => string[];
-  };
-  const setCookies =
-    typeof headersWithCookies.getSetCookie === "function"
-      ? headersWithCookies.getSetCookie()
-      : headersWithCookies.get("set-cookie")
-        ? [headersWithCookies.get("set-cookie") as string]
-        : [];
+  const setCookies = getSetCookieHeaders(apiResponse);
 
   setCookies.filter(Boolean).forEach((cookie) => {
     response.headers.append("set-cookie", cookie);
