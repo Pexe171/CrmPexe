@@ -11,6 +11,18 @@ export const apiBaseUrl =
 const ACCESS_TOKEN_COOKIE = "access_token";
 const REFRESH_TOKEN_COOKIE = "refresh_token";
 
+const maskToken = (token: string | null) => {
+  if (!token) {
+    return null;
+  }
+
+  if (token.length <= 12) {
+    return `${token.slice(0, 3)}***`;
+  }
+
+  return `${token.slice(0, 6)}...${token.slice(-6)}`;
+};
+
 const getAccessTokenFromCookie = (cookieHeader: string) => {
   const tokenMatch = cookieHeader.match(
     new RegExp(`(?:^|;\\s*)${ACCESS_TOKEN_COOKIE}=([^;]+)`)
@@ -44,6 +56,41 @@ const getCookieValue = (cookieHeader: string | null, cookieName: string) => {
   }
 
   return decodeURIComponent(match[1]);
+};
+
+const mergeCookieHeaders = (...cookieHeaders: Array<string | null>) => {
+  const cookieMap = new Map<string, string>();
+
+  cookieHeaders.forEach((header) => {
+    if (!header) {
+      return;
+    }
+
+    header
+      .split(";")
+      .map((chunk) => chunk.trim())
+      .filter(Boolean)
+      .forEach((cookieEntry) => {
+        const separatorIndex = cookieEntry.indexOf("=");
+
+        if (separatorIndex <= 0) {
+          return;
+        }
+
+        const name = cookieEntry.slice(0, separatorIndex).trim();
+        const value = cookieEntry.slice(separatorIndex + 1).trim();
+
+        if (!name) {
+          return;
+        }
+
+        cookieMap.set(name, value);
+      });
+  });
+
+  return Array.from(cookieMap.entries())
+    .map(([name, value]) => `${name}=${value}`)
+    .join("; ");
 };
 
 const isLikelyJwt = (token: string | null) => {
@@ -93,36 +140,44 @@ const buildResponse = async (
 
 export const buildApiHeaders = (request: Request) => {
   const headers = new Headers();
-  const cookieHeader = request.headers.get("cookie");
+  const incomingCookieHeader = request.headers.get("cookie");
   const authorizationHeader = request.headers.get("authorization");
   const cookieStore = cookies();
-  const fallbackAccessToken =
-    cookieStore.get(ACCESS_TOKEN_COOKIE)?.value ?? null;
-  const fallbackCookieHeader = cookieStore
+  const storeAccessToken = cookieStore.get(ACCESS_TOKEN_COOKIE)?.value ?? null;
+  const storeCookieHeader = cookieStore
     .getAll()
     .map((cookie) => `${cookie.name}=${encodeURIComponent(cookie.value)}`)
     .join("; ");
+  const mergedCookieHeader = mergeCookieHeaders(
+    incomingCookieHeader,
+    storeCookieHeader
+  );
+  const cookieAccessToken = getAccessTokenFromCookie(mergedCookieHeader);
+  const authorizationBearerToken = authorizationHeader?.startsWith("Bearer ")
+    ? authorizationHeader.slice(7)
+    : null;
+  const resolvedAccessToken =
+    authorizationBearerToken ?? cookieAccessToken ?? storeAccessToken;
 
   if (authorizationHeader) {
     headers.set("authorization", authorizationHeader);
   }
 
-  if (cookieHeader) {
-    headers.set("cookie", cookieHeader);
-
-    const accessToken = getAccessTokenFromCookie(cookieHeader);
-    if (accessToken) {
-      headers.set("authorization", `Bearer ${accessToken}`);
-    }
+  if (mergedCookieHeader) {
+    headers.set("cookie", mergedCookieHeader);
   }
 
-  if (!cookieHeader && fallbackCookieHeader) {
-    headers.set("cookie", fallbackCookieHeader);
+  if (resolvedAccessToken) {
+    headers.set("authorization", `Bearer ${resolvedAccessToken}`);
   }
 
-  if (!headers.has("authorization") && fallbackAccessToken) {
-    headers.set("authorization", `Bearer ${fallbackAccessToken}`);
-  }
+  console.log("[api-proxy] buildApiHeaders debug", {
+    hasIncomingCookieHeader: Boolean(incomingCookieHeader),
+    hasStoreCookieHeader: Boolean(storeCookieHeader),
+    hasMergedCookieHeader: Boolean(mergedCookieHeader),
+    hasAuthorizationHeader: Boolean(authorizationHeader),
+    resolvedAccessToken: maskToken(resolvedAccessToken)
+  });
 
   return headers;
 };
