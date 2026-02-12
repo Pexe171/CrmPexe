@@ -1,18 +1,5 @@
 import { NextResponse } from "next/server";
-import { proxyApiGet } from "@/lib/api-proxy";
-
-const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
-
-const buildHeaders = (request: Request) => {
-  const headers = new Headers();
-  const cookieHeader = request.headers.get("cookie");
-
-  if (cookieHeader) {
-    headers.set("cookie", cookieHeader);
-  }
-
-  return headers;
-};
+import { apiBaseUrl, buildApiHeaders, proxyApiGet } from "@/lib/api-proxy";
 
 export async function GET(request: Request) {
   return proxyApiGet(request, "/api/workspaces");
@@ -35,7 +22,7 @@ export async function POST(request: Request) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        ...Object.fromEntries(buildHeaders(request).entries())
+        ...Object.fromEntries(buildApiHeaders(request).entries())
       },
       credentials: "include",
       body: JSON.stringify(body)

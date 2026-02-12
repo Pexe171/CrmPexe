@@ -1,16 +1,5 @@
 import { NextResponse } from "next/server";
-import { apiBaseUrl } from "@/lib/api-proxy";
-
-const buildHeaders = (request: Request) => {
-  const headers = new Headers();
-  const cookieHeader = request.headers.get("cookie");
-
-  if (cookieHeader) {
-    headers.set("cookie", cookieHeader);
-  }
-
-  return headers;
-};
+import { apiBaseUrl, buildApiHeaders } from "@/lib/api-proxy";
 
 export async function GET(request: Request) {
   let apiResponse: Response;
@@ -19,7 +8,7 @@ export async function GET(request: Request) {
     apiResponse = await fetch(
       new URL("/api/integration-accounts", apiBaseUrl),
       {
-        headers: buildHeaders(request),
+        headers: buildApiHeaders(request),
         credentials: "include"
       }
     );
@@ -62,7 +51,7 @@ export async function POST(request: Request) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...Object.fromEntries(buildHeaders(request).entries())
+          ...Object.fromEntries(buildApiHeaders(request).entries())
         },
         credentials: "include",
         body: JSON.stringify(body)
