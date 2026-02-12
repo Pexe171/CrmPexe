@@ -31,6 +31,29 @@ const hasCookie = (cookieHeader: string | null, cookieName: string) => {
   return new RegExp(`(?:^|;\\s*)${cookieName}=`).test(cookieHeader);
 };
 
+const getCookieValue = (cookieHeader: string | null, cookieName: string) => {
+  if (!cookieHeader) {
+    return null;
+  }
+
+  const match = cookieHeader.match(
+    new RegExp(`(?:^|;\\s*)${cookieName}=([^;]*)`)
+  );
+  if (!match?.[1]) {
+    return null;
+  }
+
+  return decodeURIComponent(match[1]);
+};
+
+const isLikelyJwt = (token: string | null) => {
+  if (!token) {
+    return false;
+  }
+
+  return token.split(".").length === 3;
+};
+
 const buildExpiredAuthCookie = (cookieName: string) =>
   `${cookieName}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
 
@@ -108,9 +131,17 @@ export async function proxyApiGet(request: Request, path: string) {
   const headers = buildApiHeaders(request);
   const cookieHeader = headers.get("cookie");
   const cookieStore = cookies();
+  const refreshTokenFromHeader = getCookieValue(
+    cookieHeader,
+    REFRESH_TOKEN_COOKIE
+  );
+  const refreshTokenFromStore =
+    cookieStore.get(REFRESH_TOKEN_COOKIE)?.value ?? null;
+  const refreshToken = refreshTokenFromHeader ?? refreshTokenFromStore;
   const hasRefreshToken =
     hasCookie(cookieHeader, REFRESH_TOKEN_COOKIE) ||
-    Boolean(cookieStore.get(REFRESH_TOKEN_COOKIE)?.value);
+    Boolean(refreshTokenFromStore);
+  const canAttemptRefresh = hasRefreshToken && isLikelyJwt(refreshToken);
 
   const requestUrl = new URL(request.url);
   const target = new URL(path, apiBaseUrl);
@@ -124,7 +155,25 @@ export async function proxyApiGet(request: Request, path: string) {
       credentials: "include"
     });
 
-    if (apiResponse.status === 401 && hasRefreshToken) {
+    if (apiResponse.status === 401 && hasRefreshToken && !canAttemptRefresh) {
+      const response = await buildResponse(
+        apiResponse,
+        "Falha ao consultar recurso."
+      );
+
+      response.headers.append(
+        "set-cookie",
+        buildExpiredAuthCookie(ACCESS_TOKEN_COOKIE)
+      );
+      response.headers.append(
+        "set-cookie",
+        buildExpiredAuthCookie(REFRESH_TOKEN_COOKIE)
+      );
+
+      return response;
+    }
+
+    if (apiResponse.status === 401 && canAttemptRefresh) {
       const refreshResponse = await fetch(
         new URL("/api/auth/refresh", apiBaseUrl),
         {
