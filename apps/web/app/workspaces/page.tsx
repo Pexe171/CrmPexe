@@ -144,6 +144,44 @@ export default function WorkspacesPage() {
     }
   };
 
+  const handleDeleteWorkspace = async (workspace: Workspace) => {
+    const confirmed = window.confirm(
+      `Tem certeza que deseja excluir o workspace "${workspace.name}"?`
+    );
+
+    if (!confirmed) return;
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/workspaces/${workspace.id}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          reason: "Exclusão solicitada pela tela de workspaces"
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error("Não foi possível excluir o workspace.");
+      }
+
+      await fetchWorkspaces();
+    } catch (deleteError) {
+      setError(
+        deleteError instanceof Error
+          ? deleteError.message
+          : "Erro inesperado ao excluir workspace."
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 md:pl-72">
       <header className="border-b bg-slate-900 px-6 py-6 shadow-sm">
@@ -239,6 +277,13 @@ export default function WorkspacesPage() {
                       </Button>
                       <Button variant="outline" disabled={saving}>
                         Configurar
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        disabled={saving}
+                        onClick={() => void handleDeleteWorkspace(workspace)}
+                      >
+                        Excluir
                       </Button>
                     </div>
                   </div>
