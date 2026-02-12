@@ -43,7 +43,9 @@ export class RequestLoggerMiddleware implements NestMiddleware {
       return headerWorkspace.trim();
     }
 
-    const user = req.user as { currentWorkspaceId?: string } | undefined;
+    const user = (
+      req as Request & { user?: { currentWorkspaceId?: string | null } }
+    ).user;
     return user?.currentWorkspaceId ?? null;
   }
 }
