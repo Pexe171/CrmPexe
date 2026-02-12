@@ -9,6 +9,7 @@ export const apiBaseUrl =
   "http://localhost:3001";
 
 const ACCESS_TOKEN_COOKIE = "access_token";
+const REFRESH_TOKEN_COOKIE = "refresh_token";
 
 const getAccessTokenFromCookie = (cookieHeader: string) => {
   const tokenMatch = cookieHeader.match(
@@ -21,6 +22,17 @@ const getAccessTokenFromCookie = (cookieHeader: string) => {
 
   return decodeURIComponent(tokenMatch[1]);
 };
+
+const hasCookie = (cookieHeader: string | null, cookieName: string) => {
+  if (!cookieHeader) {
+    return false;
+  }
+
+  return new RegExp(`(?:^|;\\s*)${cookieName}=`).test(cookieHeader);
+};
+
+const buildExpiredAuthCookie = (cookieName: string) =>
+  `${cookieName}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
 
 const extractCookieFromSetCookie = (
   setCookies: string[],
@@ -94,6 +106,11 @@ export const buildApiHeaders = (request: Request) => {
 
 export async function proxyApiGet(request: Request, path: string) {
   const headers = buildApiHeaders(request);
+  const cookieHeader = headers.get("cookie");
+  const cookieStore = cookies();
+  const hasRefreshToken =
+    hasCookie(cookieHeader, REFRESH_TOKEN_COOKIE) ||
+    Boolean(cookieStore.get(REFRESH_TOKEN_COOKIE)?.value);
 
   const requestUrl = new URL(request.url);
   const target = new URL(path, apiBaseUrl);
@@ -107,7 +124,7 @@ export async function proxyApiGet(request: Request, path: string) {
       credentials: "include"
     });
 
-    if (apiResponse.status === 401) {
+    if (apiResponse.status === 401 && hasRefreshToken) {
       const refreshResponse = await fetch(
         new URL("/api/auth/refresh", apiBaseUrl),
         {
@@ -141,6 +158,24 @@ export async function proxyApiGet(request: Request, path: string) {
         refreshSetCookies.forEach((setCookie) => {
           response.headers.append("set-cookie", setCookie);
         });
+
+        return response;
+      }
+
+      if (refreshResponse.status === 401 || refreshResponse.status === 403) {
+        const response = await buildResponse(
+          apiResponse,
+          "Falha ao consultar recurso."
+        );
+
+        response.headers.append(
+          "set-cookie",
+          buildExpiredAuthCookie(ACCESS_TOKEN_COOKIE)
+        );
+        response.headers.append(
+          "set-cookie",
+          buildExpiredAuthCookie(REFRESH_TOKEN_COOKIE)
+        );
 
         return response;
       }
