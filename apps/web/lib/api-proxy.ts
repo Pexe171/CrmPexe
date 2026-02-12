@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 
 export const apiBaseUrl =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
@@ -21,6 +22,13 @@ export const buildApiHeaders = (request: Request) => {
   const headers = new Headers();
   const cookieHeader = request.headers.get("cookie");
   const authorizationHeader = request.headers.get("authorization");
+  const cookieStore = cookies();
+  const fallbackAccessToken =
+    cookieStore.get(ACCESS_TOKEN_COOKIE)?.value ?? null;
+  const fallbackCookieHeader = cookieStore
+    .getAll()
+    .map((cookie) => `${cookie.name}=${encodeURIComponent(cookie.value)}`)
+    .join("; ");
 
   if (authorizationHeader) {
     headers.set("authorization", authorizationHeader);
@@ -33,6 +41,14 @@ export const buildApiHeaders = (request: Request) => {
     if (accessToken && !headers.has("authorization")) {
       headers.set("authorization", `Bearer ${accessToken}`);
     }
+  }
+
+  if (!cookieHeader && fallbackCookieHeader) {
+    headers.set("cookie", fallbackCookieHeader);
+  }
+
+  if (!headers.has("authorization") && fallbackAccessToken) {
+    headers.set("authorization", `Bearer ${fallbackAccessToken}`);
   }
 
   return headers;
