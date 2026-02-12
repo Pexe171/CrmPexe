@@ -20,6 +20,53 @@ const getAccessTokenFromCookie = (cookieHeader: string) => {
   return decodeURIComponent(tokenMatch[1]);
 };
 
+const getSetCookieHeaders = (response: Response) => {
+  const headersWithCookies = response.headers as Headers & {
+    getSetCookie?: () => string[];
+  };
+
+  if (typeof headersWithCookies.getSetCookie === "function") {
+    return headersWithCookies.getSetCookie().filter(Boolean);
+  }
+
+  const singleHeader = headersWithCookies.get("set-cookie");
+  return singleHeader ? [singleHeader] : [];
+};
+
+const extractCookieFromSetCookie = (
+  setCookies: string[],
+  cookieName: string
+) => {
+  for (const setCookie of setCookies) {
+    const match = setCookie.match(new RegExp(`^${cookieName}=([^;]*)`));
+    if (match?.[1]) {
+      return decodeURIComponent(match[1]);
+    }
+  }
+
+  return null;
+};
+
+const buildResponse = async (
+  apiResponse: Response,
+  fallbackMessage: string
+) => {
+  if (apiResponse.status === 204) {
+    return new NextResponse(null, { status: 204 });
+  }
+
+  const payload = await apiResponse.json().catch(() => null);
+
+  if (!apiResponse.ok) {
+    return NextResponse.json(
+      { message: payload?.message ?? fallbackMessage },
+      { status: apiResponse.status }
+    );
+  }
+
+  return NextResponse.json(payload ?? null);
+};
+
 export const buildApiHeaders = (request: Request) => {
   const headers = new Headers();
   const cookieHeader = request.headers.get("cookie");
@@ -70,6 +117,45 @@ export async function proxyApiGet(request: Request, path: string) {
       headers,
       credentials: "include"
     });
+
+    if (apiResponse.status === 401) {
+      const refreshResponse = await fetch(
+        new URL("/api/auth/refresh", apiBaseUrl),
+        {
+          method: "POST",
+          headers,
+          credentials: "include"
+        }
+      );
+
+      if (refreshResponse.ok) {
+        const refreshSetCookies = getSetCookieHeaders(refreshResponse);
+        const renewedAccessToken = extractCookieFromSetCookie(
+          refreshSetCookies,
+          ACCESS_TOKEN_COOKIE
+        );
+
+        if (renewedAccessToken) {
+          headers.set("authorization", `Bearer ${renewedAccessToken}`);
+        }
+
+        apiResponse = await fetch(target, {
+          headers,
+          credentials: "include"
+        });
+
+        const response = await buildResponse(
+          apiResponse,
+          "Falha ao consultar recurso."
+        );
+
+        refreshSetCookies.forEach((setCookie) => {
+          response.headers.append("set-cookie", setCookie);
+        });
+
+        return response;
+      }
+    }
   } catch (error) {
     console.error(`Erro ao conectar na API (${path}):`, error);
     return NextResponse.json(
@@ -78,18 +164,5 @@ export async function proxyApiGet(request: Request, path: string) {
     );
   }
 
-  if (apiResponse.status === 204) {
-    return new NextResponse(null, { status: 204 });
-  }
-
-  const payload = await apiResponse.json().catch(() => null);
-
-  if (!apiResponse.ok) {
-    return NextResponse.json(
-      { message: payload?.message ?? "Falha ao consultar recurso." },
-      { status: apiResponse.status }
-    );
-  }
-
-  return NextResponse.json(payload ?? null);
+  return buildResponse(apiResponse, "Falha ao consultar recurso.");
 }
