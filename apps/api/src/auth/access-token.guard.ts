@@ -22,9 +22,13 @@ export class AccessTokenGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext) {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
-    console.log("[AccessTokenGuard] canActivate request debug", {
-      headers: request.headers,
-      cookies: request.cookies
+
+    console.log("[AccessTokenGuard][STEP 2] request recebido no guard", {
+      hasCookieHeader: Boolean(request.headers?.cookie),
+      cookieHeader: request.headers?.cookie ?? null,
+      hasAuthorizationHeader: Boolean(request.headers?.authorization),
+      authorizationHeader: request.headers?.authorization ?? null,
+      cookies: request.cookies ?? null
     });
     const token = this.extractToken(request);
 
@@ -37,6 +41,13 @@ export class AccessTokenGuard implements CanActivate {
     }
 
     try {
+      console.log("[AccessTokenGuard][STEP 2] Token extraído", {
+        tokenPreview:
+          token.length > 12
+            ? `${token.slice(0, 6)}...${token.slice(-6)}`
+            : `${token.slice(0, 3)}***`,
+        jwtAccessSecretDefined: Boolean(process.env.JWT_ACCESS_SECRET)
+      });
       const payload = await this.jwtService.verifyAsync<{
         sub: string;
         email: string;
@@ -45,6 +56,13 @@ export class AccessTokenGuard implements CanActivate {
         impersonatedWorkspaceId?: string;
       }>(token, {
         secret: this.accessTokenSecret
+      });
+
+      console.log("[AccessTokenGuard][STEP 2] JWT verificado com sucesso", {
+        sub: payload.sub,
+        role: payload.role,
+        impersonatedByUserId: payload.impersonatedByUserId ?? null,
+        impersonatedWorkspaceId: payload.impersonatedWorkspaceId ?? null
       });
 
       if (!payload.role) {
@@ -124,8 +142,16 @@ export class AccessTokenGuard implements CanActivate {
         impersonatedByUserId: payload.impersonatedByUserId ?? null,
         impersonatedWorkspaceId: payload.impersonatedWorkspaceId ?? null
       };
+      console.log("[AccessTokenGuard][STEP 2] Usuário autenticado no guard", {
+        userId: request.user.id,
+        workspaceId: request.user.currentWorkspaceId ?? null
+      });
+
       return true;
-    } catch {
+    } catch (error) {
+      console.log("[AccessTokenGuard][STEP 2] Falha ao validar token", {
+        message: error instanceof Error ? error.message : "erro desconhecido"
+      });
       throw new UnauthorizedException("Token de acesso inválido.");
     }
   }
@@ -134,7 +160,7 @@ export class AccessTokenGuard implements CanActivate {
     const cookieToken = request.cookies?.[ACCESS_TOKEN_COOKIE];
     const authorization = request.headers.authorization;
 
-    console.log("[AccessTokenGuard] extractToken tentativa", {
+    console.log("[AccessTokenGuard][STEP 2] extractToken tentativa", {
       cookieToken: cookieToken ?? null,
       authorizationHeader: authorization ?? null
     });
@@ -147,7 +173,7 @@ export class AccessTokenGuard implements CanActivate {
       return authorization.slice(7);
     }
 
-    console.log("[AccessTokenGuard] extractToken falhou", {
+    console.log("[AccessTokenGuard][STEP 2] extractToken falhou", {
       cookieToken: cookieToken ?? null,
       authorizationHeader: authorization ?? null
     });
