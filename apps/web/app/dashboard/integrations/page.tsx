@@ -25,6 +25,18 @@ type SmtpFormState = {
   secure: string;
 };
 
+type SocialIntegrationType =
+  | "INSTAGRAM_DIRECT"
+  | "FACEBOOK_MESSENGER"
+  | "WHATSAPP";
+
+type IntegrationAccount = {
+  id: string;
+  type: SocialIntegrationType | "OPENAI" | "N8N" | "EMAIL" | "VOIP";
+  name: string;
+  status: "ACTIVE" | "INACTIVE";
+};
+
 const defaultOpenAiForm: OpenAiFormState = {
   apiKey: "",
   model: "gpt-4o-mini",
@@ -50,6 +62,9 @@ export default function WorkspaceIntegrationsPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [hasOpenAiKey, setHasOpenAiKey] = useState(false);
   const [hasSmtpPass, setHasSmtpPass] = useState(false);
+  const [socialAccounts, setSocialAccounts] = useState<
+    Partial<Record<SocialIntegrationType, IntegrationAccount>>
+  >({});
 
   const fetchVariables = useCallback(async () => {
     const response = await fetch("/api/workspace-variables", {
@@ -88,12 +103,38 @@ export default function WorkspaceIntegrationsPage() {
     setHasSmtpPass(Boolean(map.SMTP_PASS));
   }, []);
 
+  const fetchSocialAccounts = useCallback(async () => {
+    const response = await fetch("/api/integration-accounts", {
+      credentials: "include"
+    });
+
+    if (!response.ok) {
+      throw new Error("Não foi possível carregar as vinculações sociais.");
+    }
+
+    const accounts = (await response.json()) as IntegrationAccount[];
+    const mapped = accounts.reduce<
+      Partial<Record<SocialIntegrationType, IntegrationAccount>>
+    >((acc, account) => {
+      if (
+        account.type === "INSTAGRAM_DIRECT" ||
+        account.type === "FACEBOOK_MESSENGER" ||
+        account.type === "WHATSAPP"
+      ) {
+        acc[account.type] = account;
+      }
+      return acc;
+    }, {});
+
+    setSocialAccounts(mapped);
+  }, []);
+
   useEffect(() => {
     const load = async () => {
       setLoading(true);
       setError(null);
       try {
-        await fetchVariables();
+        await Promise.all([fetchVariables(), fetchSocialAccounts()]);
       } catch (fetchError) {
         setError(
           fetchError instanceof Error
@@ -106,7 +147,7 @@ export default function WorkspaceIntegrationsPage() {
     };
 
     void load();
-  }, [fetchVariables]);
+  }, [fetchSocialAccounts, fetchVariables]);
 
   const saveVariables = useCallback(
     async (
@@ -238,7 +279,9 @@ export default function WorkspaceIntegrationsPage() {
             </Link>
             <Button
               variant="outline"
-              onClick={() => void fetchVariables()}
+              onClick={() =>
+                void Promise.all([fetchVariables(), fetchSocialAccounts()])
+              }
               disabled={loading}
               className="border-white/20 text-white hover:border-white/40"
             >
@@ -284,6 +327,84 @@ export default function WorkspaceIntegrationsPage() {
           </div>
         ) : null}
 
+        <section className="rounded-2xl border border-cyan-400/25 bg-gradient-to-br from-sky-950/70 via-indigo-950/60 to-slate-900 p-6 text-slate-100 shadow-xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">
+            Vinculação
+          </p>
+          <h2 className="mt-2 text-lg font-semibold text-white">
+            Redes sociais
+          </h2>
+          <p className="mt-1 text-sm text-slate-300">
+            Conecte Instagram, Facebook e WhatsApp para captar leads de anúncios
+            e centralizar conversas. Por enquanto, é permitida apenas 1 conta
+            por mídia em cada workspace.
+          </p>
+          <div className="mt-5 grid gap-4 md:grid-cols-3">
+            {[
+              {
+                type: "INSTAGRAM_DIRECT" as const,
+                title: "Instagram",
+                icon: "📸",
+                className: "border-fuchsia-400/30 bg-fuchsia-500/10"
+              },
+              {
+                type: "FACEBOOK_MESSENGER" as const,
+                title: "Facebook",
+                icon: "📘",
+                className: "border-blue-400/30 bg-blue-500/10"
+              },
+              {
+                type: "WHATSAPP" as const,
+                title: "WhatsApp",
+                icon: "💬",
+                className: "border-emerald-400/30 bg-emerald-500/10"
+              }
+            ].map((network) => {
+              const account = socialAccounts[network.type];
+
+              return (
+                <article
+                  key={network.type}
+                  className={`rounded-2xl border p-4 ${network.className}`}
+                >
+                  <p className="text-sm text-slate-200">
+                    {network.icon} {network.title}
+                  </p>
+                  <p className="mt-2 text-sm font-semibold text-white">
+                    {account
+                      ? `Vinculada: ${account.name}`
+                      : "Ainda não vinculada"}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-300">
+                    {account
+                      ? "Conta ativa para geração de leads e atendimento."
+                      : "Faça a vinculação para habilitar captura de leads."}
+                  </p>
+                </article>
+              );
+            })}
+          </div>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Link
+              href="/admin/integrations"
+              className={buttonVariants({
+                className: "bg-cyan-500 text-slate-950 hover:bg-cyan-400"
+              })}
+            >
+              Abrir botão Redes Sociais
+            </Link>
+            <Link
+              href="/admin/integrations"
+              className={buttonVariants({
+                variant: "outline",
+                className:
+                  "border-cyan-300/30 text-cyan-100 hover:border-cyan-300/60"
+              })}
+            >
+              Vincular no site próprio
+            </Link>
+          </div>
+        </section>
         <section className="rounded-2xl border border-violet-400/25 bg-gradient-to-br from-violet-950/70 via-indigo-950/70 to-slate-900 p-6 text-violet-50 shadow-xl">
           <h2 className="text-lg font-semibold text-violet-100">OpenAI</h2>
           <p className="mt-1 text-sm text-violet-200/90">

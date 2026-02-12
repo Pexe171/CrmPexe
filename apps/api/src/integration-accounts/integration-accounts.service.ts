@@ -58,6 +58,22 @@ export class IntegrationAccountsService {
       ? this.parseStatus(payload.status)
       : IntegrationAccountStatus.ACTIVE;
 
+    if (this.isSingleAccountType(type)) {
+      const existing = await this.prisma.integrationAccount.findFirst({
+        where: {
+          workspaceId: resolvedWorkspaceId,
+          type
+        },
+        select: { id: true }
+      });
+
+      if (existing) {
+        throw new BadRequestException(
+          "Já existe uma conta vinculada para esta mídia social neste workspace."
+        );
+      }
+    }
+
     return this.prisma.integrationAccount.create({
       data: {
         workspaceId: resolvedWorkspaceId,
@@ -615,6 +631,14 @@ export class IntegrationAccountsService {
     if (!membership) {
       throw new BadRequestException("Workspace inválido.");
     }
+  }
+
+  private isSingleAccountType(type: IntegrationAccountType) {
+    return (
+      type === IntegrationAccountType.WHATSAPP ||
+      type === IntegrationAccountType.INSTAGRAM_DIRECT ||
+      type === IntegrationAccountType.FACEBOOK_MESSENGER
+    );
   }
 
   private parseType(type: IntegrationAccountType | string) {

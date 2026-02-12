@@ -62,6 +62,23 @@ export class AccessTokenGuard implements CanActivate {
         throw new UnauthorizedException("Role do token não confere.");
       }
 
+      let resolvedWorkspaceId = user.currentWorkspaceId;
+      if (!resolvedWorkspaceId && !payload.impersonatedWorkspaceId) {
+        const fallbackMembership = await this.prisma.workspaceMember.findFirst({
+          where: { userId: user.id },
+          orderBy: { createdAt: "asc" },
+          select: { workspaceId: true }
+        });
+
+        if (fallbackMembership?.workspaceId) {
+          resolvedWorkspaceId = fallbackMembership.workspaceId;
+          await this.prisma.user.update({
+            where: { id: user.id },
+            data: { currentWorkspaceId: fallbackMembership.workspaceId }
+          });
+        }
+      }
+
       if (payload.impersonatedByUserId) {
         const impersonator = await this.prisma.user.findUnique({
           where: { id: payload.impersonatedByUserId },
@@ -94,7 +111,7 @@ export class AccessTokenGuard implements CanActivate {
         role: user.role,
         isSuperAdmin: user.isSuperAdmin,
         currentWorkspaceId:
-          payload.impersonatedWorkspaceId ?? user.currentWorkspaceId,
+          payload.impersonatedWorkspaceId ?? resolvedWorkspaceId,
         isImpersonated: Boolean(payload.impersonatedByUserId),
         impersonatedByUserId: payload.impersonatedByUserId ?? null,
         impersonatedWorkspaceId: payload.impersonatedWorkspaceId ?? null
