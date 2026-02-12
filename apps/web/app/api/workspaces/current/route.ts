@@ -1,13 +1,8 @@
 import { NextResponse } from "next/server";
+import { apiBaseUrl, buildApiHeaders } from "@/lib/api-proxy";
 
 export async function GET(request: Request) {
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
-  const headers = new Headers();
-  const cookieHeader = request.headers.get("cookie");
-
-  if (cookieHeader) {
-    headers.set("cookie", cookieHeader);
-  }
+  const headers = buildApiHeaders(request);
 
   let apiResponse: Response;
 
