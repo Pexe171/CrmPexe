@@ -15,10 +15,17 @@ import {
 const ACCESS_TOKEN_COOKIE = "access_token";
 const REFRESH_TOKEN_COOKIE = "refresh_token";
 
-const extractCookieValue = (setCookieHeader: string, cookieName: string) => {
-  const cookieRegex = new RegExp(`(?:^|[,\\s])${cookieName}=([^;]+)`);
-  const match = setCookieHeader.match(cookieRegex);
-  return match?.[1] ? decodeURIComponent(match[1]) : null;
+const extractCookieValue = (setCookieHeaders: string[], cookieName: string) => {
+  for (const setCookieHeader of setCookieHeaders) {
+    const cookieRegex = new RegExp(`(?:^|\\s)${cookieName}=([^;]+)`);
+    const match = setCookieHeader.match(cookieRegex);
+
+    if (match?.[1]) {
+      return decodeURIComponent(match[1]);
+    }
+  }
+
+  return null;
 };
 
 export async function POST(request: Request) {
@@ -78,16 +85,21 @@ export async function POST(request: Request) {
 
   const response = NextResponse.json({ ok: true, user: apiPayload ?? null });
   const setCookies = getSetCookieHeaders(apiResponse);
+  const requestHost = new URL(request.url).hostname;
+  const cookieDomain = requestHost === "localhost" ? undefined : requestHost;
 
   setCookies.filter(Boolean).forEach((cookie) => {
     response.headers.append("set-cookie", cookie);
   });
 
-  const joinedSetCookie = setCookies.join(",");
-  const accessToken = extractCookieValue(joinedSetCookie, ACCESS_TOKEN_COOKIE);
-  const refreshToken = extractCookieValue(
-    joinedSetCookie,
-    REFRESH_TOKEN_COOKIE
+  const accessToken = extractCookieValue(setCookies, ACCESS_TOKEN_COOKIE);
+  const refreshToken = extractCookieValue(setCookies, REFRESH_TOKEN_COOKIE);
+
+  console.info("[verify-otp] accessToken disponível:", Boolean(accessToken));
+  console.info("[verify-otp] refreshToken disponível:", Boolean(refreshToken));
+  console.info(
+    "[verify-otp] domínio aplicado aos cookies:",
+    cookieDomain ?? "host-only (localhost)"
   );
 
   if (accessToken) {
@@ -95,7 +107,8 @@ export async function POST(request: Request) {
       httpOnly: true,
       sameSite: "lax",
       path: "/",
-      maxAge: 60 * 15
+      maxAge: 60 * 15,
+      ...(cookieDomain ? { domain: cookieDomain } : {})
     });
   }
 
@@ -104,7 +117,8 @@ export async function POST(request: Request) {
       httpOnly: true,
       sameSite: "lax",
       path: "/",
-      maxAge: 60 * 60 * 24 * 7
+      maxAge: 60 * 60 * 24 * 7,
+      ...(cookieDomain ? { domain: cookieDomain } : {})
     });
   }
 
