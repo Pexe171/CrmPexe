@@ -476,12 +476,6 @@ export default function DashboardClient({
         title: "Administração",
         links: [
           {
-            href: "/admin/custom-fields",
-            label: "Campos customizados",
-            emoji: "🧩",
-            helper: "Personalize dados do CRM"
-          },
-          {
             href: "/admin/integrations",
             label: "Integrações",
             emoji: "🔗",
@@ -492,24 +486,6 @@ export default function DashboardClient({
             label: "Templates",
             emoji: "⚙️",
             helper: "Automações e fluxos"
-          },
-          {
-            href: "/admin/knowledge-base",
-            label: "Base de conhecimento",
-            emoji: "📚",
-            helper: "Artigos e conteúdos"
-          },
-          {
-            href: "/admin/canned-responses",
-            label: "Respostas rápidas",
-            emoji: "💡",
-            helper: "Atalhos de atendimento"
-          },
-          {
-            href: "/admin/billing",
-            label: "Cobrança",
-            emoji: "💳",
-            helper: "Plano e pagamentos"
           }
         ]
       });

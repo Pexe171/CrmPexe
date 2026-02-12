@@ -59,22 +59,16 @@ const clientSections: SidebarSectionData[] = [
     title: "Vendas & CRM",
     links: [
       {
-        href: "/companies",
-        label: "Empresas",
-        Icon: BuildingIcon,
-        helper: "Clientes e contas do CRM"
+        href: "/workspaces",
+        label: "Workspaces",
+        Icon: CompassIcon,
+        helper: "Troque de unidade ou time"
       }
     ]
   },
   {
     title: "Operações",
     links: [
-      {
-        href: "/workspaces",
-        label: "Workspaces",
-        Icon: CompassIcon,
-        helper: "Troque de unidade ou time"
-      },
       {
         href: "/dashboard/variables",
         label: "Variáveis",
@@ -91,12 +85,6 @@ const clientSections: SidebarSectionData[] = [
         label: "Credenciais",
         Icon: KeyIcon,
         helper: "OpenAI e SMTP por workspace"
-      },
-      {
-        href: "/marketplace",
-        label: "Agentes",
-        Icon: PuzzleIcon,
-        helper: "Status dos agentes disponíveis"
       }
     ]
   }
@@ -187,24 +175,6 @@ function InboxIcon(props: ComponentProps<"svg">) {
   );
 }
 
-function BuildingIcon(props: ComponentProps<"svg">) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <path d="M3 21h18" />
-      <path d="M5 21V5l7-3 7 3v16" />
-      <path d="M9 9h2M9 13h2M13 9h2M13 13h2" />
-    </svg>
-  );
-}
-
 function CompassIcon(props: ComponentProps<"svg">) {
   return (
     <svg
@@ -258,22 +228,6 @@ function KeyIcon(props: ComponentProps<"svg">) {
     </svg>
   );
 }
-function PuzzleIcon(props: ComponentProps<"svg">) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <path d="M9 3h6v3a2 2 0 11-4 0V3H9v4H6v4h3v3H6v4h4v-3h3v3h4v-4h-3v-3h3V7h-3V3H9z" />
-    </svg>
-  );
-}
-
 function ShieldIcon(props: ComponentProps<"svg">) {
   return (
     <svg
