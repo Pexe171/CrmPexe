@@ -10,6 +10,15 @@ import {
   normalizeUserRole
 } from "@/lib/rbac";
 
+const ACCESS_TOKEN_COOKIE = "access_token";
+const REFRESH_TOKEN_COOKIE = "refresh_token";
+
+const extractCookieValue = (setCookieHeader: string, cookieName: string) => {
+  const cookieRegex = new RegExp(`(?:^|[,\\s])${cookieName}=([^;]+)`);
+  const match = setCookieHeader.match(cookieRegex);
+  return match?.[1] ? decodeURIComponent(match[1]) : null;
+};
+
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
 
@@ -79,6 +88,31 @@ export async function POST(request: Request) {
   setCookies.filter(Boolean).forEach((cookie) => {
     response.headers.append("set-cookie", cookie);
   });
+
+  const joinedSetCookie = setCookies.join(",");
+  const accessToken = extractCookieValue(joinedSetCookie, ACCESS_TOKEN_COOKIE);
+  const refreshToken = extractCookieValue(
+    joinedSetCookie,
+    REFRESH_TOKEN_COOKIE
+  );
+
+  if (accessToken) {
+    response.cookies.set(ACCESS_TOKEN_COOKIE, accessToken, {
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 15
+    });
+  }
+
+  if (refreshToken) {
+    response.cookies.set(REFRESH_TOKEN_COOKIE, refreshToken, {
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7
+    });
+  }
 
   const role = normalizeUserRole(apiPayload?.role) ?? "USER";
   const isSuperAdmin = normalizeSuperAdminFlag(
