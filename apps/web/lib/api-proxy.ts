@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
+import { getSetCookieHeaders } from "@/lib/set-cookie";
+
 export const apiBaseUrl =
   process.env.API_URL ??
   process.env.NEXT_PUBLIC_API_URL ??
@@ -18,19 +20,6 @@ const getAccessTokenFromCookie = (cookieHeader: string) => {
   }
 
   return decodeURIComponent(tokenMatch[1]);
-};
-
-const getSetCookieHeaders = (response: Response) => {
-  const headersWithCookies = response.headers as Headers & {
-    getSetCookie?: () => string[];
-  };
-
-  if (typeof headersWithCookies.getSetCookie === "function") {
-    return headersWithCookies.getSetCookie().filter(Boolean);
-  }
-
-  const singleHeader = headersWithCookies.get("set-cookie");
-  return singleHeader ? [singleHeader] : [];
 };
 
 const extractCookieFromSetCookie = (
