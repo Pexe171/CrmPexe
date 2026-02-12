@@ -82,7 +82,9 @@ export class RateLimitGuard implements CanActivate {
     if (typeof headerWorkspace === "string" && headerWorkspace.trim()) {
       return headerWorkspace.trim();
     }
-    const user = request.user as { currentWorkspaceId?: string } | undefined;
+    const user = (
+      request as Request & { user?: { currentWorkspaceId?: string | null } }
+    ).user;
     return user?.currentWorkspaceId ?? null;
   }
 }
