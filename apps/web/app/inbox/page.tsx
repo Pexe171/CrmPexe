@@ -25,7 +25,6 @@ import {
   type Message
 } from "@/lib/api/conversations";
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const basePollIntervalMs = 5000;
 const maxPollIntervalMs = 15000;
 const pollBackoffStepMs = 5000;
@@ -344,7 +343,7 @@ export default function InboxPage() {
         const query = term
           ? `?search=${encodeURIComponent(term)}&isActive=true`
           : "?isActive=true";
-        const response = await fetch(`${apiUrl}/api/canned-responses${query}`, {
+        const response = await fetch(`/api/canned-responses${query}`, {
           credentials: "include"
         });
         if (!response.ok) {
@@ -370,10 +369,9 @@ export default function InboxPage() {
         const query = term
           ? `?search=${encodeURIComponent(term)}&isActive=true`
           : "?isActive=true";
-        const response = await fetch(
-          `${apiUrl}/api/knowledge-base-articles${query}`,
-          { credentials: "include" }
-        );
+        const response = await fetch(`/api/knowledge-base-articles${query}`, {
+          credentials: "include"
+        });
         if (!response.ok) {
           throw new Error("Não foi possível buscar artigos.");
         }

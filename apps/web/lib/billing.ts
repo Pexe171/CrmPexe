@@ -30,12 +30,10 @@ export type BillingSummary = {
   paymentMethod: BillingPaymentMethod | null;
 };
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-
 export const fetchWorkspaceBillingSummary = async (
   signal?: AbortSignal
 ): Promise<BillingSummary> => {
-  const response = await fetch(`${apiUrl}/api/billing/workspace-summary`, {
+  const response = await fetch("/api/billing/workspace-summary", {
     credentials: "include",
     signal
   });

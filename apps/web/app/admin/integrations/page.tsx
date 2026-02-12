@@ -11,7 +11,6 @@ import {
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const supportFallbackUrl = process.env.NEXT_PUBLIC_WHATSAPP_LINK || "";
 
 type IntegrationAccountType =
@@ -239,6 +238,39 @@ const statusOptions = [
   { value: "INACTIVE", label: "Inativa" }
 ];
 
+const socialTypes: IntegrationAccountType[] = [
+  "INSTAGRAM_DIRECT",
+  "FACEBOOK_MESSENGER",
+  "WHATSAPP"
+];
+
+const socialLinks: Array<{
+  type: IntegrationAccountType;
+  label: string;
+  href: string;
+  className: string;
+}> = [
+  {
+    type: "INSTAGRAM_DIRECT",
+    label: "Instagram",
+    href: "https://www.instagram.com/accounts/login/",
+    className:
+      "border-pink-200 bg-gradient-to-r from-pink-500 to-fuchsia-500 text-white"
+  },
+  {
+    type: "FACEBOOK_MESSENGER",
+    label: "Facebook",
+    href: "https://www.facebook.com/login",
+    className: "border-blue-200 bg-blue-600 text-white"
+  },
+  {
+    type: "WHATSAPP",
+    label: "WhatsApp",
+    href: "https://business.whatsapp.com/",
+    className: "border-emerald-200 bg-emerald-600 text-white"
+  }
+];
+
 const getDefaultSecretForm = (
   type: IntegrationAccountType
 ): SecretFormState => {
@@ -278,7 +310,7 @@ export default function IntegrationsAdminPage() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${apiUrl}/api/integration-accounts`, {
+      const response = await fetch("/api/integration-accounts", {
         credentials: "include"
       });
       if (!response.ok) {
@@ -296,11 +328,10 @@ export default function IntegrationsAdminPage() {
     }
   }, []);
 
-
   const fetchSessions = useCallback(async (accountId: string) => {
     try {
       const response = await fetch(
-        `${apiUrl}/api/integration-accounts/${accountId}/whatsapp/sessions`,
+        `/api/integration-accounts/${accountId}/whatsapp/sessions`,
         {
           credentials: "include"
         }
@@ -324,6 +355,13 @@ export default function IntegrationsAdminPage() {
   );
 
   const isWhatsappSelected = activeAccount?.type === "WHATSAPP";
+  const isLinkageTypeSelected = socialTypes.includes(formState.type);
+  const linkedSocialTypes = new Set(accounts.map((account) => account.type));
+  const canCreateSelectedType =
+    editingId !== null ||
+    !isLinkageTypeSelected ||
+    !linkedSocialTypes.has(formState.type);
+
   const activeSecretFields = activeAccount
     ? (secretFieldsByType[activeAccount.type] ?? [])
     : [];
@@ -341,7 +379,6 @@ export default function IntegrationsAdminPage() {
       setSecretForm((prev) => ({ ...prev, [field]: event.target.value }));
     };
 
-
   const resetForm = () => {
     setFormState(emptyForm);
     setEditingId(null);
@@ -358,8 +395,14 @@ export default function IntegrationsAdminPage() {
     setSuccess(null);
 
     try {
+      if (!canCreateSelectedType) {
+        throw new Error(
+          "Por enquanto, é permitido vincular apenas 1 conta por mídia social."
+        );
+      }
+
       const response = await fetch(
-        `${apiUrl}/api/integration-accounts${editingId ? `/${editingId}` : ""}`,
+        `/api/integration-accounts${editingId ? `/${editingId}` : ""}`,
         {
           method: editingId ? "PATCH" : "POST",
           headers: { "Content-Type": "application/json" },
@@ -389,13 +432,10 @@ export default function IntegrationsAdminPage() {
     setError(null);
     setSuccess(null);
     try {
-      const response = await fetch(
-        `${apiUrl}/api/integration-accounts/${accountId}`,
-        {
-          method: "DELETE",
-          credentials: "include"
-        }
-      );
+      const response = await fetch(`/api/integration-accounts/${accountId}`, {
+        method: "DELETE",
+        credentials: "include"
+      });
       if (!response.ok) {
         throw new Error("Não foi possível remover a integração.");
       }
@@ -440,7 +480,7 @@ export default function IntegrationsAdminPage() {
     async (accountId: string) => {
       try {
         const response = await fetch(
-          `${apiUrl}/api/integration-accounts/${accountId}/whatsapp/status`,
+          `/api/integration-accounts/${accountId}/whatsapp/status`,
           {
             credentials: "include"
           }
@@ -474,7 +514,7 @@ export default function IntegrationsAdminPage() {
 
     try {
       const response = await fetch(
-        `${apiUrl}/api/integration-accounts/${selectedAccountId}/whatsapp/qr`,
+        `/api/integration-accounts/${selectedAccountId}/whatsapp/qr`,
         {
           method: "POST",
           credentials: "include"
@@ -505,7 +545,7 @@ export default function IntegrationsAdminPage() {
 
     try {
       const response = await fetch(
-        `${apiUrl}/api/integration-accounts/${selectedAccountId}/whatsapp/evolution/connect`,
+        `/api/integration-accounts/${selectedAccountId}/whatsapp/evolution/connect`,
         {
           method: "POST",
           credentials: "include"
@@ -567,7 +607,7 @@ export default function IntegrationsAdminPage() {
 
     try {
       const response = await fetch(
-        `${apiUrl}/api/integration-accounts/${activeAccount.id}/secret`,
+        `/api/integration-accounts/${activeAccount.id}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -591,7 +631,6 @@ export default function IntegrationsAdminPage() {
     }
   };
 
-
   const qrStatusLabel = !qrStatus
     ? "aguardando seleção"
     : qrStatus === "connected"
@@ -607,8 +646,8 @@ export default function IntegrationsAdminPage() {
             Central de Integrações
           </h1>
           <p className="text-sm text-gray-500">
-            Configure as integrações do cliente (OpenAI, WhatsApp, E-mail e mais)
-            com segredos criptografados por workspace.
+            Configure as integrações do cliente (OpenAI, WhatsApp, E-mail e
+            mais) com segredos criptografados por workspace.
           </p>
           <Link
             href="/dashboard"
@@ -621,7 +660,37 @@ export default function IntegrationsAdminPage() {
 
       <main className="mx-auto grid w-full max-w-6xl gap-6 px-6 py-8 lg:grid-cols-[1fr_340px]">
         <section className="rounded-xl border bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-900">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Categoria: Vinculação
+            </p>
+            <h2 className="mt-1 text-lg font-semibold text-slate-900">
+              Redes sociais
+            </h2>
+            <p className="mt-1 text-sm text-slate-600">
+              Origem da vinculação: conecte Instagram, Facebook e WhatsApp para
+              captação de leads e acompanhamento de anúncios.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              {socialLinks.map((item) => (
+                <a
+                  key={item.type}
+                  href={item.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={`rounded-xl border px-4 py-2 text-sm font-semibold transition hover:opacity-90 ${item.className}`}
+                >
+                  Conectar {item.label}
+                </a>
+              ))}
+            </div>
+            <p className="mt-3 text-xs text-slate-500">
+              Limite atual: 1 conta por mídia social (Instagram, Facebook e
+              WhatsApp).
+            </p>
+          </div>
+
+          <h2 className="mt-6 text-lg font-semibold text-gray-900">
             Integrações configuradas
           </h2>
 
@@ -740,7 +809,16 @@ export default function IntegrationsAdminPage() {
               </select>
             </div>
 
-            <Button type="submit" disabled={submitting}>
+            {!canCreateSelectedType && !editingId ? (
+              <p className="text-xs text-amber-600">
+                Já existe uma conta vinculada para essa mídia social.
+              </p>
+            ) : null}
+
+            <Button
+              type="submit"
+              disabled={submitting || !canCreateSelectedType}
+            >
               {editingId ? "Salvar alterações" : "Criar integração"}
             </Button>
           </form>
@@ -866,7 +944,6 @@ export default function IntegrationsAdminPage() {
               </section>
             </>
           )}
-
 
           {success && (
             <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
