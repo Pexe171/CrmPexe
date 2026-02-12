@@ -21,11 +21,6 @@ type MarketplaceTemplate = {
   canInstall?: boolean;
 };
 
-type Workspace = {
-  id: string;
-  name: string;
-};
-
 type LeadRequest = {
   id: string;
   status: "PENDING" | "APPROVED" | "REJECTED";
@@ -214,9 +209,6 @@ const MarketplaceDashboard = () => {
           <div className="mt-3 flex flex-wrap gap-3">
             <Link href="/super-admin">
               <Button variant="outline">Voltar ao painel</Button>
-            </Link>
-            <Link href="/marketplace">
-              <Button variant="outline">Abrir marketplace público</Button>
             </Link>
           </div>
         </div>
