@@ -111,7 +111,7 @@ export const buildApiHeaders = (request: Request) => {
     headers.set("cookie", cookieHeader);
 
     const accessToken = getAccessTokenFromCookie(cookieHeader);
-    if (accessToken && !headers.has("authorization")) {
+    if (accessToken) {
       headers.set("authorization", `Bearer ${accessToken}`);
     }
   }
