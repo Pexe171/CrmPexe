@@ -22,9 +22,17 @@ export class AccessTokenGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext) {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
+    console.log("[AccessTokenGuard] canActivate request debug", {
+      headers: request.headers,
+      cookies: request.cookies
+    });
     const token = this.extractToken(request);
 
     if (!token) {
+      console.log("[AccessTokenGuard] Token de acesso ausente após extração", {
+        cookieToken: request.cookies?.[ACCESS_TOKEN_COOKIE] ?? null,
+        authorizationHeader: request.headers.authorization ?? null
+      });
       throw new UnauthorizedException("Token de acesso ausente.");
     }
 
@@ -124,14 +132,25 @@ export class AccessTokenGuard implements CanActivate {
 
   private extractToken(request: AuthenticatedRequest) {
     const cookieToken = request.cookies?.[ACCESS_TOKEN_COOKIE];
+    const authorization = request.headers.authorization;
+
+    console.log("[AccessTokenGuard] extractToken tentativa", {
+      cookieToken: cookieToken ?? null,
+      authorizationHeader: authorization ?? null
+    });
+
     if (cookieToken) {
       return cookieToken;
     }
 
-    const authorization = request.headers.authorization;
     if (authorization?.startsWith("Bearer ")) {
       return authorization.slice(7);
     }
+
+    console.log("[AccessTokenGuard] extractToken falhou", {
+      cookieToken: cookieToken ?? null,
+      authorizationHeader: authorization ?? null
+    });
 
     return null;
   }
