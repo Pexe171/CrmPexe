@@ -3,13 +3,38 @@ import { NextResponse } from "next/server";
 export const apiBaseUrl =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
-export async function proxyApiGet(request: Request, path: string) {
+const ACCESS_TOKEN_COOKIE = "access_token";
+
+const getAccessTokenFromCookie = (cookieHeader: string) => {
+  const tokenMatch = cookieHeader.match(
+    new RegExp(`(?:^|;\\s*)${ACCESS_TOKEN_COOKIE}=([^;]+)`)
+  );
+
+  if (!tokenMatch?.[1]) {
+    return null;
+  }
+
+  return decodeURIComponent(tokenMatch[1]);
+};
+
+export const buildApiHeaders = (request: Request) => {
   const headers = new Headers();
   const cookieHeader = request.headers.get("cookie");
 
   if (cookieHeader) {
     headers.set("cookie", cookieHeader);
+
+    const accessToken = getAccessTokenFromCookie(cookieHeader);
+    if (accessToken) {
+      headers.set("authorization", `Bearer ${accessToken}`);
+    }
   }
+
+  return headers;
+};
+
+export async function proxyApiGet(request: Request, path: string) {
+  const headers = buildApiHeaders(request);
 
   const requestUrl = new URL(request.url);
   const target = new URL(path, apiBaseUrl);

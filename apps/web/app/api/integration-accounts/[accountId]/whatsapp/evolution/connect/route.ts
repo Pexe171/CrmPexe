@@ -1,16 +1,5 @@
 import { NextResponse } from "next/server";
-import { apiBaseUrl } from "@/lib/api-proxy";
-
-const buildHeaders = (request: Request) => {
-  const headers = new Headers();
-  const cookieHeader = request.headers.get("cookie");
-
-  if (cookieHeader) {
-    headers.set("cookie", cookieHeader);
-  }
-
-  return headers;
-};
+import { apiBaseUrl, buildApiHeaders } from "@/lib/api-proxy";
 
 export async function POST(
   request: Request,
@@ -28,7 +17,7 @@ export async function POST(
       ),
       {
         method: "POST",
-        headers: buildHeaders(request),
+        headers: buildApiHeaders(request),
         credentials: "include"
       }
     );

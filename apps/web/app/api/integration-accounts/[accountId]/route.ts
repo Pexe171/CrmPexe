@@ -1,16 +1,5 @@
 import { NextResponse } from "next/server";
-import { apiBaseUrl } from "@/lib/api-proxy";
-
-const buildHeaders = (request: Request) => {
-  const headers = new Headers();
-  const cookieHeader = request.headers.get("cookie");
-
-  if (cookieHeader) {
-    headers.set("cookie", cookieHeader);
-  }
-
-  return headers;
-};
+import { apiBaseUrl, buildApiHeaders } from "@/lib/api-proxy";
 
 const callApi = async (
   request: Request,
@@ -32,7 +21,7 @@ const callApi = async (
           ...(method === "DELETE"
             ? {}
             : { "Content-Type": "application/json" }),
-          ...Object.fromEntries(buildHeaders(request).entries())
+          ...Object.fromEntries(buildApiHeaders(request).entries())
         },
         credentials: "include",
         body: body ? JSON.stringify(body) : undefined
