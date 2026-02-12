@@ -17,11 +17,11 @@ const REFRESH_TOKEN_COOKIE = "refresh_token";
 
 const extractCookieValue = (setCookieHeaders: string[], cookieName: string) => {
   for (const setCookieHeader of setCookieHeaders) {
-    const cookieRegex = new RegExp(`(?:^|\\s)${cookieName}=([^;]+)`);
-    const match = setCookieHeader.match(cookieRegex);
+    const [firstChunk = ""] = setCookieHeader.split(";");
+    const [name, ...valueParts] = firstChunk.split("=");
 
-    if (match?.[1]) {
-      return decodeURIComponent(match[1]);
+    if (name?.trim() === cookieName && valueParts.length > 0) {
+      return decodeURIComponent(valueParts.join("="));
     }
   }
 
@@ -83,8 +83,28 @@ export async function POST(request: Request) {
     );
   }
 
+  const headersWithCookies = apiResponse.headers as Headers & {
+    getSetCookie?: () => string[];
+  };
+
+  const rawSetCookiesFromMethod =
+    typeof headersWithCookies.getSetCookie === "function"
+      ? headersWithCookies.getSetCookie().filter(Boolean)
+      : null;
+  const rawSetCookieHeader = apiResponse.headers.get("set-cookie") ?? "";
+  const rawSetCookiesForLog =
+    rawSetCookiesFromMethod && rawSetCookiesFromMethod.length > 0
+      ? rawSetCookiesFromMethod
+      : rawSetCookieHeader;
+
+  console.log("[Login Route] Login Backend Status:", apiResponse.status);
+  console.log("[Login Route] Raw Set-Cookie Headers:", rawSetCookiesForLog);
+
   const response = NextResponse.json({ ok: true, user: apiPayload ?? null });
-  const setCookies = getSetCookieHeaders(apiResponse);
+  const setCookies =
+    rawSetCookiesFromMethod && rawSetCookiesFromMethod.length > 0
+      ? rawSetCookiesFromMethod
+      : getSetCookieHeaders(apiResponse);
   const requestHost = new URL(request.url).hostname;
   const cookieDomain = requestHost === "localhost" ? undefined : requestHost;
 
@@ -106,6 +126,7 @@ export async function POST(request: Request) {
     response.cookies.set(ACCESS_TOKEN_COOKIE, accessToken, {
       httpOnly: true,
       sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
       path: "/",
       maxAge: 60 * 15,
       ...(cookieDomain ? { domain: cookieDomain } : {})
@@ -116,6 +137,7 @@ export async function POST(request: Request) {
     response.cookies.set(REFRESH_TOKEN_COOKIE, refreshToken, {
       httpOnly: true,
       sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
       path: "/",
       maxAge: 60 * 60 * 24 * 7,
       ...(cookieDomain ? { domain: cookieDomain } : {})
