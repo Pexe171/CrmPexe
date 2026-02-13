@@ -12,6 +12,7 @@ import {
   Prisma
 } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import { AuthUser } from "../auth/auth.types";
 import { AutomationConnectorsService } from "./connectors/automation-connectors.service";
 import { CreateAutomationTemplateDto } from "./dto/create-automation-template.dto";
 import { CreateAutomationTemplateVersionDto } from "./dto/create-automation-template-version.dto";
@@ -177,14 +178,16 @@ export class AutomationsService {
   }
 
   async installTemplate(
-    userId: string,
+    user: AuthUser,
     templateId: string,
     payload: InstallAutomationTemplateDto,
     workspaceId?: string
   ) {
     const resolvedWorkspaceId = await this.resolveWorkspaceId(
-      userId,
-      workspaceId
+      user.id,
+      workspaceId,
+      payload.targetWorkspaceId,
+      user.isSuperAdmin
     );
 
     const template = await this.prisma.automationTemplate.findUnique({
@@ -224,7 +227,7 @@ export class AutomationsService {
         status: AutomationInstanceStatus.PENDING_CONFIG,
         configJson: configJson as Prisma.InputJsonValue,
         workflowData: workflowData as Prisma.InputJsonValue,
-        createdByUserId: userId
+        createdByUserId: user.id
       }
     });
 
@@ -263,7 +266,7 @@ export class AutomationsService {
     }
 
     const installation = await this.installAutomationInstance(
-      userId,
+      user.id,
       updatedInstance.id,
       resolvedWorkspaceId
     );
@@ -450,11 +453,15 @@ export class AutomationsService {
   async installAutomationInstance(
     userId: string,
     instanceId: string,
-    workspaceId?: string
+    workspaceId?: string,
+    targetWorkspaceId?: string,
+    isSuperAdmin = false
   ) {
     const resolvedWorkspaceId = await this.resolveWorkspaceId(
       userId,
-      workspaceId
+      workspaceId,
+      targetWorkspaceId,
+      isSuperAdmin
     );
     const instance = await this.prisma.automationInstance.findFirst({
       where: { id: instanceId, workspaceId: resolvedWorkspaceId },
@@ -1077,7 +1084,18 @@ export class AutomationsService {
     return value as Record<string, unknown>;
   }
 
-  private async resolveWorkspaceId(userId: string, workspaceId?: string) {
+  private async resolveWorkspaceId(
+    userId: string,
+    workspaceId?: string,
+    targetWorkspaceId?: string,
+    isSuperAdmin = false
+  ) {
+    const normalizedTargetWorkspaceId = targetWorkspaceId?.trim();
+    if (normalizedTargetWorkspaceId && isSuperAdmin) {
+      await this.ensureWorkspaceExists(normalizedTargetWorkspaceId);
+      return normalizedTargetWorkspaceId;
+    }
+
     const normalized = workspaceId?.trim();
     if (normalized) {
       await this.ensureWorkspaceMembership(userId, normalized);
@@ -1123,6 +1141,17 @@ export class AutomationsService {
     });
 
     if (!membership) {
+      throw new BadRequestException("Workspace inválido.");
+    }
+  }
+
+  private async ensureWorkspaceExists(workspaceId: string) {
+    const workspace = await this.prisma.workspace.findUnique({
+      where: { id: workspaceId },
+      select: { id: true }
+    });
+
+    if (!workspace) {
       throw new BadRequestException("Workspace inválido.");
     }
   }

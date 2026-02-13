@@ -12,4 +12,8 @@ export class InstallAutomationTemplateDto {
   @IsOptional()
   @IsString()
   version?: string;
+
+  @IsOptional()
+  @IsString()
+  targetWorkspaceId?: string;
 }
