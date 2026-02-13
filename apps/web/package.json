@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start -p 3000",
     "lint": "next lint --dir .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check:routes": "node ./scripts/check-internal-routes.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

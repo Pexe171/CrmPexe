@@ -203,6 +203,20 @@ O acesso às automações é liberado quando o workspace possui aprovação (`st
 
 Após validar o OTP com sucesso, o front-end redireciona o usuário para `/dashboard` (rota única pós-login).
 
+### Inventário de rotas do front (`apps/web`)
+
+Para evitar links antigos apontando para páginas removidas, existe a checagem automatizada:
+
+```bash
+pnpm --filter crmpexe-web check:routes
+```
+
+Esse comando valida referências internas de navegação (`href`, `redirect`, `router.push`, `router.replace`) contra as rotas reais em `app/**/page.tsx`.
+
+O inventário detalhado (menu atual, rotas existentes e rotas quebradas) está em:
+
+- `apps/web/docs/front-route-inventory.md`
+
 ## Fluxo do Super Admin para publicar molde n8n
 
 Antes de disponibilizar uma automação no marketplace, o Super Admin deve transformar o JSON exportado do n8n em um **molde reutilizável**:
