@@ -33,7 +33,8 @@ export class WorkspaceVariablesService {
   async upsertVariable(userId: string, payload: UpsertWorkspaceVariableDto, workspaceId?: string) {
     const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
     const key = this.normalizeRequiredString(payload.key, "key");
-    const isSensitive = Boolean(payload.isSensitive);
+    const isSensitive =
+      payload.isSensitive ?? this.shouldDefaultToSensitive(key);
     const value = this.normalizeOptionalString(payload.value);
 
     if (isSensitive && !value) {
@@ -141,6 +142,10 @@ export class WorkspaceVariablesService {
     }
     const trimmed = value?.trim();
     return trimmed ? trimmed : null;
+  }
+
+  private shouldDefaultToSensitive(key: string) {
+    return /(API_KEY|TOKEN|SECRET|PASSWORD|PRIVATE|WEBHOOK)/i.test(key);
   }
 
   private toSummary(variable: {
