@@ -40,9 +40,45 @@ export type ErrorLogSummary = {
   createdAt: Date;
 };
 
+export type WorkspaceSelectOption = {
+  id: string;
+  name: string;
+  slug: string;
+  plan: string | null;
+};
+
 @Injectable()
 export class SuperAdminService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async searchWorkspaces(query?: string): Promise<WorkspaceSelectOption[]> {
+    const where: Prisma.WorkspaceWhereInput = query
+      ? { name: { contains: query, mode: "insensitive" } }
+      : {};
+
+    const workspaces = await this.prisma.workspace.findMany({
+      where,
+      select: {
+        id: true,
+        name: true,
+        code: true,
+        subscriptions: {
+          select: { provider: true, updatedAt: true },
+          orderBy: { updatedAt: "desc" },
+          take: 1
+        }
+      },
+      take: 50,
+      orderBy: { createdAt: "desc" }
+    });
+
+    return workspaces.map((workspace) => ({
+      id: workspace.id,
+      name: workspace.name,
+      slug: workspace.code,
+      plan: workspace.subscriptions[0]?.provider ?? null
+    }));
+  }
 
   async listWorkspaces(params: { page?: number; perPage?: number; search?: string })
     : Promise<PaginatedResponse<WorkspaceOverview>> {
