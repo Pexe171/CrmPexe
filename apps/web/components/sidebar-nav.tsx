@@ -66,28 +66,6 @@ const clientSections: SidebarSectionData[] = [
       }
     ]
   },
-  {
-    title: "Operações",
-    links: [
-      {
-        href: "/dashboard/variables",
-        label: "Variáveis",
-        Icon: BeakerIcon,
-        helper: "Dados dinâmicos do CRM"
-      }
-    ]
-  },
-  {
-    title: "Integrações",
-    links: [
-      {
-        href: "/dashboard/integrations",
-        label: "Credenciais",
-        Icon: KeyIcon,
-        helper: "OpenAI e SMTP por workspace"
-      }
-    ]
-  }
 ];
 
 const superAdminSections: SidebarSectionData[] = [
@@ -192,42 +170,6 @@ function CompassIcon(props: ComponentProps<"svg">) {
   );
 }
 
-function BeakerIcon(props: ComponentProps<"svg">) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <path d="M8 3h8" />
-      <path d="M10 3v5l-4 7a4 4 0 003.5 6h5a4 4 0 003.5-6l-4-7V3" />
-      <path d="M8 14h8" />
-    </svg>
-  );
-}
-
-function KeyIcon(props: ComponentProps<"svg">) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <circle cx="7.5" cy="15.5" r="3.5" />
-      <path d="M10.5 13.5L21 3" />
-      <path d="M16 3h5v5" />
-      <path d="M13.5 10.5l2 2" />
-    </svg>
-  );
-}
 function ShieldIcon(props: ComponentProps<"svg">) {
   return (
     <svg
