@@ -221,13 +221,20 @@ export class AutomationsService {
 
     const instance = await this.prisma.automationInstance.create({
       data: {
-        workspaceId: resolvedWorkspaceId,
-        templateId: template.id,
-        templateVersionId: templateVersion?.id ?? template.currentVersionId,
+        workspace: { connect: { id: resolvedWorkspaceId } },
+        template: { connect: { id: template.id } },
+        templateVersion:
+          templateVersion?.id ?? template.currentVersionId
+            ? {
+                connect: {
+                  id: templateVersion?.id ?? template.currentVersionId!
+                }
+              }
+            : undefined,
         status: AutomationInstanceStatus.PENDING_CONFIG,
         configJson: configJson as Prisma.InputJsonValue,
         workflowData: workflowData as Prisma.InputJsonValue,
-        createdByUserId: user.id
+        createdByUser: { connect: { id: user.id } }
       }
     });
 
@@ -1091,7 +1098,13 @@ export class AutomationsService {
     isSuperAdmin = false
   ) {
     const normalizedTargetWorkspaceId = targetWorkspaceId?.trim();
-    if (normalizedTargetWorkspaceId && isSuperAdmin) {
+    if (normalizedTargetWorkspaceId) {
+      if (!isSuperAdmin) {
+        throw new ForbiddenException(
+          "Apenas SUPER_ADMIN pode instalar automações em outro workspace."
+        );
+      }
+
       await this.ensureWorkspaceExists(normalizedTargetWorkspaceId);
       return normalizedTargetWorkspaceId;
     }

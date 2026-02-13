@@ -1,4 +1,4 @@
-import { IsObject, IsOptional, IsString } from "class-validator";
+import { IsObject, IsOptional, IsString, IsUUID } from "class-validator";
 
 export class InstallAutomationTemplateDto {
   @IsOptional()
@@ -14,6 +14,6 @@ export class InstallAutomationTemplateDto {
   version?: string;
 
   @IsOptional()
-  @IsString()
+  @IsUUID()
   targetWorkspaceId?: string;
 }
