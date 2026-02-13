@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,26 +24,30 @@ type AgentTemplate = {
   description: string;
   category: AgentCategory;
   iconLabel: string;
+  variableKeys: string[];
 };
 
 type InstalledAgent = {
   id: string;
+  templateId: string;
   templateName: string;
   description: string;
   status: AgentStatus;
   lastExecution: string;
+  variableKeys: string[];
 };
 
 const WHATSAPP_NUMBER = "SEUNUMERO";
 
 const agentTemplates: AgentTemplate[] = [
   {
-    id: "sales-qualifier",
-    name: "Qualificador de Leads",
+    id: "sales-bot",
+    name: "Robô de Vendas",
     description:
-      "Faz triagem automática de novos contatos e identifica prioridade comercial.",
+      "Atende leads no WhatsApp, qualifica interesse e cria oportunidades automaticamente.",
     category: "Vendas",
-    iconLabel: "QL"
+    iconLabel: "RV",
+    variableKeys: ["WHATSAPP_API_KEY", "SALES_PIPELINE_ID", "N8N_WEBHOOK_URL"]
   },
   {
     id: "support-assistant",
@@ -50,7 +55,8 @@ const agentTemplates: AgentTemplate[] = [
     description:
       "Responde dúvidas frequentes e encaminha tickets para o time quando necessário.",
     category: "Atendimento",
-    iconLabel: "AS"
+    iconLabel: "AS",
+    variableKeys: ["SUPPORT_CHANNEL_ID", "OPENAI_API_KEY"]
   },
   {
     id: "billing-reminder",
@@ -58,7 +64,8 @@ const agentTemplates: AgentTemplate[] = [
     description:
       "Dispara lembretes de cobrança e acompanha retornos de pagamento.",
     category: "Financeiro",
-    iconLabel: "CI"
+    iconLabel: "CI",
+    variableKeys: ["MERCADO_PAGO_ACCESS_TOKEN", "BILLING_REMINDER_DAYS"]
   },
   {
     id: "pipeline-updater",
@@ -66,25 +73,30 @@ const agentTemplates: AgentTemplate[] = [
     description:
       "Organiza etapas do funil e notifica responsáveis por pendências de negócio.",
     category: "Operações",
-    iconLabel: "AP"
+    iconLabel: "AP",
+    variableKeys: ["DEFAULT_OWNER_ID", "PIPELINE_STAGE_MAPPING"]
   }
 ];
 
 const installedAgents: InstalledAgent[] = [
   {
     id: "inst-001",
-    templateName: "Qualificador de Leads",
+    templateId: "sales-bot",
+    templateName: "Robô de Vendas",
     description: "Instalado pela equipe CrmPexe para a operação de pré-vendas.",
     status: "RUNNING",
-    lastExecution: "Hoje às 09:42"
+    lastExecution: "Hoje às 09:42",
+    variableKeys: ["WHATSAPP_API_KEY", "SALES_PIPELINE_ID", "N8N_WEBHOOK_URL"]
   },
   {
     id: "inst-002",
+    templateId: "billing-reminder",
     templateName: "Cobrador Inteligente",
     description:
       "Instalado para automação de follow-up financeiro do workspace.",
     status: "PAUSED",
-    lastExecution: "Ontem às 18:15"
+    lastExecution: "Ontem às 18:15",
+    variableKeys: ["MERCADO_PAGO_ACCESS_TOKEN", "BILLING_REMINDER_DAYS"]
   }
 ];
 
@@ -94,6 +106,18 @@ function getInterestLink(agentName: string) {
   );
 
   return `https://wa.me/${WHATSAPP_NUMBER}?text=${text}`;
+}
+
+function getDevelopersSettingsLink(variableKeys: string[]) {
+  const params = new URLSearchParams();
+  if (variableKeys.length > 0) {
+    params.set("keys", variableKeys.join(","));
+  }
+
+  const query = params.toString();
+  return query
+    ? `/dashboard/settings/developers?${query}`
+    : "/dashboard/settings/developers";
 }
 
 export default function AgentsStorePage() {
@@ -111,7 +135,8 @@ export default function AgentsStorePage() {
           Loja de Agentes
         </h1>
         <p className="text-sm text-slate-400">
-          Automatize seu negócio com nossos robôs inteligentes.
+          Escolha um agente no marketplace, clique em Tenho Interesse e a equipe
+          CrmPexe implanta para você.
         </p>
       </header>
 
@@ -175,7 +200,7 @@ export default function AgentsStorePage() {
                       );
                     }}
                   >
-                    Falar com Especialista ↗
+                    Tenho Interesse ↗
                   </Button>
                 </CardFooter>
               </Card>
@@ -200,11 +225,18 @@ export default function AgentsStorePage() {
                   </div>
                   <CardDescription>{agent.description}</CardDescription>
                 </CardHeader>
-                <CardContent className="flex items-center justify-between gap-3 text-sm text-slate-400">
+                <CardContent className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-400">
                   <span>Última execução: {agent.lastExecution}</span>
-                  <Button type="button" variant="outline" size="sm">
-                    Ver Logs
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button type="button" variant="outline" size="sm">
+                      Ver Logs
+                    </Button>
+                    <Link href={getDevelopersSettingsLink(agent.variableKeys)}>
+                      <Button type="button" variant="secondary" size="sm">
+                        Configurar
+                      </Button>
+                    </Link>
+                  </div>
                 </CardContent>
               </Card>
             );

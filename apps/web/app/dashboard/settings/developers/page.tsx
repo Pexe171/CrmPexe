@@ -63,6 +63,7 @@ function inferSensitiveByKey(variableKey: string) {
 export default function SettingsDevelopersPage() {
   const [variables, setVariables] = useState<WorkspaceVariable[]>([]);
   const [search, setSearch] = useState("");
+  const [keysFilter, setKeysFilter] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -104,20 +105,44 @@ export default function SettingsDevelopersPage() {
   }
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const parsedKeys = params.get("keys");
+
+    if (parsedKeys) {
+      const normalizedKeys = parsedKeys
+        .split(",")
+        .map((value) => value.trim().toLowerCase())
+        .filter(Boolean);
+
+      setKeysFilter(normalizedKeys);
+
+      const firstKey = normalizedKeys
+        .map((value) => value.trim().toLowerCase())
+        .find(Boolean);
+
+      if (firstKey) {
+        setSearch(firstKey);
+      }
+    }
+
     void loadVariables();
   }, []);
 
   const filteredVariables = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
 
-    if (!normalizedSearch) {
-      return variables;
-    }
+    return variables.filter((variable) => {
+      const bySearch =
+        normalizedSearch.length === 0 ||
+        variable.key.toLowerCase().includes(normalizedSearch);
 
-    return variables.filter((variable) =>
-      variable.key.toLowerCase().includes(normalizedSearch)
-    );
-  }, [search, variables]);
+      const byKeys =
+        keysFilter.length === 0 ||
+        keysFilter.includes(variable.key.toLowerCase());
+
+      return bySearch && byKeys;
+    });
+  }, [keysFilter, search, variables]);
 
   function handleOpenCreateModal() {
     setEditingVariable(null);

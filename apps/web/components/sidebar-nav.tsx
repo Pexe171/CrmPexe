@@ -54,6 +54,12 @@ const clientSections: SidebarSectionData[] = [
         label: "Canais & Redes",
         Icon: Share2,
         helper: "Conecte WhatsApp/Insta"
+      },
+      {
+        href: "/dashboard/agents",
+        label: "Agentes",
+        Icon: Bot,
+        helper: "Marketplace e automações"
       }
     ]
   },
