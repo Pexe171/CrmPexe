@@ -24,6 +24,11 @@ export class SuperAdminController {
     });
   }
 
+  @Get("workspaces/select")
+  async listWorkspaceOptions(@Query("q") query?: string) {
+    return this.superAdminService.searchWorkspaces(query);
+  }
+
   @Get("error-logs")
   async listErrorLogs(
     @Query("page") page?: string,
