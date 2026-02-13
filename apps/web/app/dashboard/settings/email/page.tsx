@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { Loader2, Mail, Save, Zap } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -9,167 +11,151 @@ import {
   CardHeader,
   CardTitle
 } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const inputClassName =
-  "h-11 w-full rounded-lg border border-slate-700/80 bg-slate-950/80 px-3 text-sm text-slate-100 placeholder:text-slate-500 transition-colors focus:border-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500/60";
+  "bg-slate-950 border-slate-800 text-slate-100 placeholder:text-slate-500 focus:ring-amber-500/20 focus:border-amber-500";
 
 export default function SettingsEmailPage() {
-  const [isSaving, setIsSaving] = useState(false);
-  const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    host: "",
+    port: "587",
+    user: "",
+    pass: "",
+    from: ""
+  });
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSave(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setIsSaving(true);
+    setIsLoading(true);
 
-    setTimeout(() => {
-      setIsSaving(false);
-    }, 1200);
-  }
+    try {
+      const variablesToSave = [
+        { key: "SMTP_HOST", value: formData.host, isSensitive: false },
+        { key: "SMTP_PORT", value: formData.port, isSensitive: false },
+        { key: "SMTP_USER", value: formData.user, isSensitive: false },
+        { key: "SMTP_PASS", value: formData.pass, isSensitive: true },
+        { key: "SMTP_FROM", value: formData.from, isSensitive: false }
+      ];
 
-  function handleTestConnection() {
-    setIsTestingConnection(true);
-
-    setTimeout(() => {
-      setIsTestingConnection(false);
-    }, 1200);
+      await Promise.all(
+        variablesToSave.map((variable) =>
+          fetch("/api/workspace-variables", {
+            method: "POST",
+            body: JSON.stringify(variable),
+            headers: { "Content-Type": "application/json" }
+          })
+        )
+      );
+      alert("SMTP configurado com sucesso!");
+    } catch (_error) {
+      alert("Erro ao salvar.");
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl p-6">
-      <Card className="overflow-hidden border-slate-800">
-        <CardHeader className="space-y-4 border-b border-slate-800 bg-gradient-to-r from-slate-900 via-slate-900 to-slate-950">
-          <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-slate-700 bg-slate-950/90 text-xl shadow-inner shadow-slate-900">
-              <span aria-hidden="true">📨</span>
+    <div className="mx-auto w-full max-w-3xl space-y-8 p-8">
+      <Card className="border-slate-800 bg-slate-900/50">
+        <CardHeader className="border-b border-slate-800 bg-slate-950/30">
+          <div className="flex items-center gap-3">
+            <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-2">
+              <Mail className="h-6 w-6 text-amber-400" />
             </div>
-
-            <div className="space-y-1">
-              <CardTitle className="text-xl">Envio de E-mail (SMTP)</CardTitle>
-              <CardDescription className="text-slate-300">
-                Defina credenciais SMTP para envio de e-mails transacionais,
-                notificações e testes de conectividade.
+            <div>
+              <CardTitle>SMTP & Disparo</CardTitle>
+              <CardDescription>
+                Credenciais para envio de e-mails transacionais.
               </CardDescription>
             </div>
           </div>
-
-          <div className="rounded-lg border border-slate-800 bg-slate-950/70 px-3 py-2 text-xs text-slate-400">
-            O botão <strong className="text-slate-300">Testar Conexão</strong>{" "}
-            enviará um e-mail de validação para o usuário logado.
-          </div>
         </CardHeader>
-
         <CardContent className="p-6">
-          <form className="space-y-5" onSubmit={handleSubmit}>
-            <div className="grid gap-5 md:grid-cols-2">
-              <label className="flex flex-col gap-2 md:col-span-2">
-                <span className="text-sm font-medium text-slate-200">Host</span>
-                <input
-                  type="text"
-                  name="host"
-                  placeholder="smtp.seudominio.com"
+          <form onSubmit={handleSave} className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-slate-300">Host (Servidor)</Label>
+                <Input
                   className={inputClassName}
-                  required
+                  placeholder="smtp.resend.com"
+                  value={formData.host}
+                  onChange={(event) =>
+                    setFormData({ ...formData, host: event.target.value })
+                  }
                 />
-              </label>
-
-              <label className="flex flex-col gap-2">
-                <span className="text-sm font-medium text-slate-200">Port</span>
-                <input
-                  type="number"
-                  name="port"
+              </div>
+              <div className="space-y-2">
+                <Label className="text-slate-300">Porta</Label>
+                <Input
+                  className={inputClassName}
                   placeholder="587"
-                  className={inputClassName}
-                  required
+                  value={formData.port}
+                  onChange={(event) =>
+                    setFormData({ ...formData, port: event.target.value })
+                  }
                 />
-              </label>
-
-              <label className="flex flex-col gap-2">
-                <span className="text-sm font-medium text-slate-200">
-                  Secure
-                </span>
-                <select
-                  name="secure"
-                  defaultValue="false"
-                  className={inputClassName}
-                >
-                  <option value="false">false (TLS/STARTTLS opcional)</option>
-                  <option value="true">true (SSL/TLS obrigatório)</option>
-                </select>
-              </label>
-
-              <label className="flex flex-col gap-2">
-                <span className="text-sm font-medium text-slate-200">User</span>
-                <input
-                  type="text"
-                  name="user"
-                  placeholder="usuario-smtp"
-                  className={inputClassName}
-                  required
-                />
-              </label>
-
-              <label className="flex flex-col gap-2">
-                <span className="text-sm font-medium text-slate-200">
-                  Password
-                </span>
-                <input
-                  type="password"
-                  name="password"
-                  placeholder="••••••••"
-                  className={inputClassName}
-                  autoComplete="off"
-                  required
-                />
-              </label>
-
-              <label className="flex flex-col gap-2 md:col-span-2">
-                <span className="text-sm font-medium text-slate-200">
-                  From Email
-                </span>
-                <input
-                  type="email"
-                  name="fromEmail"
-                  placeholder="noreply@seudominio.com"
-                  className={inputClassName}
-                  required
-                />
-              </label>
+              </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-800 pt-4">
+            <div className="space-y-2">
+              <Label className="text-slate-300">Usuário SMTP</Label>
+              <Input
+                className={inputClassName}
+                placeholder="resend"
+                value={formData.user}
+                onChange={(event) =>
+                  setFormData({ ...formData, user: event.target.value })
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-slate-300">Senha SMTP</Label>
+              <Input
+                type="password"
+                className={inputClassName}
+                placeholder="••••••••"
+                value={formData.pass}
+                onChange={(event) =>
+                  setFormData({ ...formData, pass: event.target.value })
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-slate-300">E-mail de Envio (From)</Label>
+              <Input
+                className={inputClassName}
+                placeholder="nao-responda@suaempresa.com"
+                value={formData.from}
+                onChange={(event) =>
+                  setFormData({ ...formData, from: event.target.value })
+                }
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4">
               <Button
                 type="button"
                 variant="outline"
-                onClick={handleTestConnection}
-                disabled={isTestingConnection || isSaving}
-                className="min-w-40"
+                className="border-slate-700 text-slate-300 hover:bg-slate-800"
               >
-                {isTestingConnection ? (
-                  <span className="inline-flex items-center gap-2">
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-400 border-t-transparent" />
-                    Testando...
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-2">
-                    <span aria-hidden="true">✉️</span>
-                    Testar Conexão
-                  </span>
-                )}
+                <Zap className="mr-2 h-4 w-4" /> Testar Conexão
               </Button>
-
               <Button
                 type="submit"
-                disabled={isSaving || isTestingConnection}
-                className="min-w-28"
+                className="bg-amber-600 text-white hover:bg-amber-500"
+                disabled={isLoading}
               >
-                {isSaving ? (
-                  <span className="inline-flex items-center gap-2">
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-transparent" />
-                    Salvando...
-                  </span>
+                {isLoading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
-                  "Salvar"
+                  <Save className="mr-2 h-4 w-4" />
                 )}
+                Salvar SMTP
               </Button>
             </div>
           </form>

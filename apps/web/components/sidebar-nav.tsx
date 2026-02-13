@@ -1,5 +1,14 @@
 "use client";
 
+import {
+  Bot,
+  Code2,
+  Inbox,
+  LayoutDashboard,
+  Mail,
+  Share2,
+  Store
+} from "lucide-react";
 import Link from "next/link";
 import { type ComponentProps, type ReactNode, useState } from "react";
 
@@ -28,35 +37,54 @@ type SidebarNavProps = {
 
 const clientSections: SidebarSectionData[] = [
   {
-    title: "Início rápido",
+    title: "Principal",
     links: [
       {
         href: "/dashboard",
-        label: "Painel geral",
-        Icon: DashboardIcon,
-        helper: "Resumo do funil e performance"
-      }
-    ]
-  },
-  {
-    title: "Atendimento",
-    links: [
+        label: "Visão Geral",
+        Icon: LayoutDashboard
+      },
       {
         href: "/inbox",
-        label: "Inbox omnichannel",
-        Icon: InboxIcon,
-        helper: "Atenda e acompanhe SLAs"
+        label: "Atendimento",
+        Icon: Inbox
+      },
+      {
+        href: "/dashboard/channels",
+        label: "Canais & Redes",
+        Icon: Share2,
+        helper: "Conecte WhatsApp/Insta"
       }
     ]
   },
   {
-    title: "Vendas & CRM",
+    title: "Gestão",
     links: [
       {
         href: "/workspaces",
         label: "Workspaces",
-        Icon: CompassIcon,
-        helper: "Troque de unidade ou time"
+        Icon: Store
+      }
+    ]
+  },
+  {
+    title: "Configurações",
+    links: [
+      {
+        href: "/dashboard/settings/ai",
+        label: "Inteligência Artificial",
+        Icon: Bot
+      },
+      {
+        href: "/dashboard/settings/email",
+        label: "E-mail (SMTP)",
+        Icon: Mail
+      },
+      {
+        href: "/dashboard/settings/developers",
+        label: "Chaves & API",
+        Icon: Code2,
+        helper: "Para Agentes e n8n"
       }
     ]
   }
@@ -93,59 +121,6 @@ const superAdminSections: SidebarSectionData[] = [
     ]
   }
 ];
-
-function DashboardIcon(props: ComponentProps<"svg">) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <rect x="3" y="3" width="8" height="8" rx="2" />
-      <rect x="13" y="3" width="8" height="5" rx="2" />
-      <rect x="13" y="10" width="8" height="11" rx="2" />
-      <rect x="3" y="13" width="8" height="8" rx="2" />
-    </svg>
-  );
-}
-
-function InboxIcon(props: ComponentProps<"svg">) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <path d="M3 12l4-7h10l4 7v6H3v-6z" />
-      <path d="M3 12h6l3 3 3-3h6" />
-    </svg>
-  );
-}
-
-function CompassIcon(props: ComponentProps<"svg">) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <circle cx="12" cy="12" r="9" />
-      <path d="M10 14l4-2 2-4-4 2-2 4z" />
-    </svg>
-  );
-}
 
 function ShieldIcon(props: ComponentProps<"svg">) {
   return (
