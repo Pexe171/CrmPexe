@@ -70,7 +70,7 @@ export class AutomationsController {
     @Param("id") templateId: string,
     @Body() body: InstallAutomationTemplateDto
   ) {
-    if (body.targetWorkspaceId && user.role !== UserRole.SUPER_ADMIN) {
+    if (body.targetWorkspaceId && !user.isSuperAdmin) {
       throw new ForbiddenException(
         "Apenas Super Admins podem instalar em outros workspaces"
       );
