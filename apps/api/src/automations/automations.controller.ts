@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  ForbiddenException,
   Get,
   Headers,
   Param,
@@ -70,6 +71,12 @@ export class AutomationsController {
     @Body() body: InstallAutomationTemplateDto,
     @Headers("x-workspace-id") workspaceId?: string
   ) {
+    if (body.targetWorkspaceId && !user.isSuperAdmin) {
+      throw new ForbiddenException(
+        "Apenas SUPER_ADMIN pode instalar automações em outro workspace."
+      );
+    }
+
     return this.automationsService.installTemplate(
       user,
       templateId,
