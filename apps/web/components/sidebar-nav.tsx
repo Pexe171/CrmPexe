@@ -10,7 +10,12 @@ import {
   Store
 } from "lucide-react";
 import Link from "next/link";
-import { type ComponentProps, type ReactNode, useState } from "react";
+import {
+  type ComponentProps,
+  type ComponentType,
+  type ReactNode,
+  useState
+} from "react";
 
 import { Button } from "@/components/ui/button";
 
@@ -19,7 +24,7 @@ type SidebarVariant = "client" | "superadmin";
 type SidebarLink = {
   href: string;
   label: string;
-  Icon?: (props: ComponentProps<"svg">) => JSX.Element;
+  Icon?: ComponentType<ComponentProps<"svg">>;
   emoji?: string;
   helper?: string;
 };
