@@ -35,12 +35,6 @@ const clientSections: SidebarSectionData[] = [
         label: "Painel geral",
         Icon: DashboardIcon,
         helper: "Resumo do funil e performance"
-      },
-      {
-        href: "/search",
-        label: "Busca global",
-        Icon: SearchIcon,
-        helper: "Encontre contatos e mensagens"
       }
     ]
   },
@@ -65,7 +59,7 @@ const clientSections: SidebarSectionData[] = [
         helper: "Troque de unidade ou time"
       }
     ]
-  },
+  }
 ];
 
 const superAdminSections: SidebarSectionData[] = [
@@ -115,23 +109,6 @@ function DashboardIcon(props: ComponentProps<"svg">) {
       <rect x="13" y="3" width="8" height="5" rx="2" />
       <rect x="13" y="10" width="8" height="11" rx="2" />
       <rect x="3" y="13" width="8" height="8" rx="2" />
-    </svg>
-  );
-}
-
-function SearchIcon(props: ComponentProps<"svg">) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <circle cx="11" cy="11" r="6.5" />
-      <path d="M16.5 16.5L21 21" />
     </svg>
   );
 }
