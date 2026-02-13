@@ -180,15 +180,19 @@ export class AutomationsService {
   async installTemplate(
     user: AuthUser,
     templateId: string,
-    payload: InstallAutomationTemplateDto,
-    workspaceId?: string
+    payload: InstallAutomationTemplateDto
   ) {
-    const resolvedWorkspaceId = await this.resolveWorkspaceId(
-      user.id,
-      workspaceId,
-      payload.targetWorkspaceId,
-      user.isSuperAdmin
-    );
+    const targetWorkspaceId = payload.targetWorkspaceId?.trim();
+    const finalWorkspaceId =
+      targetWorkspaceId ||
+      user.currentWorkspaceId?.trim() ||
+      (await this.getCurrentWorkspaceId(user.id));
+
+    if (targetWorkspaceId) {
+      await this.ensureWorkspaceExists(finalWorkspaceId);
+    } else {
+      await this.ensureWorkspaceMembership(user.id, finalWorkspaceId);
+    }
 
     const template = await this.prisma.automationTemplate.findUnique({
       where: { id: templateId },
@@ -199,7 +203,7 @@ export class AutomationsService {
       throw new NotFoundException("Template de automação não encontrado.");
     }
 
-    await this.ensureTemplateAccess(resolvedWorkspaceId, templateId);
+    await this.ensureTemplateAccess(finalWorkspaceId, templateId);
 
     const templateVersion = await this.resolveTemplateVersion(
       template,
@@ -221,10 +225,10 @@ export class AutomationsService {
 
     const instance = await this.prisma.automationInstance.create({
       data: {
-        workspace: { connect: { id: resolvedWorkspaceId } },
+        workspace: { connect: { id: finalWorkspaceId } },
         template: { connect: { id: template.id } },
         templateVersion:
-          templateVersion?.id ?? template.currentVersionId
+          (templateVersion?.id ?? template.currentVersionId)
             ? {
                 connect: {
                   id: templateVersion?.id ?? template.currentVersionId!
@@ -242,7 +246,7 @@ export class AutomationsService {
       templateSnapshot.requiredIntegrations,
       {
         templateId: template.id,
-        workspaceId: resolvedWorkspaceId,
+        workspaceId: finalWorkspaceId,
         config: configJson
       }
     );
@@ -275,7 +279,7 @@ export class AutomationsService {
     const installation = await this.installAutomationInstance(
       user.id,
       updatedInstance.id,
-      resolvedWorkspaceId
+      finalWorkspaceId
     );
 
     const instanceWithTemplateVersion =

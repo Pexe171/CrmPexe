@@ -68,21 +68,15 @@ export class AutomationsController {
   async installTemplate(
     @CurrentUser() user: AuthUser,
     @Param("id") templateId: string,
-    @Body() body: InstallAutomationTemplateDto,
-    @Headers("x-workspace-id") workspaceId?: string
+    @Body() body: InstallAutomationTemplateDto
   ) {
-    if (body.targetWorkspaceId && !user.isSuperAdmin) {
+    if (body.targetWorkspaceId && user.role !== UserRole.SUPER_ADMIN) {
       throw new ForbiddenException(
-        "Apenas SUPER_ADMIN pode instalar automações em outro workspace."
+        "Apenas Super Admins podem instalar em outros workspaces"
       );
     }
 
-    return this.automationsService.installTemplate(
-      user,
-      templateId,
-      body,
-      workspaceId
-    );
+    return this.automationsService.installTemplate(user, templateId, body);
   }
 
   @Post("automation-templates/:id/request-access")
