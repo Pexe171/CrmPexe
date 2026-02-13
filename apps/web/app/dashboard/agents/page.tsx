@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
@@ -15,98 +15,83 @@ import {
 } from "@/components/ui/card";
 
 type AgentsTab = "EXPLORE" | "MY_AGENTS";
-type AgentCategory = "Vendas" | "Atendimento" | "Financeiro" | "Operações";
-type AgentStatus = "RUNNING" | "PAUSED";
 
-type AgentTemplate = {
+type StorefrontAgent = {
   id: string;
   name: string;
   description: string;
-  category: AgentCategory;
-  iconLabel: string;
-  variableKeys: string[];
+  categoryId: string;
+  requirements: string[];
+  canInstall?: boolean;
 };
 
-type InstalledAgent = {
+type AutomationInstance = {
   id: string;
-  templateId: string;
-  templateName: string;
-  description: string;
-  status: AgentStatus;
-  lastExecution: string;
-  variableKeys: string[];
+  status: "PENDING_CONFIG" | "ACTIVE" | "PAUSED" | "FAILED";
+  template: {
+    id: string;
+    name: string;
+    description: string | null;
+    requirements: string[];
+  };
+  updatedAt: string;
 };
 
-const WHATSAPP_NUMBER = "SEUNUMERO";
+type InstancesResponse = {
+  data: AutomationInstance[];
+};
 
-const agentTemplates: AgentTemplate[] = [
-  {
-    id: "sales-bot",
-    name: "Robô de Vendas",
-    description:
-      "Atende leads no WhatsApp, qualifica interesse e cria oportunidades automaticamente.",
-    category: "Vendas",
-    iconLabel: "RV",
-    variableKeys: ["WHATSAPP_API_KEY", "SALES_PIPELINE_ID", "N8N_WEBHOOK_URL"]
-  },
-  {
-    id: "support-assistant",
-    name: "Assistente de Suporte",
-    description:
-      "Responde dúvidas frequentes e encaminha tickets para o time quando necessário.",
-    category: "Atendimento",
-    iconLabel: "AS",
-    variableKeys: ["SUPPORT_CHANNEL_ID", "OPENAI_API_KEY"]
-  },
-  {
-    id: "billing-reminder",
-    name: "Cobrador Inteligente",
-    description:
-      "Dispara lembretes de cobrança e acompanha retornos de pagamento.",
-    category: "Financeiro",
-    iconLabel: "CI",
-    variableKeys: ["MERCADO_PAGO_ACCESS_TOKEN", "BILLING_REMINDER_DAYS"]
-  },
-  {
-    id: "pipeline-updater",
-    name: "Atualizador de Pipeline",
-    description:
-      "Organiza etapas do funil e notifica responsáveis por pendências de negócio.",
-    category: "Operações",
-    iconLabel: "AP",
-    variableKeys: ["DEFAULT_OWNER_ID", "PIPELINE_STAGE_MAPPING"]
+const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+
+const fetchStorefrontAgents = async (
+  signal?: AbortSignal
+): Promise<StorefrontAgent[]> => {
+  const response = await fetch(`${apiUrl}/api/marketplace/storefront`, {
+    credentials: "include",
+    signal
+  });
+
+  if (!response.ok) {
+    throw new Error("Não foi possível carregar os agentes do marketplace.");
   }
-];
 
-const installedAgents: InstalledAgent[] = [
-  {
-    id: "inst-001",
-    templateId: "sales-bot",
-    templateName: "Robô de Vendas",
-    description: "Instalado pela equipe CrmPexe para a operação de pré-vendas.",
-    status: "RUNNING",
-    lastExecution: "Hoje às 09:42",
-    variableKeys: ["WHATSAPP_API_KEY", "SALES_PIPELINE_ID", "N8N_WEBHOOK_URL"]
-  },
-  {
-    id: "inst-002",
-    templateId: "billing-reminder",
-    templateName: "Cobrador Inteligente",
-    description:
-      "Instalado para automação de follow-up financeiro do workspace.",
-    status: "PAUSED",
-    lastExecution: "Ontem às 18:15",
-    variableKeys: ["MERCADO_PAGO_ACCESS_TOKEN", "BILLING_REMINDER_DAYS"]
-  }
-];
+  return (await response.json()) as StorefrontAgent[];
+};
 
-function getInterestLink(agentName: string) {
-  const text = encodeURIComponent(
-    `Olá, tenho interesse no agente ${agentName}.`
+const fetchInstalledAgents = async (
+  signal?: AbortSignal
+): Promise<AutomationInstance[]> => {
+  const response = await fetch(
+    `${apiUrl}/api/automation-instances?perPage=100`,
+    {
+      credentials: "include",
+      signal
+    }
   );
 
-  return `https://wa.me/${WHATSAPP_NUMBER}?text=${text}`;
-}
+  if (!response.ok) {
+    throw new Error("Não foi possível carregar os agentes instalados.");
+  }
+
+  const payload = (await response.json()) as InstancesResponse;
+  return payload.data;
+};
+
+const registerInterest = async (templateId: string) => {
+  const response = await fetch(
+    `${apiUrl}/api/marketplace/agents/${templateId}/interest`,
+    {
+      method: "POST",
+      credentials: "include"
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Não foi possível registrar seu interesse agora.");
+  }
+
+  return response.json();
+};
 
 function getDevelopersSettingsLink(variableKeys: string[]) {
   const params = new URLSearchParams();
@@ -120,13 +105,79 @@ function getDevelopersSettingsLink(variableKeys: string[]) {
     : "/dashboard/settings/developers";
 }
 
+function formatLastUpdate(value: string) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short"
+  }).format(new Date(value));
+}
+
+function statusLabel(status: AutomationInstance["status"]) {
+  if (status === "ACTIVE") {
+    return { text: "Ativo", variant: "success" as const };
+  }
+
+  if (status === "PENDING_CONFIG" || status === "PAUSED") {
+    return { text: "Parado", variant: "secondary" as const };
+  }
+
+  return { text: "Falha", variant: "secondary" as const };
+}
+
 export default function AgentsStorePage() {
   const [activeTab, setActiveTab] = useState<AgentsTab>("EXPLORE");
-
-  const installedByName = useMemo(
-    () => new Set(installedAgents.map((agent) => agent.templateName)),
+  const [marketplaceAgents, setMarketplaceAgents] = useState<StorefrontAgent[]>(
     []
   );
+  const [installedAgents, setInstalledAgents] = useState<AutomationInstance[]>(
+    []
+  );
+  const [isLoadingMarketplace, setIsLoadingMarketplace] = useState(true);
+  const [isLoadingInstalled, setIsLoadingInstalled] = useState(true);
+  const [hasMarketplaceError, setHasMarketplaceError] = useState(false);
+  const [hasInstalledError, setHasInstalledError] = useState(false);
+  const [requestingId, setRequestingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    fetchStorefrontAgents(controller.signal)
+      .then((data) => {
+        setMarketplaceAgents(data);
+        setHasMarketplaceError(false);
+      })
+      .catch(() => {
+        setHasMarketplaceError(true);
+      })
+      .finally(() => setIsLoadingMarketplace(false));
+
+    fetchInstalledAgents(controller.signal)
+      .then((data) => {
+        setInstalledAgents(data);
+        setHasInstalledError(false);
+      })
+      .catch(() => {
+        setHasInstalledError(true);
+      })
+      .finally(() => setIsLoadingInstalled(false));
+
+    return () => controller.abort();
+  }, []);
+
+  const installedTemplateIds = useMemo(
+    () => new Set(installedAgents.map((instance) => instance.template.id)),
+    [installedAgents]
+  );
+
+  const handleInterest = async (templateId: string) => {
+    setRequestingId(templateId);
+
+    try {
+      await registerInterest(templateId);
+    } finally {
+      setRequestingId(null);
+    }
+  };
 
   return (
     <section className="space-y-6">
@@ -135,8 +186,8 @@ export default function AgentsStorePage() {
           Loja de Agentes
         </h1>
         <p className="text-sm text-slate-400">
-          Escolha um agente no marketplace, clique em Tenho Interesse e a equipe
-          CrmPexe implanta para você.
+          Escolha um agente no marketplace e clique em Tenho Interesse para a
+          equipe CrmPexe receber seu lead e implantar para você.
         </p>
       </header>
 
@@ -163,17 +214,46 @@ export default function AgentsStorePage() {
 
       {activeTab === "EXPLORE" ? (
         <div className="grid gap-4 lg:grid-cols-2">
-          {agentTemplates.map((agent) => {
-            const isInstalled = installedByName.has(agent.name);
+          {isLoadingMarketplace ? (
+            <Card>
+              <CardContent className="py-8 text-sm text-slate-400">
+                Carregando agentes do marketplace...
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {hasMarketplaceError ? (
+            <Card>
+              <CardContent className="py-8 text-sm text-rose-300">
+                Não foi possível carregar o marketplace agora.
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {!isLoadingMarketplace &&
+          !hasMarketplaceError &&
+          marketplaceAgents.length === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-sm text-slate-400">
+                Nenhum agente publicado no momento.
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {marketplaceAgents.map((agent) => {
+            const isInstalled = installedTemplateIds.has(agent.id);
+            const isRequesting = requestingId === agent.id;
 
             return (
               <Card key={agent.id}>
                 <CardHeader className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <div className="rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-xs font-semibold text-slate-100">
-                      {agent.iconLabel}
-                    </div>
-                    <Badge variant="secondary">{agent.category}</Badge>
+                    <Badge variant="secondary">{agent.categoryId}</Badge>
+                    {agent.canInstall ? (
+                      <Badge variant="success">Liberado</Badge>
+                    ) : (
+                      <Badge variant="secondary">Em análise</Badge>
+                    )}
                   </div>
                   <div className="space-y-1">
                     <CardTitle>{agent.name}</CardTitle>
@@ -186,21 +266,16 @@ export default function AgentsStorePage() {
                     <Badge variant="success">Já instalado no workspace</Badge>
                   ) : (
                     <div className="text-xs text-slate-400">
-                      Instalação feita pela equipe admin
+                      Implantação feita pela equipe admin
                     </div>
                   )}
 
                   <Button
                     type="button"
-                    onClick={() => {
-                      window.open(
-                        getInterestLink(agent.name),
-                        "_blank",
-                        "noopener,noreferrer"
-                      );
-                    }}
+                    onClick={() => handleInterest(agent.id)}
+                    disabled={isRequesting}
                   >
-                    Tenho Interesse ↗
+                    {isRequesting ? "Enviando..." : "Tenho Interesse"}
                   </Button>
                 </CardFooter>
               </Card>
@@ -209,30 +284,60 @@ export default function AgentsStorePage() {
         </div>
       ) : (
         <div className="space-y-3">
+          {isLoadingInstalled ? (
+            <Card>
+              <CardContent className="py-8 text-sm text-slate-400">
+                Carregando agentes instalados...
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {hasInstalledError ? (
+            <Card>
+              <CardContent className="py-8 text-sm text-rose-300">
+                Não foi possível carregar seus agentes instalados.
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {!isLoadingInstalled &&
+          !hasInstalledError &&
+          installedAgents.length === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-sm text-slate-400">
+                Você ainda não possui agentes instalados.
+              </CardContent>
+            </Card>
+          ) : null}
+
           {installedAgents.map((agent) => {
-            const isRunning = agent.status === "RUNNING";
+            const status = statusLabel(agent.status);
 
             return (
               <Card key={agent.id}>
                 <CardHeader className="space-y-2">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <CardTitle className="text-base">
-                      {agent.templateName}
+                      {agent.template.name}
                     </CardTitle>
-                    <Badge variant={isRunning ? "success" : "secondary"}>
-                      {isRunning ? "Rodando" : "Pausado"}
-                    </Badge>
+                    <Badge variant={status.variant}>{status.text}</Badge>
                   </div>
-                  <CardDescription>{agent.description}</CardDescription>
+                  <CardDescription>
+                    {agent.template.description ??
+                      "Agente instalado e pronto para configuração."}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-400">
-                  <span>Última execução: {agent.lastExecution}</span>
+                  <span>
+                    Última atualização: {formatLastUpdate(agent.updatedAt)}
+                  </span>
                   <div className="flex items-center gap-2">
-                    <Button type="button" variant="outline" size="sm">
-                      Ver Logs
-                    </Button>
-                    <Link href={getDevelopersSettingsLink(agent.variableKeys)}>
-                      <Button type="button" variant="secondary" size="sm">
+                    <Link
+                      href={getDevelopersSettingsLink(
+                        agent.template.requirements
+                      )}
+                    >
+                      <Button type="button" variant="outline" size="sm">
                         Configurar
                       </Button>
                     </Link>
