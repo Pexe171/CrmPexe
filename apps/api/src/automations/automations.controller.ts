@@ -19,6 +19,7 @@ import { AutomationsService } from "./automations.service";
 import { CreateAutomationTemplateDto } from "./dto/create-automation-template.dto";
 import { CreateAutomationTemplateVersionDto } from "./dto/create-automation-template-version.dto";
 import { GrantAutomationAccessDto } from "./dto/grant-automation-access.dto";
+import { InstallAutomationInstanceDto } from "./dto/install-automation-instance.dto";
 import { InstallAutomationTemplateDto } from "./dto/install-automation-template.dto";
 import { UpdateAutomationInstanceVersionDto } from "./dto/update-automation-instance-version.dto";
 
@@ -70,7 +71,7 @@ export class AutomationsController {
     @Headers("x-workspace-id") workspaceId?: string
   ) {
     return this.automationsService.installTemplate(
-      user.id,
+      user,
       templateId,
       body,
       workspaceId
@@ -126,12 +127,15 @@ export class AutomationsController {
   async installInstance(
     @CurrentUser() user: AuthUser,
     @Param("id") instanceId: string,
+    @Body() body: InstallAutomationInstanceDto,
     @Headers("x-workspace-id") workspaceId?: string
   ) {
     return this.automationsService.installAutomationInstance(
       user.id,
       instanceId,
-      workspaceId
+      workspaceId,
+      body.targetWorkspaceId,
+      user.isSuperAdmin
     );
   }
 

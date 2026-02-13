@@ -11,6 +11,16 @@ import {
 } from "@tanstack/react-query";
 import { SidebarNav } from "@/components/sidebar-nav";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { fetchSuperAdminWorkspaces } from "@/lib/super-admin";
 
 type MarketplaceTemplate = {
@@ -19,6 +29,8 @@ type MarketplaceTemplate = {
   categoryId: string;
   status?: "PENDING" | "APPROVED";
   canInstall?: boolean;
+  requirements?: string[];
+  configJson?: Record<string, unknown> | null;
 };
 
 type LeadRequest = {
@@ -114,9 +126,45 @@ const toggleMarketplaceAccess = async ({
   return response.json();
 };
 
+const installTemplateForWorkspace = async ({
+  templateId,
+  targetWorkspaceId,
+  configJson
+}: {
+  templateId: string;
+  targetWorkspaceId: string;
+  configJson: Record<string, string>;
+}) => {
+  const response = await fetch(
+    `${apiUrl}/api/automation-templates/${templateId}/install`,
+    {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        targetWorkspaceId,
+        configJson
+      })
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Não foi possível implantar o agente neste workspace.");
+  }
+
+  return response.json();
+};
+
 const MarketplaceDashboard = () => {
   const queryClient = useQueryClient();
   const [selectedWorkspace, setSelectedWorkspace] = useState("");
+  const [installTemplate, setInstallTemplate] =
+    useState<MarketplaceTemplate | null>(null);
+  const [workspaceSearch, setWorkspaceSearch] = useState("");
+  const [targetWorkspaceId, setTargetWorkspaceId] = useState("");
+  const [variableValues, setVariableValues] = useState<Record<string, string>>(
+    {}
+  );
 
   const { data: workspacesData, isLoading: isLoadingWorkspaces } = useQuery({
     queryKey: ["super-admin-workspaces"],
@@ -163,6 +211,23 @@ const MarketplaceDashboard = () => {
     [templates]
   );
 
+  const filteredWorkspaces = useMemo(() => {
+    const search = workspaceSearch.trim().toLowerCase();
+    if (!search) {
+      return workspaces;
+    }
+    return workspaces.filter((workspace) =>
+      workspace.name.toLowerCase().includes(search)
+    );
+  }, [workspaceSearch, workspaces]);
+
+  const installVariableKeys = useMemo(() => {
+    if (!installTemplate?.requirements) {
+      return [];
+    }
+    return installTemplate.requirements;
+  }, [installTemplate]);
+
   const toggleAccessMutation = useMutation({
     mutationFn: toggleMarketplaceAccess,
     onSuccess: (_data, variables) => {
@@ -190,6 +255,36 @@ const MarketplaceDashboard = () => {
       });
     }
   });
+
+  const installMutation = useMutation({
+    mutationFn: installTemplateForWorkspace,
+    onSuccess: () => {
+      setInstallTemplate(null);
+      setWorkspaceSearch("");
+      setTargetWorkspaceId("");
+      setVariableValues({});
+      queryClient.invalidateQueries({ queryKey: ["marketplace-interests"] });
+    }
+  });
+
+  const handleOpenInstallModal = (template: MarketplaceTemplate) => {
+    setInstallTemplate(template);
+    setWorkspaceSearch("");
+    setTargetWorkspaceId("");
+    setVariableValues({});
+  };
+
+  const handleConfirmInstall = () => {
+    if (!installTemplate || !targetWorkspaceId) {
+      return;
+    }
+
+    installMutation.mutate({
+      templateId: installTemplate.id,
+      targetWorkspaceId,
+      configJson: variableValues
+    });
+  };
 
   return (
     <div className="min-h-screen bg-slate-950 md:pl-72">
@@ -244,7 +339,7 @@ const MarketplaceDashboard = () => {
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <div>
               <h2 className="text-lg font-semibold text-slate-100">
-                Gerenciar permissões por workspace
+                Templates disponíveis para implantação
               </h2>
               <p className="text-sm text-slate-400">
                 Selecione um workspace e habilite as automações que ele poderá
@@ -293,32 +388,42 @@ const MarketplaceDashboard = () => {
               return (
                 <div
                   key={template.id}
-                  className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950 p-4"
+                  className="rounded-xl border border-slate-800 bg-slate-950 p-4"
                 >
-                  <div>
-                    <p className="text-sm font-semibold text-slate-100">
-                      {template.name}
-                    </p>
-                    <p className="text-xs text-slate-400">
-                      {template.categoryId}
-                    </p>
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-100">
+                        {template.name}
+                      </p>
+                      <p className="text-xs text-slate-400">
+                        {template.categoryId}
+                      </p>
+                    </div>
+                    <label className="flex items-center gap-2 text-xs text-slate-400">
+                      <span>{enabled ? "Ativo" : "Inativo"}</span>
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 accent-purple-500"
+                        checked={enabled}
+                        onChange={() =>
+                          toggleAccessMutation.mutate({
+                            templateId: template.id,
+                            workspaceId: selectedWorkspace,
+                            enabled: !enabled
+                          })
+                        }
+                        disabled={isToggling || !selectedWorkspace}
+                      />
+                    </label>
                   </div>
-                  <label className="flex items-center gap-2 text-xs text-slate-400">
-                    <span>{enabled ? "Ativo" : "Inativo"}</span>
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 accent-purple-500"
-                      checked={enabled}
-                      onChange={() =>
-                        toggleAccessMutation.mutate({
-                          templateId: template.id,
-                          workspaceId: selectedWorkspace,
-                          enabled: !enabled
-                        })
-                      }
-                      disabled={isToggling || !selectedWorkspace}
-                    />
-                  </label>
+                  <div className="mt-4 flex justify-end">
+                    <Button
+                      size="sm"
+                      onClick={() => handleOpenInstallModal(template)}
+                    >
+                      Instalar em Cliente
+                    </Button>
+                  </div>
                 </div>
               );
             })}
@@ -444,6 +549,113 @@ const MarketplaceDashboard = () => {
           </div>
         </section>
       </main>
+
+      <Dialog
+        open={Boolean(installTemplate)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setInstallTemplate(null);
+            setWorkspaceSearch("");
+            setTargetWorkspaceId("");
+            setVariableValues({});
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Implantar Agente</DialogTitle>
+            <DialogDescription>
+              Selecione o workspace do cliente e configure as variáveis iniciais
+              para o template <strong>{installTemplate?.name}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="workspace-search">Workspace do cliente</Label>
+              <Input
+                id="workspace-search"
+                placeholder="Buscar por nome (ex: Loja do João)"
+                value={workspaceSearch}
+                onChange={(event) => setWorkspaceSearch(event.target.value)}
+              />
+              <div className="max-h-44 space-y-1 overflow-y-auto rounded-md border border-slate-800 bg-slate-950 p-2">
+                {filteredWorkspaces.length === 0 ? (
+                  <p className="text-xs text-slate-400">
+                    Nenhum workspace encontrado para esta busca.
+                  </p>
+                ) : (
+                  filteredWorkspaces.map((workspace) => (
+                    <button
+                      key={workspace.id}
+                      type="button"
+                      className={`w-full rounded-md px-2 py-2 text-left text-sm ${
+                        targetWorkspaceId === workspace.id
+                          ? "bg-purple-600 text-white"
+                          : "text-slate-200 hover:bg-slate-800"
+                      }`}
+                      onClick={() => setTargetWorkspaceId(workspace.id)}
+                    >
+                      {workspace.name}
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-slate-100">
+                Configuração de variáveis (opcional)
+              </p>
+              {installVariableKeys.length === 0 ? (
+                <p className="text-xs text-slate-400">
+                  Este template não exige variáveis iniciais. O cliente também
+                  poderá preencher depois em Chaves &amp; API.
+                </p>
+              ) : (
+                <div className="grid gap-3">
+                  {installVariableKeys.map((variableKey) => (
+                    <div key={variableKey} className="space-y-1">
+                      <Label htmlFor={`var-${variableKey}`}>
+                        {variableKey}
+                      </Label>
+                      <Input
+                        id={`var-${variableKey}`}
+                        placeholder={`Valor para ${variableKey} (opcional)`}
+                        value={variableValues[variableKey] ?? ""}
+                        onChange={(event) =>
+                          setVariableValues((prev) => ({
+                            ...prev,
+                            [variableKey]: event.target.value
+                          }))
+                        }
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setInstallTemplate(null)}
+              disabled={installMutation.isPending}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleConfirmInstall}
+              disabled={!targetWorkspaceId || installMutation.isPending}
+            >
+              {installMutation.isPending
+                ? "Implantando..."
+                : "Implantar Agente"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
