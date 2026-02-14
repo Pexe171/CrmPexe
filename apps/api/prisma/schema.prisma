@@ -157,6 +157,20 @@ enum WorkspaceMembershipStatus {
   REJECTED
 }
 
+enum AgentTemplateStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum AgentAuditAction {
+  IMPORTED
+  PUBLISHED
+  ACTIVATED
+  DEACTIVATED
+  ROLLED_BACK
+}
+
 enum AiUsageAction {
   SUMMARIZE_CONVERSATION
   CLASSIFY_LEAD
@@ -227,6 +241,8 @@ model Workspace {
   subscriptions            Subscription[]
   aiUsageLogs              AiUsageLog[]
   membershipRequests       WorkspaceMembership[]
+  workspaceAgents          WorkspaceAgent[]
+  agentAuditLogs           AgentAuditLog[]
 
   @@index([deletedAt])
 }
@@ -276,6 +292,10 @@ model User {
   whatsappSessions                  WhatsappSession[]
   currentWorkspace                  Workspace?                  @relation("UserCurrentWorkspace", fields: [currentWorkspaceId], references: [id])
   workspaceMemberships              WorkspaceMembership[]
+  createdAgentTemplates             AgentTemplate[]        @relation("AgentTemplateCreator")
+  createdAgentTemplateVersions      AgentTemplateVersion[] @relation("AgentTemplateVersionCreator")
+  activatedWorkspaceAgents          WorkspaceAgent[]       @relation("WorkspaceAgentActivator")
+  agentAuditLogs                    AgentAuditLog[]
 }
 
 model OtpCode {
@@ -587,6 +607,89 @@ model IntegrationSecret {
   integrationAccount IntegrationAccount @relation(fields: [integrationAccountId], references: [id], onDelete: Cascade)
 
   @@index([integrationAccountId])
+}
+
+model AgentTemplate {
+  id          String              @id @default(uuid())
+  name        String
+  slug        String              @unique
+  description String?
+  category    String
+  channel     String?
+  tags        String[]            @default([])
+  compatibility String[]          @default([])
+  allowedPlans String[]           @default([])
+  status      AgentTemplateStatus @default(DRAFT)
+  createdById String
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  createdBy  User                   @relation("AgentTemplateCreator", fields: [createdById], references: [id])
+  versions   AgentTemplateVersion[]
+  workspaces WorkspaceAgent[]
+  auditLogs  AgentAuditLog[]
+
+  @@index([status, category])
+}
+
+model AgentTemplateVersion {
+  id               String   @id @default(uuid())
+  agentTemplateId  String
+  version          Int
+  sourceJson       Json
+  normalizedJson   Json
+  validationReport Json
+  n8nWorkflowId    String?
+  publishedAt      DateTime?
+  createdById      String
+  createdAt        DateTime @default(now())
+
+  agentTemplate AgentTemplate   @relation(fields: [agentTemplateId], references: [id], onDelete: Cascade)
+  createdBy     User            @relation("AgentTemplateVersionCreator", fields: [createdById], references: [id])
+  workspaces    WorkspaceAgent[]
+  auditLogs     AgentAuditLog[]
+
+  @@unique([agentTemplateId, version])
+  @@index([agentTemplateId, version])
+}
+
+model WorkspaceAgent {
+  id                     String   @id @default(uuid())
+  workspaceId            String
+  agentTemplateId        String
+  agentTemplateVersionId String
+  isActive               Boolean  @default(true)
+  configJson             Json
+  activatedById          String
+  activatedAt            DateTime @default(now())
+  deactivatedAt          DateTime?
+
+  workspace            Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  agentTemplate        AgentTemplate        @relation(fields: [agentTemplateId], references: [id], onDelete: Cascade)
+  agentTemplateVersion AgentTemplateVersion @relation(fields: [agentTemplateVersionId], references: [id], onDelete: Cascade)
+  activatedBy          User                 @relation("WorkspaceAgentActivator", fields: [activatedById], references: [id])
+
+  @@index([workspaceId, isActive])
+  @@index([agentTemplateId])
+}
+
+model AgentAuditLog {
+  id              String           @id @default(uuid())
+  actorId         String
+  action          AgentAuditAction
+  agentTemplateId String
+  versionId       String?
+  workspaceId     String?
+  metadataJson    Json?
+  createdAt       DateTime         @default(now())
+
+  actor         User                 @relation(fields: [actorId], references: [id])
+  agentTemplate AgentTemplate        @relation(fields: [agentTemplateId], references: [id], onDelete: Cascade)
+  version       AgentTemplateVersion? @relation(fields: [versionId], references: [id], onDelete: SetNull)
+  workspace     Workspace?           @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+
+  @@index([agentTemplateId])
+  @@index([workspaceId])
 }
 
 model MessageTemplate {

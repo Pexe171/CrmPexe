@@ -455,3 +455,89 @@ Volumes persistentes incluídos:
 ## Licença
 
 Este projeto está sob licença proprietária (verifique com o time responsável).
+
+## Módulo de Agents (importação, publicação e ativação por workspace)
+
+Foi adicionado um domínio completo de **Agents** com versionamento, governança e integração n8n.
+
+### Principais fluxos
+
+- **Admin interno** importa JSON e salva como **draft versionado** (`v1`, `v2`, ...).
+- **Super-admin** publica versão draft no n8n.
+- **Workspace cliente** ativa/desativa apenas agents publicados e permitidos.
+- Toda ação crítica gera evento de **auditoria**.
+
+### Novas variáveis de ambiente (API)
+
+- `N8N_BASE_URL`: URL principal da API do n8n para publicação de agents (opcional).
+- `N8N_LOCAL_BASE_URL`: fallback local (padrão `http://localhost:5678`).
+- `N8N_INTERNAL_BASE_URL`: fallback interno em rede Docker (padrão `http://n8n:5678`).
+- `N8N_API_TOKEN`: token da API do n8n (opcional; quando vazio o serviço tenta sem header).
+- `N8N_DELETE_PREVIOUS_WORKFLOW_ON_ACTIVATE`: quando `true`, remove do n8n o workflow antigo após troca de versão ativa no workspace.
+
+### Endpoints principais
+
+Admin/Super-admin:
+
+- `POST /api/agent-templates/import`
+- `POST /api/agent-templates/:id/publish`
+- `GET /api/agent-templates`
+- `GET /api/agent-templates/:id/versions`
+- `POST /api/agent-templates/:id/versions/:version/rollback`
+
+Workspace cliente:
+
+- `GET /api/workspace-agents/catalog`
+- `POST /api/workspace-agents/:agentTemplateId/activate`
+- `POST /api/workspace-agents/:agentTemplateId/deactivate`
+- `GET /api/workspace-agents`
+
+### Banco de dados
+
+Entidades novas no Prisma:
+
+- `AgentTemplate`
+- `AgentTemplateVersion`
+- `WorkspaceAgent`
+- `AgentAuditLog`
+
+Índices adicionados:
+
+- `agentTemplateId + version`
+- `workspaceId + isActive`
+- `status + category`
+
+### OpenAPI
+
+Especificação inicial dos endpoints em:
+
+- `apps/api/docs/agents.openapi.yaml`
+
+### Seed de exemplo
+
+O seed agora cria também **2 agents publicados**:
+
+- `Agente SDR WhatsApp`
+- `Agente Suporte Omnichannel`
+
+### Uso do n8n via Docker do próprio sistema
+
+Sim, o módulo de publicação agora tenta automaticamente usar o n8n local do stack Docker (`localhost:5678`) e também o hostname interno (`n8n:5678`) quando a API roda em container na mesma rede.
+
+Ordem de tentativa de publicação:
+
+1. `N8N_BASE_URL` (se definido)
+2. `N8N_LOCAL_BASE_URL`
+3. `N8N_INTERNAL_BASE_URL`
+
+Isso facilita desenvolvimento local e ambientes dockerizados sem depender de configuração manual extra.
+
+
+### Governança de workflows antigos no n8n (troca de versão)
+
+Ao trocar a versão ativa no workspace, o backend agora tenta automaticamente:
+
+1. **desativar** o workflow anterior no n8n (`POST /workflows/:id/deactivate`), e
+2. **deletar** o workflow anterior (`DELETE /workflows/:id`) quando `N8N_DELETE_PREVIOUS_WORKFLOW_ON_ACTIVATE=true`.
+
+Esse fluxo evita acúmulo de workflows inativos “fantasmas” na instância compartilhada do n8n e registra resultado em auditoria.

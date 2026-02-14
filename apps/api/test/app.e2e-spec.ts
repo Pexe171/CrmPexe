@@ -51,6 +51,18 @@ describe("AppController (e2e)", () => {
     });
   });
 
+
+  it("/agent-templates (GET) should reject unauthenticated requests", async () => {
+    const response = await request(app.getHttpServer()).get("/agent-templates");
+
+    expect(response.status).toBe(401);
+    expect(response.headers["content-type"]).toContain("application/json");
+    expect(response.body).toMatchObject({
+      statusCode: 401,
+      message: expect.any(String)
+    });
+  });
+
   it("/companies (GET) should reject unauthenticated requests with expected error contract", async () => {
     const response = await request(app.getHttpServer()).get("/companies");
 
