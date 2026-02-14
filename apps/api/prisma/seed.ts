@@ -1,4 +1,5 @@
 import {
+  AgentTemplateStatus,
   MarketplaceTemplateStatus,
   PrismaClient,
   UserRole
@@ -21,6 +22,100 @@ const MARKETPLACE_TABLES = [
   "AutomationTemplate",
   "AutomationTemplateVersion"
 ];
+
+const AGENT_TABLES = [
+  "AgentTemplate",
+  "AgentTemplateVersion"
+];
+
+async function seedAgentTemplates(adminId: string) {
+  const tables = await ensureTablesExist(AGENT_TABLES);
+  if (!tables.every((table) => table.exists)) {
+    return;
+  }
+
+  const items = [
+    {
+      name: "Agente SDR WhatsApp",
+      slug: "agente-sdr-whatsapp",
+      description: "Qualifica leads recebidos no WhatsApp com perguntas rápidas.",
+      category: "Vendas",
+      channel: "WHATSAPP",
+      tags: ["sdr", "whatsapp"],
+      compatibility: ["crm", "n8n"],
+      payload: {
+        name: "Agente SDR WhatsApp",
+        channel: "WHATSAPP",
+        nodes: [],
+        connections: {},
+        tags: ["sdr", "whatsapp"],
+        compatibility: ["crm", "n8n"]
+      }
+    },
+    {
+      name: "Agente Suporte Omnichannel",
+      slug: "agente-suporte-omnichannel",
+      description: "Centraliza atendimento e triagem para times de suporte.",
+      category: "Suporte",
+      channel: "OMNICHANNEL",
+      tags: ["suporte", "triagem"],
+      compatibility: ["crm", "email"],
+      payload: {
+        name: "Agente Suporte Omnichannel",
+        channel: "OMNICHANNEL",
+        nodes: [],
+        connections: {},
+        tags: ["suporte", "triagem"],
+        compatibility: ["crm", "email"]
+      }
+    }
+  ];
+
+  for (const item of items) {
+    const template = await prisma.agentTemplate.upsert({
+      where: { slug: item.slug },
+      update: {
+        name: item.name,
+        description: item.description,
+        category: item.category,
+        channel: item.channel,
+        tags: item.tags,
+        compatibility: item.compatibility,
+        status: AgentTemplateStatus.PUBLISHED
+      },
+      create: {
+        name: item.name,
+        slug: item.slug,
+        description: item.description,
+        category: item.category,
+        channel: item.channel,
+        tags: item.tags,
+        compatibility: item.compatibility,
+        status: AgentTemplateStatus.PUBLISHED,
+        createdById: adminId
+      }
+    });
+
+    const existingVersion = await prisma.agentTemplateVersion.findFirst({
+      where: { agentTemplateId: template.id, version: 1 }
+    });
+
+    if (!existingVersion) {
+      await prisma.agentTemplateVersion.create({
+        data: {
+          agentTemplateId: template.id,
+          version: 1,
+          sourceJson: item.payload,
+          normalizedJson: item.payload,
+          validationReport: { valid: true, source: "seed" },
+          n8nWorkflowId: `seed-${item.slug}`,
+          publishedAt: new Date(),
+          createdById: adminId
+        }
+      });
+    }
+  }
+}
 
 async function tableExists(tableName: string) {
   const [row] = await prisma.$queryRaw<{ exists: boolean }[]>`
@@ -321,6 +416,7 @@ async function main() {
   });
 
   await seedAutomationTemplates(user.id);
+  await seedAgentTemplates(user.id);
 
   console.log("Seed completed: workspace demo created/updated.");
 }

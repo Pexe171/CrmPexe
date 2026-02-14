@@ -294,3 +294,34 @@ export async function proxyApiGet(request: Request, path: string) {
 
   return buildResponse(apiResponse, "Falha ao consultar recurso.");
 }
+
+export async function proxyApiPost(request: Request, path: string) {
+  let body: unknown;
+
+  try {
+    body = await request.json();
+  } catch {
+    body = {};
+  }
+
+  let apiResponse: Response;
+
+  try {
+    apiResponse = await fetch(new URL(path, apiBaseUrl), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...Object.fromEntries(buildApiHeaders(request).entries())
+      },
+      credentials: "include",
+      body: JSON.stringify(body)
+    });
+  } catch {
+    return NextResponse.json(
+      { message: "Não foi possível conectar à API." },
+      { status: 502 }
+    );
+  }
+
+  return buildResponse(apiResponse, "Falha ao processar requisição.");
+}

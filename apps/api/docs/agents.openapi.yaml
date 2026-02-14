@@ -1,0 +1,32 @@
+openapi: 3.0.3
+info:
+  title: CrmPexe Agents API
+  version: 1.0.0
+paths:
+  /api/agent-templates/import:
+    post:
+      summary: Importa template de agent como draft
+  /api/agent-templates/{id}/publish:
+    post:
+      summary: Publica versão draft no n8n
+  /api/agent-templates:
+    get:
+      summary: Lista templates com filtros e paginação
+  /api/agent-templates/{id}/versions:
+    get:
+      summary: Lista versões de um template
+  /api/agent-templates/{id}/versions/{version}/rollback:
+    post:
+      summary: Cria nova versão baseada em versão anterior
+  /api/workspace-agents/catalog:
+    get:
+      summary: Lista catálogo disponível ao workspace
+  /api/workspace-agents/{agentTemplateId}/activate:
+    post:
+      summary: Ativa agent no workspace
+  /api/workspace-agents/{agentTemplateId}/deactivate:
+    post:
+      summary: Desativa agent no workspace
+  /api/workspace-agents:
+    get:
+      summary: Lista vínculo de agents do workspace

@@ -33,6 +33,8 @@ import { LoggingModule } from "./common/logging/logging.module";
 import { RateLimitModule } from "./common/rate-limit/rate-limit.module";
 import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
 import { MarketplaceModule } from "./marketplace/marketplace.module";
+import { AgentTemplatesModule } from "./agent-templates/agent-templates.module";
+import { WorkspaceAgentsModule } from "./workspace-agents/workspace-agents.module";
 
 @Module({
   imports: [
@@ -66,7 +68,9 @@ import { MarketplaceModule } from "./marketplace/marketplace.module";
     BillingModule,
     AiModule,
     SuperAdminModule,
-    MarketplaceModule
+    MarketplaceModule,
+    AgentTemplatesModule,
+    WorkspaceAgentsModule
   ],
   controllers: [AppController],
   providers: [AppService, HttpExceptionFilter]
