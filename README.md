@@ -142,6 +142,7 @@ pnpm dev:web
 - Removidas dependências não utilizadas da API: `@nestjs/passport`, `passport` e `passport-jwt` (e o tipo `@types/passport-jwt`).
 - Removido o arquivo vazio `apps/api/install_fix.sh`, que não possuía uso no fluxo de build, execução ou deploy.
 - Atualizado o `pnpm-lock.yaml` para refletir a redução de dependências do workspace.
+- Removida a funcionalidade de gestão de templates de mensagem no Admin (`/admin/message-templates`), incluindo página do Web e módulo dedicado da API.
 
 ## QA e pontos de melhoria
 

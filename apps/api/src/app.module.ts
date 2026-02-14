@@ -11,7 +11,6 @@ import { CustomFieldDefinitionsModule } from "./custom-field-definitions/custom-
 import { ChannelsModule } from "./channels/channels.module";
 import { IntegrationAccountsModule } from "./integration-accounts/integration-accounts.module";
 import { DashboardModule } from "./dashboard/dashboard.module";
-import { MessageTemplatesModule } from "./message-templates/message-templates.module";
 import { TeamsModule } from "./teams/teams.module";
 import { QueuesModule } from "./queues/queues.module";
 import { KnowledgeBaseModule } from "./knowledge-base/knowledge-base.module";
@@ -58,7 +57,6 @@ import { WorkspaceAgentsModule } from "./workspace-agents/workspace-agents.modul
     TagsModule,
     DealsModule,
     CustomFieldDefinitionsModule,
-    MessageTemplatesModule,
     TeamsModule,
     QueuesModule,
     KnowledgeBaseModule,
