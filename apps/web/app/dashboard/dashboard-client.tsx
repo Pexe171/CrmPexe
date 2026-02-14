@@ -471,20 +471,6 @@ export default function DashboardClient({
   const sidebarExtraSections = useMemo(() => {
     const sections = [];
 
-    if (isAdmin) {
-      sections.push({
-        title: "Administração",
-        links: [
-          {
-            href: "/admin/message-templates",
-            label: "Templates de mensagem",
-            emoji: "🧩",
-            helper: "Gestão de conteúdo e respostas rápidas"
-          }
-        ]
-      });
-    }
-
     if (isSuperAdmin) {
       sections.push({
         title: "Super Admin",
@@ -500,7 +486,7 @@ export default function DashboardClient({
     }
 
     return sections;
-  }, [isAdmin, isSuperAdmin]);
+  }, [isSuperAdmin]);
 
   const activityChartData = useMemo(() => {
     const today = new Date();
