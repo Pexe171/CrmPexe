@@ -476,16 +476,10 @@ export default function DashboardClient({
         title: "Administração",
         links: [
           {
-            href: "/admin/integrations",
-            label: "Integrações",
-            emoji: "🔗",
-            helper: "Canais e provedores conectados"
-          },
-          {
-            href: "/admin/automations",
-            label: "Templates",
-            emoji: "⚙️",
-            helper: "Automações e fluxos"
+            href: "/admin/message-templates",
+            label: "Templates de mensagem",
+            emoji: "🧩",
+            helper: "Gestão de conteúdo e respostas rápidas"
           }
         ]
       });

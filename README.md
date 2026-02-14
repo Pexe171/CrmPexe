@@ -259,7 +259,7 @@ Com isso, cada instalação fica isolada por cliente/workspace e pode ser gerenc
 
 ## Integração WhatsApp (QR + Evolution)
 
-A central de integrações em `/admin/integrations` permite conectar WhatsApp de duas formas:
+A central de integrações em `/dashboard/settings` permite conectar WhatsApp de duas formas:
 
 - **Via QR Code**: o usuário gera e lê o QR no WhatsApp.
 - **Via Evolution API**: com `apiUrl` e `apiToken` configurados nos segredos da integração.
@@ -281,7 +281,7 @@ Variável opcional para link de suporte:
 
 ### Configuração pelo painel (cliente)
 
-A configuração das APIs deve ser feita pelo cliente no painel **Admin > Integrações** (`/admin/integrations`), sem depender de hardcode no deploy.
+A configuração das APIs deve ser feita pelo cliente no painel **Dashboard > Configurações** (seções de IA, E-mail e Developers), sem depender de hardcode no deploy.
 
 No painel, o cliente pode cadastrar contas por tipo (`OPENAI`, `WHATSAPP`, `EMAIL`, `INSTAGRAM_DIRECT`, `FACEBOOK_MESSENGER`, `VOIP`, `N8N`) e salvar os segredos da integração por workspace na tabela `IntegrationSecret` (payload criptografado).
 
@@ -300,7 +300,7 @@ O canal `email` usa provedor real SMTP (via `nodemailer`) para envio outbound.
 
 ### Configuração de IA por workspace
 
-No painel `/admin/integrations`, o cliente deve criar uma integração do tipo `OPENAI` e salvar os segredos no bloco de credenciais da própria conta. Esses dados ficam persistidos de forma criptografada em `IntegrationSecret`.
+No painel de configurações do dashboard, o cliente deve criar uma integração do tipo `OPENAI` e salvar os segredos no bloco de credenciais da própria conta. Esses dados ficam persistidos de forma criptografada em `IntegrationSecret`.
 
 Segredos esperados na integração `OPENAI`:
 
