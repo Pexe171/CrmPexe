@@ -446,6 +446,24 @@ Volumes persistentes incluídos:
 
 ## Troubleshooting
 
+### Erro NestJS no `WorkspaceAgentsModule` (JwtService não resolvido)
+
+Se a API subir com erro parecido com:
+
+```
+Nest can't resolve dependencies of the AccessTokenGuard (?, PrismaService)
+Please make sure that the argument JwtService at index [0] is available in the WorkspaceAgentsModule context.
+```
+
+a causa é o `WorkspaceAgentsModule` não importar o `AuthModule` (que exporta `JwtModule` e `AccessTokenGuard`).
+
+Solução aplicada neste repositório:
+
+- Garantir `AuthModule` em `imports` de `apps/api/src/workspace-agents/workspace-agents.module.ts`.
+
+Depois disso, o `AccessTokenGuard` volta a ter `JwtService` disponível no contexto do módulo e a API inicializa normalmente.
+
+
 ### Erro de injeção no `AccessTokenGuard` dentro de `AgentTemplatesModule`
 
 Se a API subir com o erro abaixo:
