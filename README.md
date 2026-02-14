@@ -70,6 +70,8 @@ Isso inicializa:
 - Redis em `localhost:6379`
 - N8N em `http://localhost:5678`
 
+> ⚠️ Antes de usar o n8n em ambientes compartilhados, altere `N8N_API_KEY` no `docker-compose.yml` para uma chave segura e mantenha o valor fora de versionamento quando possível.
+
 ### 3) Configurar variáveis de ambiente
 
 Copie os arquivos de exemplo e preencha conforme necessário:
