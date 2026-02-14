@@ -31,8 +31,7 @@ A navegação principal do dashboard está centralizada em `apps/web/components/
 ### Atalhos extras do dashboard (`sidebarExtraSections`)
 
 - Admin:
-  - `/admin/integrations`
-  - `/admin/automations`
+  - `/admin/message-templates`
 - Super Admin:
   - `/super-admin`
 
@@ -44,9 +43,8 @@ Validação automatizada com `pnpm --filter crmpexe-web check:routes`.
 
 - `/`
 - `/admin`
-- `/admin/automations`
-- `/admin/automations/[automationId]/history`
-- `/admin/integrations`
+- `/admin/agents/catalog`
+- `/admin/agents/import`
 - `/admin/message-templates`
 - `/dashboard`
 - `/dashboard/agents`
@@ -54,6 +52,8 @@ Validação automatizada com `pnpm --filter crmpexe-web check:routes`.
 - `/dashboard/settings/ai`
 - `/dashboard/settings/developers`
 - `/dashboard/settings/email`
+- `/dashboard/workspace-agents/available`
+- `/dashboard/workspace-agents/my`
 - `/inbox`
 - `/login`
 - `/register`

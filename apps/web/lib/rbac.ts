@@ -30,5 +30,5 @@ export const getDefaultDashboardPath = (
     return "/super-admin";
   }
 
-  return isAdminRole(role) ? "/admin/automations" : "/dashboard";
+  return isAdminRole(role) ? "/admin/message-templates" : "/dashboard";
 };
