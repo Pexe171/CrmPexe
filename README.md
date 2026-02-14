@@ -446,6 +446,19 @@ Volumes persistentes incluídos:
 
 ## Troubleshooting
 
+### Erro de injeção no `AccessTokenGuard` dentro de `AgentTemplatesModule`
+
+Se a API subir com o erro abaixo:
+
+```
+Nest can't resolve dependencies of the AccessTokenGuard (?, PrismaService)
+```
+
+garanta que o módulo que usa `@UseGuards(AccessTokenGuard)` importe o `AuthModule`, pois ele exporta `JwtModule` e o próprio `AccessTokenGuard`.
+
+Neste projeto, isso já foi corrigido em `apps/api/src/agent-templates/agent-templates.module.ts` com `imports: [PrismaModule, AuthModule]`.
+
+
 - **Erro de conexão com o banco**: confirme se o Docker está rodando e se o `DATABASE_URL` está correto.
 - **Erro com Prisma**: rode `pnpm prisma:generate` e depois `pnpm prisma:migrate:dev`.
 - **Portas ocupadas**: altere as portas nos scripts ou finalize processos que estejam usando 3000/3001.
