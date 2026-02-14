@@ -19,6 +19,7 @@ Plataforma CRM com API em NestJS e front-end em Next.js, organizada como monorep
 - [Scripts úteis](#scripts-úteis)
 - [Limpeza técnica recente](#limpeza-técnica-recente)
 - [Estrutura do repositório](#estrutura-do-repositório)
+- [Documentação do backend (API)](#documentação-do-backend-api)
 - [Fluxos comuns](#fluxos-comuns)
 - [Fluxo do Super Admin para publicar molde n8n](#fluxo-do-super-admin-para-publicar-molde-n8n)
 - [Integração WhatsApp (QR + Evolution)](#integração-whatsapp-qr--evolution)
@@ -173,6 +174,14 @@ Para validar a saúde do monorepo, executei o fluxo completo de qualidade:
 2. **Remover import não utilizado** em `super-admin/marketplace` para zerar warnings de lint.
 3. **Adicionar gate de qualidade no CI** com etapas separadas (`lint`, `typecheck`, `test`, `build`) e falha rápida.
 4. **Tratar warning de teardown dos testes da API** (Jest) com `--detectOpenHandles` para eliminar possíveis vazamentos de recursos.
+
+## Documentação do backend (API)
+
+A documentação de organização da API (mapa de pastas, nomenclatura de arquivos, inventário de scripts e critérios de obsolescência) está em:
+
+- `apps/api/docs/backend-organizacao.md`
+
+Também foi removido um arquivo duplicado/obsoleto do Prisma em `apps/api/prisma/prisma.service.ts`, mantendo apenas a implementação oficial em `apps/api/src/prisma/prisma.service.ts`.
 
 ## Estrutura do repositório
 
