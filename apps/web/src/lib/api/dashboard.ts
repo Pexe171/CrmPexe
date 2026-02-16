@@ -22,5 +22,5 @@ async function apiFetch<T>(endpoint: string): Promise<T> {
 }
 
 export const dashboardApi = {
-  getSales: () => apiFetch<DashboardData>("/api/dashboard/sales"),
+  getSales: () => apiFetch<DashboardData>("/dashboard/sales"),
 };
