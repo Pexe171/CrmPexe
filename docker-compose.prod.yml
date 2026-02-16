@@ -56,11 +56,13 @@ services:
       dockerfile: apps/web/Dockerfile
     restart: always
     depends_on:
-      - api
+      api:
+        condition: service_started
     env_file:
       - apps/web/.env.production
     environment:
       NODE_ENV: production
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
     cpus: "1.00"
     mem_limit: 512m
 
@@ -68,8 +70,10 @@ services:
     image: nginx:1.27-alpine
     restart: always
     depends_on:
-      - api
-      - web
+      api:
+        condition: service_started
+      web:
+        condition: service_started
     ports:
       - "80:80"
       - "443:443"

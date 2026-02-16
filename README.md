@@ -1,6 +1,6 @@
 # CrmPexe
 
-Plataforma CRM com API em NestJS e front-end em Next.js, organizada como monorepo com Turborepo.
+Plataforma CRM com API em NestJS e front-end em React + Vite, organizada como monorepo com Turborepo.
 
 ## Sumário
 
@@ -32,7 +32,7 @@ Plataforma CRM com API em NestJS e front-end em Next.js, organizada como monorep
 
 ## Visão geral
 
-O CrmPexe é um monorepo que centraliza a API (NestJS) e a aplicação web (Next.js). O projeto utiliza Postgres, Redis e N8N via Docker Compose para serviços auxiliares.
+O CrmPexe é um monorepo que centraliza a API (NestJS) e a aplicação web (React + Vite). O projeto utiliza Postgres, Redis e N8N via Docker Compose para serviços auxiliares.
 
 ## Pré-requisitos
 
@@ -47,7 +47,7 @@ O CrmPexe é um monorepo que centraliza a API (NestJS) e a aplicação web (Next
 ## Tecnologias
 
 - **API**: NestJS, Prisma, PostgreSQL
-- **Web**: Next.js, React, Tailwind CSS
+- **Web**: React, Vite, Tailwind CSS
 - **Infra**: Docker, Redis, N8N
 - **Monorepo**: Turborepo, pnpm workspaces
 
@@ -97,8 +97,8 @@ Principais variáveis da API (`apps/api/.env`):
 
 Principais variáveis do Web (`apps/web/.env`):
 
-- `NEXT_PUBLIC_API_URL`: URL da API
-- `NEXT_PUBLIC_WHATSAPP_LINK`: link do WhatsApp
+- `VITE_API_BASE_URL`: URL base da API (recomendado `/api`)
+- `VITE_API_PROXY_TARGET`: alvo do proxy local do Vite (ex.: `http://localhost:3001`)
 
 ### 4) Preparar banco de dados
 
@@ -117,7 +117,7 @@ pnpm prisma:generate
 pnpm dev
 ```
 
-- Web: `http://localhost:3000`
+- Web: `http://localhost:8080`
 - API: `http://localhost:3001`
 
 ### Rodar apenas API
@@ -188,7 +188,7 @@ Também foi removido um arquivo duplicado/obsoleto do Prisma em `apps/api/prisma
 ```
 apps/
   api/        # API NestJS
-  web/        # Front-end Next.js
+  web/        # Front-end React + Vite
 ```
 
 ## Fluxos comuns
@@ -220,14 +220,14 @@ Após validar o OTP com sucesso, o front-end redireciona o usuário para `/dashb
 Para evitar links antigos apontando para páginas removidas, existe a checagem automatizada:
 
 ```bash
-pnpm --filter crmpexe-web check:routes
+pnpm --filter crmpexe-web test
 ```
 
-Esse comando valida referências internas de navegação (`href`, `redirect`, `router.push`, `router.replace`) contra as rotas reais em `app/**/page.tsx`.
+Esse comando executa a suíte de testes do frontend para validar integrações e comportamento base da interface.
 
 O inventário detalhado (menu atual, rotas existentes e rotas quebradas) está em:
 
-- `apps/web/docs/front-route-inventory.md`
+- `apps/web/src/test/example.test.ts`
 
 ## Fluxo do Super Admin para publicar molde n8n
 
@@ -384,7 +384,7 @@ Para manter a consistência visual do layout escuro, o scroll interno da barra l
 Este repositório possui Dockerfiles otimizados para produção:
 
 - `apps/api/Dockerfile`: build da API NestJS com geração do Prisma Client no build.
-- `apps/web/Dockerfile`: build do Next.js em modo `standalone` para reduzir o tamanho final da imagem.
+- `apps/web/Dockerfile`: build do frontend React (Vite) e publicação dos arquivos estáticos com `serve`.
 
 ### Subir stack de produção
 
@@ -421,9 +421,9 @@ O `docker-compose.prod.yml` inclui healthchecks para PostgreSQL e Redis. A API s
 
 Para evitar saturação da VPS, os serviços de produção possuem limites de CPU e memória definidos diretamente no Compose (`cpus` e `mem_limit`). Ajuste esses valores conforme o tamanho do seu servidor.
 
-### Next.js em modo standalone
+### Frontend React + Vite em produção
 
-O front-end já está configurado com `output: "standalone"` em `apps/web/next.config.js`, requisito do Dockerfile do web para copiar apenas os artefatos necessários de produção.
+O frontend gera artefatos estáticos em `apps/web/dist` e o container `web` os publica na porta `8080`.
 
 ### Migrações Prisma em produção
 
@@ -491,9 +491,9 @@ Neste projeto, isso já foi corrigido em `apps/api/src/agent-templates/agent-tem
 
 - **Erro de conexão com o banco**: confirme se o Docker está rodando e se o `DATABASE_URL` está correto.
 - **Erro com Prisma**: rode `pnpm prisma:generate` e depois `pnpm prisma:migrate:dev`.
-- **Portas ocupadas**: altere as portas nos scripts ou finalize processos que estejam usando 3000/3001.
+- **Portas ocupadas**: altere as portas nos scripts ou finalize processos que estejam usando 8080/3001.
 - **401 nas variáveis do workspace**: no front-end utilize o endpoint `/api/workspace-variables` (proxy da Web) para garantir o envio de cookies de autenticação.
-- **401 no dashboard/tarefas**: no front-end utilize os endpoints internos da Web (`/api/tasks`, `/api/conversations`, `/api/automation-instances`, `/api/workspaces`, `/api/audit-logs`) para que o Next.js repasse os cookies para a API corretamente.
+- **401 no dashboard/tarefas**: no frontend mantenha `VITE_API_BASE_URL=/api` para que o Nginx (produção) ou proxy do Vite (desenvolvimento) encaminhe corretamente as chamadas para a API.
 
 ## Licença
 

@@ -28,23 +28,49 @@ services:
     ports:
       - "5678:5678"
     environment:
-      - N8N_USER_MANAGEMENT_ADMIN_USER=Davidhenriqusms18@gmail.com
-      - N8N_USER_MANAGEMENT_ADMIN_PASSWORD=Pama18112
+      - N8N_USER_MANAGEMENT_ADMIN_USER=admin@crmpexe.local
+      - N8N_USER_MANAGEMENT_ADMIN_PASSWORD=change-me
       - N8N_HOST=localhost
       - N8N_PORT=5678
       - N8N_PROTOCOL=http
       - WEBHOOK_URL=http://localhost:5678/
-      - N8N_API_KEY=sua_chave_aqui # Gerada no Passo 2
+      - N8N_API_KEY=change-me
     volumes:
       - n8n_data:/home/node/.n8n
-    networks:
-      - crm-network
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: crmpexe-api
+    depends_on:
+      - postgres
+      - redis
+    env_file:
+      - apps/api/.env
+    environment:
+      NODE_ENV: production
+    ports:
+      - "3001:3001"
+    volumes:
+      - uploads_data:/app/storage
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: crmpexe-web
+    depends_on:
+      - api
+    env_file:
+      - apps/web/.env
+    environment:
+      NODE_ENV: production
+    ports:
+      - "8080:8080"
 
 volumes:
   postgres_data:
   redis_data:
   n8n_data:
-
-networks:
-  crm-network:
-    name: crm-network
+  uploads_data:
