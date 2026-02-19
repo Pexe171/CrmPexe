@@ -70,10 +70,22 @@ Isso inicializa:
 - Postgres em `localhost:5432`
 - Redis em `localhost:6379`
 - N8N em `http://localhost:5678`
-- Login padrão n8n local: `admin@crmpexe.com.br` / `CrmPexe@2026!`
+- Login padrão n8n local (primeiro start com volume limpo): `admin@crmpexe.com.br` / `CrmPexe@2026!`
 - Token de API n8n local: `crmpexe-local-token-2026`
 
+> ℹ️ No n8n, `N8N_USER_MANAGEMENT_ADMIN_USER` e `N8N_USER_MANAGEMENT_ADMIN_PASSWORD` só são aplicados na criação inicial do usuário admin. Se o volume `n8n_data` já existir, o login antigo continua valendo.
+
 > ⚠️ Antes de usar o n8n em ambientes compartilhados, altere usuário, senha e `N8N_API_KEY` no `docker-compose.yml` para valores seguros e mantenha-os fora de versionamento quando possível.
+
+Se aparecer **"Wrong username or password"** no ambiente local, faça reset do n8n (isso remove workflows/dados locais do n8n):
+
+```bash
+docker compose down
+docker volume rm crmpexe_n8n_data
+docker compose up -d n8n
+```
+
+Depois do reset, entre novamente em `http://localhost:5678` com as credenciais acima.
 
 ### 3) Configurar variáveis de ambiente
 
