@@ -30,3 +30,11 @@ pnpm --filter crmpexe-web build
 ```
 
 Os arquivos estáticos serão gerados em `dist/`.
+
+
+## Autenticação e rotas
+
+- `/` é rota protegida (dashboard).
+- `/login` executa login OTP com a API.
+- O frontend envia cookies com `credentials: include` para manter sessão com `HttpOnly`.
+- Caso a API responda HTML ao invés de JSON, a UI exibe mensagem de erro amigável indicando provável falha de proxy/base URL.
