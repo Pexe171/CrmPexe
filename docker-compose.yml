@@ -28,13 +28,13 @@ services:
     ports:
       - "5678:5678"
     environment:
-      - N8N_USER_MANAGEMENT_ADMIN_USER=admin@crmpexe.local
-      - N8N_USER_MANAGEMENT_ADMIN_PASSWORD=change-me
+      - N8N_USER_MANAGEMENT_ADMIN_USER=admin@crmpexe.com.br
+      - N8N_USER_MANAGEMENT_ADMIN_PASSWORD=CrmPexe@2026!
       - N8N_HOST=localhost
       - N8N_PORT=5678
       - N8N_PROTOCOL=http
       - WEBHOOK_URL=http://localhost:5678/
-      - N8N_API_KEY=change-me
+      - N8N_API_KEY=crmpexe-local-token-2026
     volumes:
       - n8n_data:/home/node/.n8n
 

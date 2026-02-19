@@ -70,8 +70,10 @@ Isso inicializa:
 - Postgres em `localhost:5432`
 - Redis em `localhost:6379`
 - N8N em `http://localhost:5678`
+- Login padrão n8n local: `admin@crmpexe.com.br` / `CrmPexe@2026!`
+- Token de API n8n local: `crmpexe-local-token-2026`
 
-> ⚠️ Antes de usar o n8n em ambientes compartilhados, altere `N8N_API_KEY` no `docker-compose.yml` para uma chave segura e mantenha o valor fora de versionamento quando possível.
+> ⚠️ Antes de usar o n8n em ambientes compartilhados, altere usuário, senha e `N8N_API_KEY` no `docker-compose.yml` para valores seguros e mantenha-os fora de versionamento quando possível.
 
 ### 3) Configurar variáveis de ambiente
 
