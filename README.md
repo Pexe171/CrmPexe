@@ -57,11 +57,11 @@ O CrmPexe é um monorepo que centraliza a API (NestJS) e a aplicação web (Reac
 
 Para evitar bloqueios do navegador ao consumir a API no Docker:
 
-- A API já sobe com CORS habilitado para `http://localhost:3000` (Next.js) e `http://localhost:8080` (frontend atual).
+- A API já sobe com CORS habilitado para `http://localhost:3000` e `http://localhost:8080` (frontend React atual).
 - Caso precise de outras origens, ajuste `CORS_ORIGIN` em `apps/api/.env` com lista separada por vírgula.
 - O dashboard web agora possui monitor de sincronização em tempo real usando `useState` e `useEffect`, exibindo progresso e retorno da API.
 
-> Stack recomendado para novas telas: **Next.js + Tailwind CSS** para manter visual limpo, profissional e responsivo.
+> Stack recomendado para o projeto: **React + Tailwind CSS** para manter um visual limpo, profissional, responsivo e flexível.
 
 ## Configuração do ambiente
 

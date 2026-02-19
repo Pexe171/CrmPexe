@@ -1,38 +1,93 @@
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useApiSyncMonitor } from "@/hooks/useApiSyncMonitor";
-import { RefreshCcw } from "lucide-react";
+import { CheckCircle2, Clock3, RefreshCcw, ShieldAlert } from "lucide-react";
+
+function statusClasses(status: "idle" | "syncing" | "success" | "error") {
+  if (status === "success") {
+    return "bg-emerald-500/15 text-emerald-600 border-emerald-500/30";
+  }
+
+  if (status === "error") {
+    return "bg-destructive/10 text-destructive border-destructive/30";
+  }
+
+  if (status === "syncing") {
+    return "bg-primary/10 text-primary border-primary/30";
+  }
+
+  return "bg-muted text-muted-foreground border-border";
+}
 
 export function ApiSyncStatus() {
-  const { progress, isSyncing, lastMessage, lastUpdatedAt, syncNow } = useApiSyncMonitor();
+  const {
+    progress,
+    status,
+    statusLabel,
+    isSyncing,
+    lastMessage,
+    lastUpdatedAt,
+    lastDurationMs,
+    requestCount,
+    autoSyncIntervalMs,
+    syncNow
+  } = useApiSyncMonitor();
+
+  const autoSyncIntervalInSeconds = Math.floor(autoSyncIntervalMs / 1000);
 
   return (
-    <div className="glass-card rounded-xl p-4 border border-border/50 space-y-3">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-sm font-medium text-foreground">Sincronização da API</p>
+    <section className="rounded-2xl border border-border/60 bg-gradient-to-br from-card to-card/70 p-5 shadow-sm space-y-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="space-y-1">
+          <p className="text-sm font-semibold text-foreground">Monitor de sincronização</p>
           <p className="text-xs text-muted-foreground">
-            {lastUpdatedAt
-              ? `Última atualização em ${lastUpdatedAt.toLocaleTimeString("pt-BR")}`
-              : "Ainda sem atualização concluída"}
+            Atualização automática a cada {autoSyncIntervalInSeconds}s com feedback em tempo real.
           </p>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={syncNow}
-          disabled={isSyncing}
-          className="gap-2"
-        >
-          <RefreshCcw className={`w-4 h-4 ${isSyncing ? "animate-spin" : ""}`} />
-          Atualizar
-        </Button>
+
+        <div className="flex items-center gap-2">
+          <span
+            className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium ${statusClasses(status)}`}
+          >
+            {status === "success" && <CheckCircle2 className="mr-1 h-3.5 w-3.5" />}
+            {status === "error" && <ShieldAlert className="mr-1 h-3.5 w-3.5" />}
+            {status === "syncing" && <Clock3 className="mr-1 h-3.5 w-3.5" />}
+            {statusLabel}
+          </span>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={syncNow}
+            disabled={isSyncing}
+            className="gap-2"
+          >
+            <RefreshCcw className={`h-4 w-4 ${isSyncing ? "animate-spin" : ""}`} />
+            Sincronizar agora
+          </Button>
+        </div>
       </div>
 
-      <Progress value={progress} className="h-2" />
+      <Progress value={progress} className="h-2.5" />
 
-      <p className="text-xs text-muted-foreground">{lastMessage}</p>
-    </div>
+      <div className="grid grid-cols-1 gap-2 text-xs text-muted-foreground md:grid-cols-3">
+        <p>
+          <span className="font-medium text-foreground">Última atualização:</span>{" "}
+          {lastUpdatedAt ? lastUpdatedAt.toLocaleTimeString("pt-BR") : "ainda não concluída"}
+        </p>
+        <p>
+          <span className="font-medium text-foreground">Tempo de resposta:</span>{" "}
+          {lastDurationMs != null ? `${lastDurationMs}ms` : "sem medição"}
+        </p>
+        <p>
+          <span className="font-medium text-foreground">Requisições monitoradas:</span> {requestCount}
+        </p>
+      </div>
+
+      <p className="rounded-lg border border-border/50 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+        {lastMessage}
+      </p>
+    </section>
   );
 }

@@ -49,3 +49,5 @@ A home (`/`) inclui um card de **Sincronização da API** que usa hooks React:
 
 Isso ajuda a acompanhar envios e respostas da API em tempo real, com feedback visual para o usuário.
 
+O card exibe status, tempo de resposta, contagem de requisições e atualização manual.
+

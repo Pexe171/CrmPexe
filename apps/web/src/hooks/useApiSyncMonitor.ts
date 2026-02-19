@@ -1,75 +1,114 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { dashboardApi } from "@/lib/api/dashboard";
 
-const PROGRESS_STEP_MS = 250;
+type SyncStatus = "idle" | "syncing" | "success" | "error";
 
-export function useApiSyncMonitor() {
+const DEFAULT_AUTO_SYNC_INTERVAL_MS = 30000;
+const PROGRESS_STEP_MS = 250;
+const PROGRESS_INCREMENT = 7;
+
+type UseApiSyncMonitorOptions = {
+  autoSyncIntervalMs?: number;
+};
+
+export function useApiSyncMonitor(options?: UseApiSyncMonitorOptions) {
+  const autoSyncIntervalMs = options?.autoSyncIntervalMs ?? DEFAULT_AUTO_SYNC_INTERVAL_MS;
+
   const [progress, setProgress] = useState(0);
-  const [isSyncing, setIsSyncing] = useState(false);
+  const [status, setStatus] = useState<SyncStatus>("idle");
   const [lastMessage, setLastMessage] = useState("Aguardando primeira sincronização.");
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [lastDurationMs, setLastDurationMs] = useState<number | null>(null);
+  const [requestCount, setRequestCount] = useState(0);
+
+  const isSyncingRef = useRef(false);
+  const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const stopProgressTimer = useCallback(() => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
+    if (progressTimerRef.current) {
+      clearInterval(progressTimerRef.current);
+      progressTimerRef.current = null;
     }
   }, []);
 
   const syncNow = useCallback(async () => {
-    if (isSyncing) {
+    if (isSyncingRef.current) {
       return;
     }
 
-    setIsSyncing(true);
+    isSyncingRef.current = true;
+    setStatus("syncing");
     setProgress(10);
     setLastMessage("Enviando requisição para a API...");
 
-    timerRef.current = setInterval(() => {
-      setProgress((current) => (current >= 90 ? current : current + 8));
+    progressTimerRef.current = setInterval(() => {
+      setProgress((current) => (current >= 90 ? current : current + PROGRESS_INCREMENT));
     }, PROGRESS_STEP_MS);
+
+    const startedAt = performance.now();
 
     try {
       const response = await dashboardApi.getSales();
+      const durationMs = Math.round(performance.now() - startedAt);
+
       stopProgressTimer();
       setProgress(100);
+      setStatus("success");
+      setLastDurationMs(durationMs);
       setLastUpdatedAt(new Date());
+      setRequestCount((current) => current + 1);
       setLastMessage(
-        `Sincronização concluída com sucesso. Conversas ativas: ${response.conversasAtivas}.`
+        `Sincronização concluída. Conversas ativas: ${response.conversasAtivas}.`
       );
     } catch (error) {
       stopProgressTimer();
       setProgress(0);
+      setStatus("error");
+      setRequestCount((current) => current + 1);
       setLastMessage(
         `Falha ao sincronizar dados: ${error instanceof Error ? error.message : "erro desconhecido"}.`
       );
     } finally {
-      setIsSyncing(false);
+      isSyncingRef.current = false;
+
       setTimeout(() => {
         setProgress((current) => (current === 100 ? 0 : current));
       }, 800);
     }
-  }, [isSyncing, stopProgressTimer]);
+  }, [stopProgressTimer]);
 
   useEffect(() => {
     syncNow();
 
-    const interval = setInterval(() => {
+    const intervalRef = setInterval(() => {
       syncNow();
-    }, 30000);
+    }, autoSyncIntervalMs);
 
     return () => {
-      clearInterval(interval);
+      clearInterval(intervalRef);
       stopProgressTimer();
     };
-  }, [syncNow, stopProgressTimer]);
+  }, [autoSyncIntervalMs, stopProgressTimer, syncNow]);
+
+  const isSyncing = status === "syncing";
+
+  const statusLabel = useMemo(() => {
+    if (status === "syncing") return "Sincronizando";
+    if (status === "success") return "Atualizado";
+    if (status === "error") return "Erro";
+    return "Aguardando";
+  }, [status]);
 
   return {
     progress,
+    status,
+    statusLabel,
     isSyncing,
     lastMessage,
     lastUpdatedAt,
+    lastDurationMs,
+    requestCount,
+    autoSyncIntervalMs,
     syncNow
   };
 }
