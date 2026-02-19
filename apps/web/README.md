@@ -38,3 +38,18 @@ Os arquivos estáticos serão gerados em `dist/`.
 - `/login` executa login OTP com a API.
 - O frontend envia cookies com `credentials: include` para manter sessão com `HttpOnly`.
 - Caso a API responda HTML ao invés de JSON, a UI exibe mensagem de erro amigável indicando provável falha de proxy/base URL.
+
+## Gestão de agentes (novo fluxo)
+
+A rota `/agents` agora suporta fluxo completo, sem dados fake:
+
+- upload do arquivo JSON do agente;
+- importação do template e publicação no n8n pelo Super Admin/Admin;
+- geração de URL de instalação por workspace;
+- ativação do agente na conta do usuário com variáveis em JSON.
+
+Exemplo de URL gerada:
+
+```
+/agents?agent=<agentTemplateId>&workspace=<workspaceId>
+```

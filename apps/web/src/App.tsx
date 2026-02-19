@@ -7,10 +7,11 @@ import { useAuthMe } from "./hooks/useAuthMe";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
+import AgentsPage from "./pages/Agents";
 
 const queryClient = new QueryClient();
 
-const ProtectedDashboard = () => {
+const ProtectedDashboard = ({ page }: { page?: "dashboard" | "agents" }) => {
   const { isLoading, isError } = useAuthMe();
 
   if (isLoading) {
@@ -25,7 +26,7 @@ const ProtectedDashboard = () => {
     return <Navigate to="/login" replace />;
   }
 
-  return <Index />;
+  return page === "agents" ? <AgentsPage /> : <Index />;
 };
 
 const LoginRoute = () => {
@@ -53,7 +54,8 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<ProtectedDashboard />} />
+          <Route path="/" element={<ProtectedDashboard page="dashboard" />} />
+          <Route path="/agents" element={<ProtectedDashboard page="agents" />} />
           <Route path="/login" element={<LoginRoute />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
