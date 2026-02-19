@@ -5,6 +5,7 @@ import { ChannelDistribution } from "@/components/dashboard/ChannelDistribution"
 import { ConversionFunnel } from "@/components/dashboard/ConversionFunnel";
 import { RecentConversations } from "@/components/dashboard/RecentConversations";
 import { ProductivityTable } from "@/components/dashboard/ProductivityTable";
+import { ApiSyncStatus } from "@/components/dashboard/ApiSyncStatus";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { MessageSquare, TrendingUp, Clock, Target, AlertCircle } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api/config";
@@ -65,6 +66,9 @@ const Index = () => {
             </div>
           </div>
         )}
+
+        {/* Monitor de sincronização da API */}
+        <ApiSyncStatus />
 
         {/* KPI Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

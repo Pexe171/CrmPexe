@@ -38,3 +38,14 @@ Os arquivos estáticos serão gerados em `dist/`.
 - `/login` executa login OTP com a API.
 - O frontend envia cookies com `credentials: include` para manter sessão com `HttpOnly`.
 - Caso a API responda HTML ao invés de JSON, a UI exibe mensagem de erro amigável indicando provável falha de proxy/base URL.
+
+
+## Monitoramento em tempo real (Hooks)
+
+A home (`/`) inclui um card de **Sincronização da API** que usa hooks React:
+
+- `useState`: controla progresso, status e mensagem da requisição.
+- `useEffect`: agenda sincronizações automáticas e limpa timers no unmount.
+
+Isso ajuda a acompanhar envios e respostas da API em tempo real, com feedback visual para o usuário.
+

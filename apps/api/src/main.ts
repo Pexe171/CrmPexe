@@ -8,6 +8,19 @@ import { CorrelationIdMiddleware } from "./common/logging/correlation-id.middlew
 import { JsonLoggerService } from "./common/logging/json-logger.service";
 import { RequestLoggerMiddleware } from "./common/logging/request-logger.middleware";
 
+function resolveCorsOrigins(rawCorsOrigin?: string): string[] {
+  const defaultOrigins = ["http://localhost:3000", "http://localhost:8080"];
+
+  if (!rawCorsOrigin) {
+    return defaultOrigins;
+  }
+
+  return rawCorsOrigin
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+}
+
 async function bootstrap() {
   const isProduction = process.env.NODE_ENV === "production";
   if (isProduction) {
@@ -25,10 +38,7 @@ async function bootstrap() {
 
   const app = await NestFactory.create(AppModule);
   app.useLogger(app.get(JsonLoggerService));
-  const corsOrigins = (process.env.CORS_ORIGIN || "http://localhost:3000")
-    .split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean);
+  const corsOrigins = resolveCorsOrigins(process.env.CORS_ORIGIN);
 
   if (isProduction) {
     if (corsOrigins.length === 0) {

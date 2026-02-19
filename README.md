@@ -8,6 +8,7 @@ Plataforma CRM com API em NestJS e front-end em React + Vite, organizada como mo
 - [Pré-requisitos](#pré-requisitos)
 - [Tecnologias](#tecnologias)
 - [Configuração do ambiente](#configuração-do-ambiente)
+- [Primeiro passo para integração Front + API](#primeiro-passo-para-integração-front--api)
   - [1) Clonar e instalar dependências](#1-clonar-e-instalar-dependências)
   - [2) Subir serviços de infraestrutura](#2-subir-serviços-de-infraestrutura)
   - [3) Configurar variáveis de ambiente](#3-configurar-variáveis-de-ambiente)
@@ -50,6 +51,17 @@ O CrmPexe é um monorepo que centraliza a API (NestJS) e a aplicação web (Reac
 - **Web**: React, Vite, Tailwind CSS
 - **Infra**: Docker, Redis, N8N
 - **Monorepo**: Turborepo, pnpm workspaces
+
+
+## Primeiro passo para integração Front + API
+
+Para evitar bloqueios do navegador ao consumir a API no Docker:
+
+- A API já sobe com CORS habilitado para `http://localhost:3000` (Next.js) e `http://localhost:8080` (frontend atual).
+- Caso precise de outras origens, ajuste `CORS_ORIGIN` em `apps/api/.env` com lista separada por vírgula.
+- O dashboard web agora possui monitor de sincronização em tempo real usando `useState` e `useEffect`, exibindo progresso e retorno da API.
+
+> Stack recomendado para novas telas: **Next.js + Tailwind CSS** para manter visual limpo, profissional e responsivo.
 
 ## Configuração do ambiente
 
