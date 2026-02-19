@@ -7,7 +7,6 @@ import {
   Bot,
   Plug,
   Headphones,
-  LogOut,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -20,6 +19,7 @@ const mainNav = [
   { title: "Contatos", url: "/contacts", icon: Users },
   { title: "Vendas", url: "/sales", icon: TrendingUp },
   { title: "Automações", url: "/automations", icon: Bot },
+  { title: "Agentes", url: "/agents", icon: Bot },
   { title: "Integrações", url: "/integrations", icon: Plug },
 ];
 

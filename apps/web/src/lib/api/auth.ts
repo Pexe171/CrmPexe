@@ -5,6 +5,7 @@ export type AuthUser = {
   email: string;
   role: string;
   currentWorkspaceId: string | null;
+  isSuperAdmin?: boolean;
 };
 
 export const authApi = {

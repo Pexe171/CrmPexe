@@ -608,3 +608,25 @@ Ao trocar a versão ativa no workspace, o backend agora tenta automaticamente:
 2. **deletar** o workflow anterior (`DELETE /workflows/:id`) quando `N8N_DELETE_PREVIOUS_WORKFLOW_ON_ACTIVATE=true`.
 
 Esse fluxo evita acúmulo de workflows inativos “fantasmas” na instância compartilhada do n8n e registra resultado em auditoria.
+
+## Fluxo de URL para adicionar agentes
+
+A tela `/agents` foi estruturada para operar somente com dados reais da API (sem dados fake), em três etapas:
+
+1. **Super Admin / Admin interno — importar JSON e publicar no n8n**
+   - faz upload do arquivo JSON do agente;
+   - revisa nome, categoria e descrição;
+   - clica em **Importar JSON e publicar** para executar importação de template e publicação no n8n.
+
+2. **Super Admin / Admin interno — gerar URL de instalação**
+   - seleciona o agente já publicado;
+   - seleciona o workspace de destino;
+   - clica em **Gerar URL de instalação** para criar link compartilhável com `agent` e `workspace` na query string.
+
+3. **Conta de usuário — adicionar agente**
+   - abre a URL recebida;
+   - confirma o agente e o workspace disponível;
+   - informa variáveis do agente em JSON;
+   - clica em **Adicionar agente** para ativar no workspace (com troca automática de workspace quando necessário).
+
+Esse fluxo atende separação por cliente/workspace e evita confusão operacional no uso dos agentes.
