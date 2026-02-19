@@ -213,7 +213,17 @@ O acesso às automações é liberado quando o workspace possui aprovação (`st
 
 ### Fluxo de login
 
-Após validar o OTP com sucesso, o front-end redireciona o usuário para `/dashboard` (rota única pós-login).
+Após validar o OTP com sucesso, o front-end redireciona o usuário para `/` (dashboard principal protegido por sessão).
+
+Se o usuário abrir a aplicação sem sessão válida, o front redireciona automaticamente para `/login`.
+
+
+### Login e sessão no frontend
+
+- A rota `/` agora é protegida: se a API responder que não há sessão, o usuário vai para `/login`.
+- A tela `/login` usa fluxo OTP (`/api/auth/request-otp` e `/api/auth/verify-otp`).
+- Todas as chamadas web usam `credentials: include` para suportar cookies HttpOnly emitidos pela API.
+- Quando a API retorna HTML por engano (ex.: proxy/configuração incorreta), o front mostra erro claro de resposta inválida em vez de quebrar no parse JSON.
 
 ### Inventário de rotas do front (`apps/web`)
 
