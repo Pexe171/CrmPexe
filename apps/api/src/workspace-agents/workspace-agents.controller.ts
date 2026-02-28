@@ -3,6 +3,7 @@ import { AccessTokenGuard } from "../auth/access-token.guard";
 import { AuthUser } from "../auth/auth.types";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { ActivateWorkspaceAgentDto } from "./dto/activate-workspace-agent.dto";
+import { AssignAgentToWorkspaceDto } from "./dto/assign-agent-to-workspace.dto";
 import { ListWorkspaceAgentsQueryDto } from "./dto/list-workspace-agents-query.dto";
 import { WorkspaceAgentsService } from "./workspace-agents.service";
 
@@ -14,6 +15,36 @@ export class WorkspaceAgentsController {
   @Get("catalog")
   async catalog(@CurrentUser() user: AuthUser) {
     return this.service.catalog(user);
+  }
+
+  @Get("admin/workspaces")
+  async listAllWorkspaces(
+    @CurrentUser() user: AuthUser,
+    @Query("search") search?: string
+  ) {
+    return this.service.listAllWorkspaces(user, search);
+  }
+
+  @Get("admin/workspaces/:workspaceId/agents")
+  async getWorkspaceAgents(
+    @CurrentUser() user: AuthUser,
+    @Param("workspaceId") workspaceId: string
+  ) {
+    return this.service.getWorkspaceAgentsByWorkspaceId(user, workspaceId);
+  }
+
+  @Post("admin/assign")
+  async assignToWorkspace(
+    @CurrentUser() user: AuthUser,
+    @Body() body: AssignAgentToWorkspaceDto
+  ) {
+    return this.service.assignToWorkspace(
+      user,
+      body.workspaceId,
+      body.agentTemplateId,
+      body.expiresAt ? new Date(body.expiresAt) : undefined,
+      body.configJson
+    );
   }
 
   @Post(":agentTemplateId/activate")
