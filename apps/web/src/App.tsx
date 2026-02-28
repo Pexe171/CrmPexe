@@ -11,6 +11,7 @@ import NotFound from "./pages/NotFound";
 import AgentsPage from "./pages/Agents";
 import ConversationsPage from "./pages/Conversations";
 import AdminWorkspacesPage from "./pages/AdminWorkspaces";
+import IntegrationsPage from "./pages/Integrations";
 
 const queryClient = new QueryClient();
 
@@ -60,6 +61,7 @@ const App = () => (
           <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
           <Route path="/agents" element={<ProtectedRoute><AgentsPage /></ProtectedRoute>} />
           <Route path="/conversations" element={<ProtectedRoute><ConversationsPage /></ProtectedRoute>} />
+          <Route path="/integrations" element={<ProtectedRoute><IntegrationsPage /></ProtectedRoute>} />
           <Route path="/admin/workspaces" element={<ProtectedRoute><AdminWorkspacesPage /></ProtectedRoute>} />
           <Route path="/login" element={<LoginRoute />} />
           <Route path="*" element={<NotFound />} />
