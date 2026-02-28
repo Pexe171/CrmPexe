@@ -1,9 +1,11 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
   Query,
   UseGuards
@@ -15,6 +17,7 @@ import { AgentTemplatesService } from "./agent-templates.service";
 import { ImportAgentTemplateDto } from "./dto/import-agent-template.dto";
 import { ListAgentTemplatesQueryDto } from "./dto/list-agent-templates-query.dto";
 import { RollbackAgentVersionDto } from "./dto/rollback-agent-version.dto";
+import { UpdateAgentTemplateDto } from "./dto/update-agent-template.dto";
 
 @Controller("agent-templates")
 @UseGuards(AccessTokenGuard)
@@ -34,6 +37,25 @@ export class AgentTemplatesController {
   @Get()
   async list(@CurrentUser() user: AuthUser, @Query() query: ListAgentTemplatesQueryDto) {
     return this.service.list(user, query);
+  }
+
+  @Get(":id")
+  async getById(@CurrentUser() user: AuthUser, @Param("id") templateId: string) {
+    return this.service.getById(user, templateId);
+  }
+
+  @Patch(":id")
+  async update(
+    @CurrentUser() user: AuthUser,
+    @Param("id") templateId: string,
+    @Body() body: UpdateAgentTemplateDto
+  ) {
+    return this.service.update(user, templateId, body);
+  }
+
+  @Delete(":id")
+  async remove(@CurrentUser() user: AuthUser, @Param("id") templateId: string) {
+    return this.service.remove(user, templateId);
   }
 
   @Get(":id/versions")

@@ -26,6 +26,19 @@ async function safeParseJson<T>(response: Response): Promise<T> {
   return (await response.json()) as T;
 }
 
+function extractErrorMessage(body: string, status: number, statusText: string): string {
+  try {
+    const parsed = JSON.parse(body);
+    if (typeof parsed.message === "string") return parsed.message;
+    if (Array.isArray(parsed.message)) return parsed.message.join(", ");
+    if (typeof parsed.error === "string") return parsed.error;
+  } catch {
+    // not JSON
+  }
+  if (body && body.length < 200) return body;
+  return `Erro ${status}: ${statusText}`;
+}
+
 export async function apiFetch<T>(endpoint: string, init?: RequestInit): Promise<T> {
   const token = localStorage.getItem("crm_token");
 
@@ -46,11 +59,8 @@ export async function apiFetch<T>(endpoint: string, init?: RequestInit): Promise
 
   if (!response.ok) {
     const bodyText = await response.text();
-    throw new ApiError(
-      `API Error: ${response.status} ${response.statusText}`,
-      response.status,
-      bodyText.slice(0, 180)
-    );
+    const message = extractErrorMessage(bodyText, response.status, response.statusText);
+    throw new ApiError(message, response.status, bodyText.slice(0, 180));
   }
 
   return safeParseJson<T>(response);

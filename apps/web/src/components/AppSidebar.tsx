@@ -9,27 +9,35 @@ import {
   Headphones,
   ChevronLeft,
   ChevronRight,
+  Building2,
+  ShieldCheck,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useState } from "react";
+import { useAuthMe } from "@/hooks/useAuthMe";
 
 const mainNav = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Conversas", url: "/conversations", icon: MessageSquare },
   { title: "Contatos", url: "/contacts", icon: Users },
   { title: "Vendas", url: "/sales", icon: TrendingUp },
-  { title: "Automações", url: "/automations", icon: Bot },
   { title: "Agentes", url: "/agents", icon: Bot },
-  { title: "Integrações", url: "/integrations", icon: Plug },
+  { title: "Integracoes", url: "/integrations", icon: Plug },
+];
+
+const adminNav = [
+  { title: "Workspaces", url: "/admin/workspaces", icon: Building2 },
 ];
 
 const bottomNav = [
   { title: "Atendimento", url: "/support", icon: Headphones },
-  { title: "Configurações", url: "/settings", icon: Settings },
+  { title: "Configuracoes", url: "/settings", icon: Settings },
 ];
 
 export function AppSidebar() {
   const [collapsed, setCollapsed] = useState(false);
+  const { data: me } = useAuthMe();
+  const isAdmin = Boolean(me?.isSuperAdmin || me?.role === "ADMIN");
 
   return (
     <aside
@@ -63,6 +71,29 @@ export function AppSidebar() {
             {!collapsed && <span>{item.title}</span>}
           </NavLink>
         ))}
+
+        {isAdmin && (
+          <>
+            {!collapsed && (
+              <div className="pt-3 pb-1 px-3">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                  <ShieldCheck className="w-3 h-3" /> Admin
+                </p>
+              </div>
+            )}
+            {adminNav.map((item) => (
+              <NavLink
+                key={item.title}
+                to={item.url}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors text-sm"
+                activeClassName="bg-sidebar-accent text-primary font-medium"
+              >
+                <item.icon className="w-5 h-5 shrink-0" />
+                {!collapsed && <span>{item.title}</span>}
+              </NavLink>
+            ))}
+          </>
+        )}
       </nav>
 
       {/* Bottom nav */}

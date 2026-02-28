@@ -207,6 +207,132 @@ export class WorkspaceAgentsService {
     });
   }
 
+  async assignToWorkspace(
+    adminUser: AuthUser,
+    workspaceId: string,
+    agentTemplateId: string,
+    expiresAt?: Date,
+    configJson?: Record<string, unknown>
+  ) {
+    if (adminUser.role !== UserRole.ADMIN && !adminUser.isSuperAdmin) {
+      throw new ForbiddenException("Apenas admins podem atribuir agentes a workspaces.");
+    }
+
+    const [template, workspace] = await Promise.all([
+      this.prisma.agentTemplate.findUnique({
+        where: { id: agentTemplateId },
+        include: { versions: { orderBy: { version: "desc" }, take: 1 } }
+      }),
+      this.prisma.workspace.findUnique({ where: { id: workspaceId } })
+    ]);
+
+    if (!workspace) {
+      throw new NotFoundException("Workspace não encontrado.");
+    }
+
+    if (!template || template.status !== AgentTemplateStatus.PUBLISHED) {
+      throw new NotFoundException("Agent não disponível para atribuição.");
+    }
+
+    const version = template.versions[0];
+    if (!version || !version.publishedAt) {
+      throw new BadRequestException("Versão ainda não publicada.");
+    }
+
+    const workspaceAgent = await this.prisma.$transaction(async (tx) => {
+      await tx.workspaceAgent.updateMany({
+        where: { workspaceId, agentTemplateId, isActive: true },
+        data: { isActive: false, deactivatedAt: new Date() }
+      });
+
+      const created = await tx.workspaceAgent.create({
+        data: {
+          workspaceId,
+          agentTemplateId,
+          agentTemplateVersionId: version.id,
+          isActive: true,
+          configJson: (configJson ?? {}) as Prisma.InputJsonValue,
+          activatedById: adminUser.id,
+          assignedByAdminId: adminUser.id,
+          expiresAt: expiresAt ?? null
+        }
+      });
+
+      await tx.agentAuditLog.create({
+        data: {
+          actorId: adminUser.id,
+          action: AgentAuditAction.ASSIGNED,
+          agentTemplateId,
+          versionId: version.id,
+          workspaceId,
+          metadataJson: {
+            workspaceAgentId: created.id,
+            expiresAt: expiresAt?.toISOString() ?? null,
+            workspaceName: workspace.name
+          }
+        }
+      });
+
+      return created;
+    });
+
+    return {
+      workspaceAgent,
+      workspace: { id: workspace.id, name: workspace.name, code: workspace.code },
+      template: { id: template.id, name: template.name }
+    };
+  }
+
+  async listAllWorkspaces(user: AuthUser, search?: string) {
+    if (user.role !== UserRole.ADMIN && !user.isSuperAdmin) {
+      throw new ForbiddenException("Apenas admins podem listar workspaces.");
+    }
+
+    const where = search
+      ? {
+          OR: [
+            { name: { contains: search, mode: "insensitive" as const } },
+            { code: { contains: search, mode: "insensitive" as const } }
+          ]
+        }
+      : {};
+
+    return this.prisma.workspace.findMany({
+      where: { ...where, deletedAt: null },
+      select: {
+        id: true,
+        name: true,
+        code: true,
+        createdAt: true,
+        _count: {
+          select: {
+            workspaceAgents: { where: { isActive: true } },
+            members: true
+          }
+        }
+      },
+      orderBy: { name: "asc" },
+      take: 50
+    });
+  }
+
+  async getWorkspaceAgentsByWorkspaceId(user: AuthUser, workspaceId: string) {
+    if (user.role !== UserRole.ADMIN && !user.isSuperAdmin) {
+      throw new ForbiddenException("Apenas admins podem visualizar agentes do workspace.");
+    }
+
+    return this.prisma.workspaceAgent.findMany({
+      where: { workspaceId },
+      include: {
+        agentTemplate: true,
+        agentTemplateVersion: {
+          select: { version: true, publishedAt: true, requiredVariables: true }
+        }
+      },
+      orderBy: { activatedAt: "desc" }
+    });
+  }
+
   private async cleanupOldWorkflowAfterSwitch(params: {
     actorId: string;
     workspaceId: string;

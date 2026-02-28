@@ -14,12 +14,21 @@ export const authApi = {
       method: "POST",
       body: JSON.stringify({ email })
     }),
+
+  requestSignupOtp: (data: { email: string; name: string; contact: string; emailConfirmation: string }) =>
+    apiFetch<{ message: string }>("/auth/request-otp", {
+      method: "POST",
+      body: JSON.stringify(data)
+    }),
+
   verifyOtp: (email: string, code: string) =>
     apiFetch<AuthUser>("/auth/verify-otp", {
       method: "POST",
       body: JSON.stringify({ email, code })
     }),
+
   me: () => apiFetch<AuthUser>("/auth/me"),
+
   logout: () =>
     apiFetch<{ message: string }>("/auth/logout", {
       method: "POST"

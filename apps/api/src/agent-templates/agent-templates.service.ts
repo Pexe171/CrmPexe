@@ -14,6 +14,7 @@ import { AuthUser } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
 import { ImportAgentTemplateDto } from "./dto/import-agent-template.dto";
 import { ListAgentTemplatesQueryDto } from "./dto/list-agent-templates-query.dto";
+import { UpdateAgentTemplateDto } from "./dto/update-agent-template.dto";
 import { N8nAgentPublisherService } from "./n8n-agent-publisher.service";
 
 const MAX_JSON_PAYLOAD_BYTES = 512_000;
@@ -64,6 +65,8 @@ export class AgentTemplatesService {
           }
         }));
 
+      const extractedVars = this.extractVariablesFromJson(dto.jsonPayload);
+
       const createdVersion = await tx.agentTemplateVersion.create({
         data: {
           agentTemplateId: template.id,
@@ -74,6 +77,7 @@ export class AgentTemplatesService {
             valid: true,
             importedAt: new Date().toISOString()
           },
+          requiredVariables: extractedVars as unknown as Prisma.InputJsonValue,
           createdById: user.id
         }
       });
@@ -302,6 +306,167 @@ export class AgentTemplatesService {
 
       return created;
     });
+  }
+
+  async getById(user: AuthUser, templateId: string) {
+    this.ensureCanImport(user);
+
+    const template = await this.prisma.agentTemplate.findUnique({
+      where: { id: templateId },
+      include: {
+        versions: { orderBy: { version: "desc" } },
+        workspaces: {
+          where: { isActive: true },
+          include: { workspace: { select: { id: true, name: true, code: true } } }
+        }
+      }
+    });
+
+    if (!template) {
+      throw new NotFoundException("Agent template não encontrado.");
+    }
+
+    return template;
+  }
+
+  async update(user: AuthUser, templateId: string, dto: UpdateAgentTemplateDto) {
+    this.ensureCanImport(user);
+
+    const template = await this.prisma.agentTemplate.findUnique({
+      where: { id: templateId }
+    });
+
+    if (!template) {
+      throw new NotFoundException("Agent template não encontrado.");
+    }
+
+    const data: Record<string, unknown> = {};
+    if (dto.name !== undefined) data.name = dto.name;
+    if (dto.description !== undefined) data.description = dto.description;
+    if (dto.category !== undefined) data.category = dto.category;
+    if (dto.iconUrl !== undefined) data.iconUrl = dto.iconUrl;
+    if (dto.priceLabel !== undefined) data.priceLabel = dto.priceLabel;
+    if (dto.tags !== undefined) data.tags = dto.tags;
+    if (dto.allowedPlans !== undefined) data.allowedPlans = dto.allowedPlans;
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.agentTemplate.update({
+        where: { id: templateId },
+        data
+      });
+
+      await tx.agentAuditLog.create({
+        data: {
+          actorId: user.id,
+          action: AgentAuditAction.UPDATED,
+          agentTemplateId: templateId,
+          metadataJson: { updatedFields: Object.keys(data) }
+        }
+      });
+
+      return result;
+    });
+
+    return updated;
+  }
+
+  async remove(user: AuthUser, templateId: string) {
+    this.ensureCanImport(user);
+
+    const template = await this.prisma.agentTemplate.findUnique({
+      where: { id: templateId },
+      include: { workspaces: { where: { isActive: true }, take: 1 } }
+    });
+
+    if (!template) {
+      throw new NotFoundException("Agent template não encontrado.");
+    }
+
+    if (template.workspaces.length > 0) {
+      throw new BadRequestException(
+        "Não é possível excluir: existem workspaces com este agente ativo."
+      );
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.agentAuditLog.create({
+        data: {
+          actorId: user.id,
+          action: AgentAuditAction.DELETED,
+          agentTemplateId: templateId,
+          metadataJson: { name: template.name, slug: template.slug }
+        }
+      });
+
+      await tx.agentTemplate.update({
+        where: { id: templateId },
+        data: { status: AgentTemplateStatus.ARCHIVED }
+      });
+    });
+
+    return { deleted: true, id: templateId };
+  }
+
+  extractVariablesFromJson(payload: Record<string, unknown>): Array<{
+    key: string;
+    label: string;
+    type: string;
+    required: boolean;
+    defaultValue?: string;
+  }> {
+    const variables = new Map<string, { key: string; label: string; type: string; required: boolean; defaultValue?: string }>();
+    const jsonStr = JSON.stringify(payload);
+
+    const placeholderRegex = /\{\{([A-Z_][A-Z0-9_]*)\}\}/g;
+    let match: RegExpExecArray | null;
+    while ((match = placeholderRegex.exec(jsonStr)) !== null) {
+      const key = match[1];
+      if (!variables.has(key)) {
+        variables.set(key, {
+          key,
+          label: this.humanizeVarKey(key),
+          type: this.inferVarType(key),
+          required: true
+        });
+      }
+    }
+
+    const nodes = Array.isArray(payload.nodes) ? payload.nodes : [];
+    for (const node of nodes) {
+      if (typeof node !== "object" || node === null) continue;
+      const n = node as Record<string, unknown>;
+      const creds = n.credentials as Record<string, unknown> | undefined;
+      if (creds) {
+        for (const credKey of Object.keys(creds)) {
+          const varKey = `${credKey.toUpperCase().replace(/[^A-Z0-9]/g, "_")}_CREDENTIAL`;
+          if (!variables.has(varKey)) {
+            variables.set(varKey, {
+              key: varKey,
+              label: `Credencial: ${credKey}`,
+              type: "secret",
+              required: true
+            });
+          }
+        }
+      }
+    }
+
+    return Array.from(variables.values());
+  }
+
+  private humanizeVarKey(key: string): string {
+    return key
+      .split("_")
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(" ");
+  }
+
+  private inferVarType(key: string): string {
+    const lower = key.toLowerCase();
+    if (/(api_key|token|secret|password|private)/.test(lower)) return "secret";
+    if (/(url|endpoint|base_url|webhook)/.test(lower)) return "url";
+    if (/(model|engine)/.test(lower)) return "select";
+    return "text";
   }
 
   private ensureCanImport(user: AuthUser) {

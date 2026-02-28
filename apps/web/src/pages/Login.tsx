@@ -118,8 +118,11 @@ const Login = () => {
         {feedback ? <p className="text-sm text-emerald-500">{feedback}</p> : null}
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
-        <p className="text-xs text-muted-foreground">
-          Se você já está autenticado, volte para o <Link to="/" className="underline">dashboard</Link>.
+        <p className="text-sm text-muted-foreground">
+          Nao tem conta?{" "}
+          <Link to="/signup" className="text-primary underline">
+            Criar conta
+          </Link>
         </p>
       </div>
     </main>
