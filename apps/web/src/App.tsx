@@ -13,6 +13,7 @@ import ConversationsPage from "./pages/Conversations";
 import AdminWorkspacesPage from "./pages/AdminWorkspaces";
 import IntegrationsPage from "./pages/Integrations";
 import ComingSoon from "./pages/ComingSoon";
+import Signup from "./pages/Signup";
 
 const queryClient = new QueryClient();
 
@@ -69,6 +70,7 @@ const App = () => (
           <Route path="/settings" element={<ProtectedRoute><ComingSoon /></ProtectedRoute>} />
           <Route path="/admin/workspaces" element={<ProtectedRoute><AdminWorkspacesPage /></ProtectedRoute>} />
           <Route path="/login" element={<LoginRoute />} />
+          <Route path="/signup" element={<Signup />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
