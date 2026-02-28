@@ -3,21 +3,24 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { ReactNode } from "react";
 import { useAuthMe } from "./hooks/useAuthMe";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 import AgentsPage from "./pages/Agents";
+import ConversationsPage from "./pages/Conversations";
+import AdminWorkspacesPage from "./pages/AdminWorkspaces";
 
 const queryClient = new QueryClient();
 
-const ProtectedDashboard = ({ page }: { page?: "dashboard" | "agents" }) => {
+function ProtectedRoute({ children }: { children: ReactNode }) {
   const { isLoading, isError } = useAuthMe();
 
   if (isLoading) {
     return (
       <main className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">
-        Validando sessão...
+        Validando sessao...
       </main>
     );
   }
@@ -26,8 +29,8 @@ const ProtectedDashboard = ({ page }: { page?: "dashboard" | "agents" }) => {
     return <Navigate to="/login" replace />;
   }
 
-  return page === "agents" ? <AgentsPage /> : <Index />;
-};
+  return <>{children}</>;
+}
 
 const LoginRoute = () => {
   const { data, isLoading } = useAuthMe();
@@ -54,8 +57,10 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<ProtectedDashboard page="dashboard" />} />
-          <Route path="/agents" element={<ProtectedDashboard page="agents" />} />
+          <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+          <Route path="/agents" element={<ProtectedRoute><AgentsPage /></ProtectedRoute>} />
+          <Route path="/conversations" element={<ProtectedRoute><ConversationsPage /></ProtectedRoute>} />
+          <Route path="/admin/workspaces" element={<ProtectedRoute><AdminWorkspacesPage /></ProtectedRoute>} />
           <Route path="/login" element={<LoginRoute />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
