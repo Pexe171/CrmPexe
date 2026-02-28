@@ -5,7 +5,7 @@ import path from "path";
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
-    port: 8080,
+    port: 8081,
     hmr: {
       overlay: false
     },
@@ -18,7 +18,7 @@ export default defineConfig(({ mode }) => ({
   },
   preview: {
     host: "::",
-    port: 8080
+    port: 8081
   },
   plugins: [react()],
   resolve: {
