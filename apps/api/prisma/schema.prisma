@@ -169,6 +169,10 @@ enum AgentAuditAction {
   ACTIVATED
   DEACTIVATED
   ROLLED_BACK
+  UPDATED
+  DELETED
+  ASSIGNED
+  EXPIRED
 }
 
 enum AiUsageAction {
@@ -610,19 +614,21 @@ model IntegrationSecret {
 }
 
 model AgentTemplate {
-  id          String              @id @default(uuid())
-  name        String
-  slug        String              @unique
-  description String?
-  category    String
-  channel     String?
-  tags        String[]            @default([])
-  compatibility String[]          @default([])
-  allowedPlans String[]           @default([])
-  status      AgentTemplateStatus @default(DRAFT)
-  createdById String
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
+  id            String              @id @default(uuid())
+  name          String
+  slug          String              @unique
+  description   String?
+  category      String
+  channel       String?
+  tags          String[]            @default([])
+  compatibility String[]            @default([])
+  allowedPlans  String[]            @default([])
+  status        AgentTemplateStatus @default(DRAFT)
+  iconUrl       String?
+  priceLabel    String?
+  createdById   String
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
 
   createdBy  User                   @relation("AgentTemplateCreator", fields: [createdById], references: [id])
   versions   AgentTemplateVersion[]
@@ -633,16 +639,17 @@ model AgentTemplate {
 }
 
 model AgentTemplateVersion {
-  id               String   @id @default(uuid())
-  agentTemplateId  String
-  version          Int
-  sourceJson       Json
-  normalizedJson   Json
-  validationReport Json
-  n8nWorkflowId    String?
-  publishedAt      DateTime?
-  createdById      String
-  createdAt        DateTime @default(now())
+  id                 String   @id @default(uuid())
+  agentTemplateId    String
+  version            Int
+  sourceJson         Json
+  normalizedJson     Json
+  validationReport   Json
+  requiredVariables  Json?
+  n8nWorkflowId      String?
+  publishedAt        DateTime?
+  createdById        String
+  createdAt          DateTime @default(now())
 
   agentTemplate AgentTemplate   @relation(fields: [agentTemplateId], references: [id], onDelete: Cascade)
   createdBy     User            @relation("AgentTemplateVersionCreator", fields: [createdById], references: [id])
@@ -654,15 +661,18 @@ model AgentTemplateVersion {
 }
 
 model WorkspaceAgent {
-  id                     String   @id @default(uuid())
+  id                     String    @id @default(uuid())
   workspaceId            String
   agentTemplateId        String
   agentTemplateVersionId String
-  isActive               Boolean  @default(true)
+  isActive               Boolean   @default(true)
   configJson             Json
   activatedById          String
-  activatedAt            DateTime @default(now())
+  activatedAt            DateTime  @default(now())
   deactivatedAt          DateTime?
+  expiresAt              DateTime?
+  whatsappSessionId      String?
+  assignedByAdminId      String?
 
   workspace            Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   agentTemplate        AgentTemplate        @relation(fields: [agentTemplateId], references: [id], onDelete: Cascade)
@@ -671,6 +681,7 @@ model WorkspaceAgent {
 
   @@index([workspaceId, isActive])
   @@index([agentTemplateId])
+  @@index([expiresAt])
 }
 
 model AgentAuditLog {
