@@ -6,8 +6,10 @@ import {
   NotificationType,
   Prisma
 } from "@prisma/client";
+import { EventEmitter2 } from "@nestjs/event-emitter";
 import { NotificationsService } from "../notifications/notifications.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { CONVERSATION_NEW_MESSAGE } from "../conversations/events/new-message.event";
 import { IntegrationCryptoService } from "../integration-accounts/integration-crypto.service";
 import { AutomationEngineService } from "../automation-engine/automation-engine.service";
 import { AiProcessingQueueService } from "../ai/ai-processing.queue";
@@ -35,6 +37,7 @@ export class ChannelsService {
     private readonly automationEngineService: AutomationEngineService,
     private readonly aiProcessingQueueService: AiProcessingQueueService,
     private readonly queuesService: QueuesService,
+    private readonly eventEmitter: EventEmitter2,
     whatsappProvider: WhatsappProvider,
     emailProvider: EmailProvider,
     mockOmnichannelProvider: MockOmnichannelProvider
@@ -216,6 +219,19 @@ export class ChannelsService {
         conversationId: result.conversation.id,
         messageId: result.message.id,
         contactId: result.conversation.contactId
+      });
+
+      this.eventEmitter.emit(CONVERSATION_NEW_MESSAGE, {
+        workspaceId,
+        conversationId: result.conversation.id,
+        message: {
+          id: result.message.id,
+          direction: result.message.direction,
+          text: result.message.text,
+          sentAt: result.message.sentAt.toISOString(),
+          providerMessageId: result.message.providerMessageId ?? undefined,
+          meta: (result.message.meta as Record<string, unknown>) ?? undefined
+        }
       });
 
       void this.aiProcessingQueueService

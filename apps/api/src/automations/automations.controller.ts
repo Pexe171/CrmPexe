@@ -23,11 +23,21 @@ import { GrantAutomationAccessDto } from "./dto/grant-automation-access.dto";
 import { InstallAutomationInstanceDto } from "./dto/install-automation-instance.dto";
 import { InstallAutomationTemplateDto } from "./dto/install-automation-template.dto";
 import { UpdateAutomationInstanceVersionDto } from "./dto/update-automation-instance-version.dto";
+import { SaveFlowDto } from "./dto/save-flow.dto";
 
 @Controller()
 @UseGuards(AccessTokenGuard)
 export class AutomationsController {
   constructor(private readonly automationsService: AutomationsService) {}
+
+  @Post("automations/flow")
+  async saveFlow(
+    @CurrentUser() user: AuthUser,
+    @Body() body: SaveFlowDto,
+    @Headers("x-workspace-id") workspaceId?: string
+  ) {
+    return this.automationsService.saveFlowFromBuilder(user.id, body);
+  }
 
   @Get("automation-templates")
   async listTemplates() {

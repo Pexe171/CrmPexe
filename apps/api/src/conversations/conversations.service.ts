@@ -1,11 +1,13 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { ConversationStatus, MessageDirection, NotificationType, Prisma, UserRole } from "@prisma/client";
+import { EventEmitter2 } from "@nestjs/event-emitter";
 import { ChannelsService } from "../channels/channels.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { AssignConversationDto } from "./dto/assign-conversation.dto";
 import { CreateOutgoingMessageDto } from "./dto/create-outgoing-message.dto";
 import { SendConversationMessageDto } from "./dto/send-conversation-message.dto";
+import { CONVERSATION_NEW_MESSAGE } from "./events/new-message.event";
 
 @Injectable()
 export class ConversationsService {
@@ -14,7 +16,8 @@ export class ConversationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
-    private readonly channelsService: ChannelsService
+    private readonly channelsService: ChannelsService,
+    private readonly eventEmitter: EventEmitter2
   ) {}
 
   async listConversations(
@@ -151,6 +154,19 @@ export class ConversationsService {
       await this.notifySlaBreach(resolvedWorkspaceId, conversation.id, conversation.assignedToUserId);
     }
 
+    this.eventEmitter.emit(CONVERSATION_NEW_MESSAGE, {
+      workspaceId: resolvedWorkspaceId,
+      conversationId: conversation.id,
+      message: {
+        id: result.message.id,
+        direction: result.message.direction,
+        text: result.message.text,
+        sentAt: result.message.sentAt.toISOString(),
+        providerMessageId: result.message.providerMessageId ?? undefined,
+        meta: (result.message.meta as Record<string, unknown>) ?? undefined
+      }
+    });
+
     return result.message;
   }
 
@@ -243,6 +259,19 @@ export class ConversationsService {
     ) {
       await this.notifySlaBreach(resolvedWorkspaceId, conversation.id, conversation.assignedToUserId);
     }
+
+    this.eventEmitter.emit(CONVERSATION_NEW_MESSAGE, {
+      workspaceId: resolvedWorkspaceId,
+      conversationId: conversation.id,
+      message: {
+        id: result.message.id,
+        direction: result.message.direction,
+        text: result.message.text,
+        sentAt: result.message.sentAt.toISOString(),
+        providerMessageId: result.message.providerMessageId ?? undefined,
+        meta: (result.message.meta as Record<string, unknown>) ?? undefined
+      }
+    });
 
     return result.message;
   }

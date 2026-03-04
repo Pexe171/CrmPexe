@@ -21,16 +21,24 @@ export const authApi = {
       body: JSON.stringify(data)
     }),
 
-  verifyOtp: (email: string, code: string) =>
-    apiFetch<AuthUser>("/auth/verify-otp", {
+  verifyOtp: async (email: string, code: string) => {
+    const res = await apiFetch<{ user: AuthUser; accessToken: string }>("/auth/verify-otp", {
       method: "POST",
       body: JSON.stringify({ email, code })
-    }),
+    });
+    if (res.accessToken) {
+      localStorage.setItem("crm_token", res.accessToken);
+    }
+    return res.user;
+  },
 
   me: () => apiFetch<AuthUser>("/auth/me"),
 
-  logout: () =>
-    apiFetch<{ message: string }>("/auth/logout", {
-      method: "POST"
-    })
+  logout: async () => {
+    try {
+      await apiFetch<{ message: string }>("/auth/logout", { method: "POST" });
+    } finally {
+      localStorage.removeItem("crm_token");
+    }
+  }
 };

@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { EventEmitterModule } from "@nestjs/event-emitter";
 import { AuthModule } from "./auth/auth.module";
 import { AutomationsModule } from "./automations/automations.module";
 import { AuditLogsModule } from "./audit-logs/audit-logs.module";
@@ -37,6 +38,7 @@ import { WorkspaceAgentsModule } from "./workspace-agents/workspace-agents.modul
 
 @Module({
   imports: [
+    EventEmitterModule.forRoot(),
     LoggingModule,
     RateLimitModule,
     PrismaModule,

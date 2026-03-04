@@ -1,11 +1,14 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { useAuthMe } from "@/hooks/useAuthMe";
+import { useSocket } from "@/hooks/useSocket";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { conversationsApi } from "@/lib/api/conversations";
-import type { ConversationListItem, ConversationDetail } from "@/lib/api/conversations";
+import type { ConversationListItem, ConversationDetail, Message } from "@/lib/api/conversations";
+import { useConversationMessagesStore } from "@/stores/conversation-messages";
 import {
   MessageSquare, Search, Send, User, Phone, Mail, Clock,
   CheckCircle, AlertCircle, XCircle, Filter, Hash,
@@ -175,6 +178,9 @@ function ContactPanel({ conversation }: { conversation: ConversationDetail }) {
 export default function ConversationsPage() {
   const { data: me } = useAuthMe();
   const queryClient = useQueryClient();
+  const token = typeof window !== "undefined" ? localStorage.getItem("crm_token") : null;
+  useSocket(me?.currentWorkspaceId ?? null, token);
+
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState("");
   const [searchText, setSearchText] = useState("");
@@ -182,6 +188,16 @@ export default function ConversationsPage() {
   const [showContactPanel, setShowContactPanel] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+
+  const pendingForSelected = useConversationMessagesStore((s) =>
+    selectedId ? (s.pendingByConversation[selectedId] ?? []) : []
+  );
+  const messages = useMemo((): Message[] => {
+    const base = (detail?.messages ?? []) as Message[];
+    const seen = new Set(base.map((m) => m.id));
+    const extra = pendingForSelected.filter((m) => !seen.has(m.id));
+    return [...base, ...extra];
+  }, [detail?.messages, pendingForSelected]);
 
   const { data: conversations = [], isLoading } = useQuery({
     queryKey: ["conversations", filterStatus],
@@ -216,10 +232,10 @@ export default function ConversationsPage() {
   }, []);
 
   useEffect(() => {
-    if (detail?.messages.length) {
+    if (messages.length) {
       setTimeout(scrollToBottom, 100);
     }
-  }, [detail?.messages.length, scrollToBottom]);
+  }, [messages.length, scrollToBottom]);
 
   const handleSend = () => {
     const text = messageText.trim();
@@ -246,9 +262,11 @@ export default function ConversationsPage() {
 
   return (
     <DashboardLayout>
-      <div className="flex h-[calc(100vh-0px)]">
-        {/* Left panel: conversation list */}
-        <div className="w-80 lg:w-96 border-r border-border flex flex-col shrink-0">
+      <div className="h-[calc(100vh-0px)]">
+        <ResizablePanelGroup direction="horizontal" className="h-full">
+          {/* Left panel: conversation list */}
+          <ResizablePanel defaultSize={22} minSize={18} maxSize={35} className="flex flex-col shrink-0">
+        <div className="flex flex-col h-full border-r border-border">
           {/* Header */}
           <div className="p-3 border-b border-border space-y-2">
             <div className="flex items-center justify-between">
@@ -355,9 +373,11 @@ export default function ConversationsPage() {
             })}
           </div>
         </div>
-
-        {/* Center: chat */}
-        <div className="flex-1 flex flex-col min-w-0">
+          </ResizablePanel>
+          <ResizableHandle withHandle className="shrink-0" />
+          {/* Center: chat */}
+          <ResizablePanel defaultSize={55} minSize={40} className="flex flex-col min-w-0">
+        <div className="flex flex-col h-full flex-1">
           {!selectedId ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
@@ -408,14 +428,14 @@ export default function ConversationsPage() {
 
               {/* Messages */}
               <div ref={messagesContainerRef} className="flex-1 overflow-auto px-4 py-3 space-y-2">
-                {detail.messages.length === 0 && (
+                {messages.length === 0 && (
                   <div className="text-center py-12">
                     <Bot className="w-10 h-10 mx-auto text-muted-foreground/20 mb-3" />
                     <p className="text-sm text-muted-foreground">Nenhuma mensagem ainda.</p>
                   </div>
                 )}
 
-                {detail.messages.map((msg) => {
+                {messages.map((msg) => {
                   const isIn = msg.direction === "IN";
                   const isSystem = msg.direction === "SYSTEM";
                   const isOut = msg.direction === "OUT";
@@ -497,11 +517,16 @@ export default function ConversationsPage() {
             </>
           )}
         </div>
-
-        {/* Right panel: contact info */}
-        {showContactPanel && detail && (
-          <ContactPanel conversation={detail} />
-        )}
+          </ResizablePanel>
+          {showContactPanel && detail && (
+            <>
+              <ResizableHandle withHandle className="shrink-0" />
+              <ResizablePanel defaultSize={23} minSize={18} maxSize={35}>
+                <ContactPanel conversation={detail} />
+              </ResizablePanel>
+            </>
+          )}
+        </ResizablePanelGroup>
       </div>
     </DashboardLayout>
   );

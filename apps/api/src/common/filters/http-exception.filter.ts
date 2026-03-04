@@ -29,33 +29,55 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const response = context.getResponse<Response>();
     const request = context.getRequest<RequestWithCorrelationId>();
 
-    const statusCode =
-      exception instanceof HttpException
-        ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+    let statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
+    let message: string | string[] = "Erro interno no servidor";
 
-    const message = this.resolveMessage(exception);
+    try {
+      statusCode =
+        exception instanceof HttpException
+          ? exception.getStatus()
+          : HttpStatus.INTERNAL_SERVER_ERROR;
+      message = this.resolveMessage(exception);
+    } catch {
+      // use defaults above
+    }
 
     const body: HttpErrorResponseBody = {
       statusCode,
       message,
       timestamp: new Date().toISOString(),
-      path: request.url,
-      correlationId: request.correlationId ?? null
+      path: request?.url ?? "/",
+      correlationId: request?.correlationId ?? null
     };
 
-    this.logger.error(
-      {
-        event: "http_error",
-        statusCode,
-        path: request.url,
-        method: request.method,
-        message: body.message
-      },
-      exception instanceof Error ? exception.stack : undefined
-    );
+    try {
+      this.logger.error(
+        {
+          event: "http_error",
+          statusCode,
+          path: request?.url,
+          method: request?.method,
+          message: body.message
+        },
+        exception instanceof Error ? exception.stack : undefined
+      );
+    } catch {
+      // ignore logger failure
+    }
 
-    response.status(statusCode).json(body);
+    try {
+      if (!response.headersSent) {
+        response.status(statusCode).json(body);
+      }
+    } catch {
+      try {
+        if (!response.headersSent) {
+          response.status(statusCode).send(JSON.stringify(body));
+        }
+      } catch {
+        // last resort: do not throw
+      }
+    }
   }
 
   private resolveMessage(exception: unknown): string | string[] {

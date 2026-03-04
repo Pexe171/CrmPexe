@@ -19,12 +19,14 @@ import { UpdateIntegrationAccountDto } from "./dto/update-integration-account.dt
 import { UpsertIntegrationSecretDto } from "./dto/upsert-integration-secret.dto";
 import { VerifyWhatsappSmsDto } from "./dto/verify-whatsapp-sms.dto";
 import { IntegrationAccountsService } from "./integration-accounts.service";
+import { WhatsappNativeService } from "./whatsapp-native.service";
 
 @Controller("integration-accounts")
 @UseGuards(AccessTokenGuard)
 export class IntegrationAccountsController {
   constructor(
-    private readonly integrationAccountsService: IntegrationAccountsService
+    private readonly integrationAccountsService: IntegrationAccountsService,
+    private readonly whatsappNativeService: WhatsappNativeService
   ) {}
 
   @Get()
@@ -111,6 +113,32 @@ export class IntegrationAccountsController {
     @Headers("x-workspace-id") workspaceId?: string
   ) {
     return this.integrationAccountsService.getWhatsappStatus(
+      user.id,
+      accountId,
+      workspaceId
+    );
+  }
+
+  @Post(":id/whatsapp/native/start")
+  async startNativeWhatsapp(
+    @CurrentUser() user: AuthUser,
+    @Param("id") accountId: string,
+    @Headers("x-workspace-id") workspaceId?: string
+  ) {
+    return this.whatsappNativeService.startNativeSession(
+      user.id,
+      accountId,
+      workspaceId
+    );
+  }
+
+  @Get(":id/whatsapp/native/status")
+  async getNativeWhatsappStatus(
+    @CurrentUser() user: AuthUser,
+    @Param("id") accountId: string,
+    @Headers("x-workspace-id") workspaceId?: string
+  ) {
+    return this.whatsappNativeService.getNativeStatus(
       user.id,
       accountId,
       workspaceId

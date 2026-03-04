@@ -1,4 +1,4 @@
-import { Body, Controller, Headers, Param, Patch, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Headers, Param, Patch, Post, UseGuards } from "@nestjs/common";
 import { AuditEntity } from "../audit-logs/audit-log.decorator";
 import { AccessTokenGuard } from "../auth/access-token.guard";
 import { CurrentUser } from "../auth/current-user.decorator";
@@ -11,6 +11,14 @@ import { DealsService } from "./deals.service";
 @UseGuards(AccessTokenGuard)
 export class DealsController {
   constructor(private readonly dealsService: DealsService) {}
+
+  @Get()
+  async listDeals(
+    @CurrentUser() user: AuthUser,
+    @Headers("x-workspace-id") workspaceId?: string
+  ) {
+    return this.dealsService.listDeals(user.id, workspaceId);
+  }
 
   @Post()
   @AuditEntity({

@@ -646,12 +646,30 @@ export class DashboardService {
       select: { currentWorkspaceId: true }
     });
 
-    if (!user?.currentWorkspaceId) {
-      throw new BadRequestException("Workspace atual não definido.");
+    let resolved = user?.currentWorkspaceId;
+    if (!resolved) {
+      const firstMembership = await this.prisma.workspaceMember.findFirst({
+        where: { userId },
+        orderBy: { createdAt: "asc" },
+        select: { workspaceId: true }
+      });
+      if (firstMembership) {
+        resolved = firstMembership.workspaceId;
+        await this.prisma.user.update({
+          where: { id: userId },
+          data: { currentWorkspaceId: resolved }
+        });
+      }
     }
 
-    await this.ensureWorkspaceMembership(userId, user.currentWorkspaceId);
-    return user.currentWorkspaceId;
+    if (!resolved) {
+      throw new BadRequestException(
+        "Workspace atual não definido. Peça a um administrador para adicionar você a um workspace."
+      );
+    }
+
+    await this.ensureWorkspaceMembership(userId, resolved);
+    return resolved;
   }
 
   private async ensureWorkspaceMembership(userId: string, workspaceId: string) {

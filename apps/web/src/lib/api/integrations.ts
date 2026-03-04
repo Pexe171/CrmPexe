@@ -64,5 +64,14 @@ export const integrationsApi = {
   connectEvolution: (id: string) =>
     apiFetch<WhatsappQrResponse>(`/integration-accounts/${id}/whatsapp/evolution/connect`, {
       method: "POST"
-    })
+    }),
+
+  /** Sessão integrada (QR gerado pelo próprio sistema, sem API externa) */
+  requestNativeWhatsappQr: (id: string) =>
+    apiFetch<WhatsappQrResponse>(`/integration-accounts/${id}/whatsapp/native/start`, {
+      method: "POST"
+    }),
+
+  getNativeWhatsappStatus: (id: string) =>
+    apiFetch<WhatsappQrResponse>(`/integration-accounts/${id}/whatsapp/native/status`)
 };

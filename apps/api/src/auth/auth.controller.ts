@@ -1,4 +1,16 @@
-import { Body, Controller, Get, Headers, Post, Req, Res, UseGuards } from "@nestjs/common";
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Headers,
+  HttpException,
+  Post,
+  Req,
+  Res,
+  UnauthorizedException,
+  UseGuards
+} from "@nestjs/common";
 import { UserRole } from "@prisma/client";
 import { Request, Response } from "express";
 import { RateLimit } from "../common/rate-limit/rate-limit.decorator";
@@ -26,10 +38,17 @@ export class AuthController {
     keyPrefix: "auth-request-otp"
   })
   async requestOtp(@Body() body: RequestOtpDto, @Req() req: Request) {
-    return this.authService.requestOtp(body, {
-      ip: this.resolveClientIp(req),
-      userAgent: this.resolveUserAgent(req)
-    });
+    try {
+      return await this.authService.requestOtp(body, {
+        ip: this.resolveClientIp(req),
+        userAgent: this.resolveUserAgent(req)
+      });
+    } catch (err) {
+      if (err instanceof HttpException) throw err;
+      throw new BadRequestException(
+        "Nao foi possivel processar a solicitacao. Tente novamente."
+      );
+    }
   }
 
   @Post("verify-otp")
@@ -51,7 +70,10 @@ export class AuthController {
       userAgent: this.resolveUserAgent(req)
     });
     this.setAuthCookies(res, result.tokens.accessToken, result.tokens.refreshToken);
-    return result.user;
+    return {
+      user: result.user,
+      accessToken: result.tokens.accessToken
+    };
   }
 
   @Post("refresh")
@@ -83,16 +105,24 @@ export class AuthController {
   @Get("me")
   @UseGuards(AccessTokenGuard)
   async me(@CurrentUser() user: AuthUser) {
-    return {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      isSuperAdmin: user.isSuperAdmin,
-      currentWorkspaceId: user.currentWorkspaceId,
-      isImpersonated: user.isImpersonated ?? false,
-      impersonatedByUserId: user.impersonatedByUserId ?? null,
-      impersonatedWorkspaceId: user.impersonatedWorkspaceId ?? null
-    };
+    try {
+      if (!user?.id) {
+        throw new UnauthorizedException("Sessao invalida.");
+      }
+      return {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        isSuperAdmin: user.isSuperAdmin,
+        currentWorkspaceId: user.currentWorkspaceId,
+        isImpersonated: user.isImpersonated ?? false,
+        impersonatedByUserId: user.impersonatedByUserId ?? null,
+        impersonatedWorkspaceId: user.impersonatedWorkspaceId ?? null
+      };
+    } catch (err) {
+      if (err instanceof HttpException) throw err;
+      throw new UnauthorizedException("Token de acesso invalido.");
+    }
   }
 
   private setAuthCookies(res: Response, accessToken: string, refreshToken: string) {

@@ -24,7 +24,7 @@ pnpm install
 docker compose up -d postgres redis
 ```
 
-> O n8n é opcional: `docker compose up -d n8n` (só necessário para publicar agentes).
+> O n8n é opcional: `docker compose up -d n8n` (automações e workflows). API e n8n compartilham a rede `crm_network` para comunicação interna.
 
 ### 3) Configurar variáveis de ambiente
 
@@ -58,6 +58,7 @@ pnpm dev
 
 - **Web**: http://localhost:8080
 - **API**: http://localhost:3001
+- **WebSocket**: mesmo host da API, namespace `/conversations`
 
 ---
 
@@ -69,62 +70,57 @@ pnpm dev
 2. Informe o e-mail cadastrado e clique **Receber código OTP**
 3. O código OTP é enviado por e-mail (se SMTP estiver configurado)
 4. Informe o código e clique **Entrar**
+5. O token é salvo no navegador; a API só é chamada quando há token (evita requisições desnecessárias)
+
+### Sem workspace
+
+Se o usuário ainda não tiver workspace, ao entrar aparece a tela **Escolha seu workspace**: pode **Criar novo workspace** (nome + senha) ou **Entrar em um workspace** (código + senha fornecidos pelo administrador).
 
 ### Páginas disponíveis
 
 | Rota | Página | Descrição |
 |------|--------|-----------|
 | `/` | Dashboard | KPIs, gráficos de vendas, conversas recentes, funil de conversão |
+| `/conversations` | Conversas | Lista de conversas, chat em tempo real (WebSocket), painel do contato; painéis redimensionáveis |
+| `/sales` | Pipeline | Kanban de negócios (Deals) por estágio; arrastar e soltar para mudar estágio |
 | `/agents` | Gestão de Agentes | Importar JSON do n8n, publicar, listar, excluir agentes |
-| `/conversations` | Conversas | Visualizar conversas com leads (split-panel com chat) |
-| `/integrations` | Integrações | Conectar WhatsApp (QR Code), OpenAI, Email e outros |
+| `/automations/flow` | Fluxo (Bot) | Construtor visual de fluxos com React Flow; nós Gatilho, Ação, OpenAI; salvar como template |
+| `/integrations` | Integrações | Cards OpenAI e N8N (modal com chaves); WhatsApp: sessão integrada (QR no sistema) ou API externa; QR em tempo real via WebSocket |
+| `/settings/tags` | Configurações: Tags | Listar, criar, editar e excluir tags (tabela + DropdownMenu) |
+| `/settings/queues` | Configurações: Filas | Listar, criar, editar e excluir filas |
 | `/admin/workspaces` | Admin: Workspaces | Buscar workspaces, atribuir agentes com data de validade |
+| `/workspace-setup` | Escolha de workspace | Criar ou entrar em workspace (quando não há workspace definido) |
 | `/login` | Login | Autenticação via OTP |
 
-### Fluxo completo: importar e ativar um agente
+### Chat em tempo real (Conversas)
 
-#### 1. Admin importa o JSON do n8n
+- A API emite evento `newMessage` via WebSocket (namespace `/conversations`) quando uma mensagem é criada (envio ou recebimento).
+- O front conecta com `workspaceId` e atualiza a lista de mensagens na hora com Zustand.
+- Mensagens são mescladas (API + pendentes do socket) para evitar duplicidade.
 
-1. Vá em `/agents` → aba **Importar JSON**
-2. Faça upload do arquivo `.json` exportado do n8n
-3. Preencha nome, categoria e descrição
-4. Clique **Importar JSON e publicar**
-5. O sistema automaticamente:
-   - Valida o schema (precisa ter `nodes` e `connections`)
-   - Extrai variáveis (`{{OPENAI_KEY}}`, `{{WHATSAPP_TOKEN}}`, etc.)
-   - Cria versão draft e publica no n8n
+### Pipeline (Vendas)
 
-#### 2. Admin atribui agente a um workspace
+- Colunas: Leads, Qualificação, Proposta, Negociação, Fechado (+ Sem estágio / Outros).
+- Arrastar um card para outra coluna chama `PATCH /api/deals/:id/stage` e atualiza o estágio no banco.
 
-1. Vá em `/admin/workspaces`
-2. Busque e selecione o workspace do cliente
-3. Clique **Adicionar Agente**
-4. Selecione o agente publicado
-5. Defina a validade (data de expiração ou vazio para sem limite)
-6. Confirme
+### Construtor de fluxo (Automations)
 
-#### 3. Cliente ativa o agente
-
-1. O cliente acessa `/agents` → aba **Adicionar ao Workspace**
-2. Seleciona o agente e o workspace
-3. Preenche as variáveis necessárias (ex: API key da OpenAI)
-4. Clica **Adicionar agente**
+- Em `/automations/flow` é possível adicionar nós (Gatilho, Ação, OpenAI), conectar com edges e clicar em **Salvar**.
+- O JSON (nodes + edges) é enviado para `POST /api/automations/flow` e gravado como template de automação (categoria `flow-builder`).
 
 ### Conectar WhatsApp
 
-1. Vá em `/integrations`
-2. Clique **Adicionar WhatsApp**
-3. Configure a URL e Token da API (Evolution API ou compatível)
-4. Clique **Gerar QR Code**
-5. Escaneie o QR Code com o celular (WhatsApp → Aparelhos conectados)
-6. O sistema faz polling automático e confirma a conexão
+1. Vá em `/integrations` e crie uma integração WhatsApp (**Nova Integração** ou card).
+2. Escolha **Sessão integrada** (QR gerado pelo próprio sistema, sem API externa) ou **API externa** (Evolution ou compatível).
+3. Sessão integrada: clique **Gerar QR Code**; o QR pode ser atualizado em tempo real via WebSocket (`whatsapp_qr_update`). Ao conectar, o evento `whatsapp_connected` dispara e um toast confirma.
+4. API externa: informe URL e Token da API, depois **Gerar QR Code** e escaneie no celular (WhatsApp → Aparelhos conectados).
+5. Em ambiente local (PC), a conexão pode falhar por restrições do WhatsApp; para uso estável, rode a API em uma VPS.
 
-### Visualizar conversas com leads
+### Integrações OpenAI e N8N
 
-1. Vá em `/conversations`
-2. Selecione uma conversa na lista à esquerda
-3. Visualize as mensagens no painel direito
-4. As conversas aparecem automaticamente quando leads entram em contato via WhatsApp ou outros canais
+- Clique nos cards **OpenAI** ou **N8N** na página de Integrações.
+- No modal, preencha Nome e chaves (API Key para OpenAI; URL e API Key para N8N), com validação via react-hook-form + zod.
+- Ao salvar, a conta é criada e os segredos gravados.
 
 ---
 
@@ -132,18 +128,25 @@ pnpm dev
 
 | Camada | Stack |
 |--------|-------|
-| **API** | NestJS, Prisma, PostgreSQL, Redis, BullMQ |
-| **Web** | React 18, Vite, Tailwind CSS, Radix UI, React Query |
-| **Infra** | Docker, n8n, Evolution API (WhatsApp) |
+| **API** | NestJS, Prisma, PostgreSQL, Redis, BullMQ, Socket.IO, EventEmitter2 |
+| **Web** | React 18, Vite, Tailwind CSS, Radix UI (shadcn), React Query, Zustand, Socket.IO Client, React Flow, @dnd-kit |
+| **Infra** | Docker, n8n (rede `crm_network`), Evolution API (WhatsApp opcional) |
 | **Monorepo** | Turborepo, pnpm workspaces |
 
 ## Estrutura do repositório
 
 ```
 apps/
-  api/          # API NestJS (porta 3001)
+  api/          # API NestJS (porta 3001) + WebSocket namespace /conversations
   web/          # Front-end React + Vite (porta 8080)
 ```
+
+Principais pastas no front:
+- `apps/web/src/pages/` — Páginas (Conversations, Pipeline, Integrations, Settings/Tags, Settings/Queues, Automations/FlowBuilder, etc.)
+- `apps/web/src/components/` — UI (shadcn), kanban, flow-nodes, integrations
+- `apps/web/src/hooks/` — useAuthMe, useSocket
+- `apps/web/src/stores/` — conversation-messages, whatsapp-socket (Zustand)
+- `apps/web/src/lib/api/` — Cliente HTTP e funções por domínio (auth, conversations, deals, integrations, etc.)
 
 ## Scripts úteis
 
@@ -171,7 +174,7 @@ apps/
 | `JWT_REFRESH_SECRET` | Segredo JWT (refresh token) |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | SMTP para envio de OTP |
 | `OPENAI_API_KEY`, `OPENAI_MODEL`, `OPENAI_BASE_URL` | IA (resumo, classificação, sugestão) |
-| `N8N_BASE_URL`, `N8N_API_TOKEN` | Integração n8n |
+| `N8N_BASE_URL`, `N8N_API_TOKEN` | Integração n8n (em Docker use `http://n8n:5678`) |
 | `MERCADOPAGO_ACCESS_TOKEN` | Billing (Mercado Pago) |
 | `WHATSAPP_WEBHOOK_SECRET` | Segredo para validar webhooks WhatsApp |
 
@@ -186,16 +189,33 @@ apps/
 
 ### Autenticação
 - `POST /api/auth/request-otp` — Solicitar código OTP
-- `POST /api/auth/verify-otp` — Verificar OTP e autenticar
-- `GET /api/auth/me` — Dados do usuário logado
+- `POST /api/auth/verify-otp` — Verificar OTP e autenticar (retorna `user` e `accessToken`)
+- `GET /api/auth/me` — Dados do usuário logado (requer token)
+
+### WebSocket (Socket.IO)
+- Namespace `/conversations`: conexão com `auth.workspaceId` (e opcionalmente `auth.token`). Eventos recebidos: `newMessage`, `whatsapp_qr_update`, `whatsapp_connected`.
+
+### Conversas
+- `GET /api/conversations` — Listar conversas
+- `GET /api/conversations/:id` — Detalhes com mensagens
+- `POST /api/conversations/:id/messages` — Registrar mensagem enviada
+- `POST /api/conversations/:id/send` — Enviar mensagem (canal)
+- `PATCH /api/conversations/:id/assign` — Atribuir conversa
+- `PATCH /api/conversations/:id/status` — Atualizar status
+
+### Negócios (Deals)
+- `GET /api/deals` — Listar negócios
+- `POST /api/deals` — Criar negócio
+- `PATCH /api/deals/:id/stage` — Atualizar estágio
+
+### Automações / Fluxo
+- `POST /api/automations/flow` — Salvar fluxo do construtor (nodes + edges) como template
 
 ### Agentes (Admin)
 - `POST /api/agent-templates/import` — Importar JSON do n8n
 - `POST /api/agent-templates/:id/publish` — Publicar no n8n
 - `GET /api/agent-templates` — Listar agentes
-- `GET /api/agent-templates/:id` — Detalhes do agente
-- `PATCH /api/agent-templates/:id` — Atualizar agente
-- `DELETE /api/agent-templates/:id` — Arquivar agente
+- Outros: ver código em `apps/api/src/agent-templates`, `workspace-agents`
 
 ### Agentes (Workspace)
 - `GET /api/workspace-agents/catalog` — Catálogo de agentes disponíveis
@@ -203,21 +223,17 @@ apps/
 - `POST /api/workspace-agents/:id/deactivate` — Desativar agente
 - `GET /api/workspace-agents` — Listar agentes do workspace
 
-### Agentes (Admin → Workspace)
-- `GET /api/workspace-agents/admin/workspaces` — Buscar workspaces
-- `GET /api/workspace-agents/admin/workspaces/:id/agents` — Agentes de um workspace
-- `POST /api/workspace-agents/admin/assign` — Atribuir agente a workspace (com validade)
-
 ### Integrações
 - `GET /api/integration-accounts` — Listar integrações
 - `POST /api/integration-accounts` — Criar integração
 - `PUT /api/integration-accounts/:id/secret` — Configurar segredos
-- `POST /api/integration-accounts/:id/whatsapp/qr` — Gerar QR Code do WhatsApp
-- `GET /api/integration-accounts/:id/whatsapp/status` — Status da conexão
+- `POST /api/integration-accounts/:id/whatsapp/qr` — Gerar QR Code (API externa)
+- `POST /api/integration-accounts/:id/whatsapp/native/start` — Iniciar sessão integrada (Baileys)
+- `GET /api/integration-accounts/:id/whatsapp/native/status` — Status da sessão integrada
 
-### Conversas
-- `GET /api/conversations` — Listar conversas
-- `GET /api/conversations/:id` — Detalhes com mensagens
+### Tags e Filas
+- `GET /api/tags`, `POST /api/tags`, `PATCH /api/tags/:id`, `DELETE /api/tags/:id`
+- `GET /api/queues`, `POST /api/queues`, `PATCH /api/queues/:id`, `DELETE /api/queues/:id`
 
 ### Dashboard
 - `GET /api/dashboard/sales` — KPIs e métricas
@@ -231,12 +247,16 @@ docker compose -f docker-compose.prod.yml up -d --build
 
 O `docker-compose.prod.yml` inclui healthchecks, limites de recursos e restart automático. A API executa `prisma migrate deploy` automaticamente no startup.
 
+No `docker-compose.yml` (e prod), a rede `crm_network` une postgres, redis, n8n e api; a API pode acessar o n8n em `http://n8n:5678` quando a integração N8N estiver configurada com essa baseUrl.
+
 ## Troubleshooting
 
 - **Erro de conexão com banco**: confirme se Docker está rodando e `DATABASE_URL` está correto
 - **Erro com Prisma**: rode `pnpm prisma:generate` e depois `pnpm prisma:migrate:dev`
 - **Portas ocupadas**: finalize processos nas portas 8080/3001
-- **401 no frontend**: mantenha `VITE_API_BASE_URL=/api` no `.env` do web
+- **401 no frontend**: o front só chama `/auth/me` quando existe `crm_token` no localStorage; sem token, redireciona para `/login` sem bater na API
+- **Muitos 401 em /auth/me**: atualização feita para não chamar a API sem token e com `refetchOnWindowFocus: false` e `staleTime` na query de auth
+- **WhatsApp “Falha na conexão” em ambiente local**: comum em redes domésticas; para uso estável, rode a API em uma VPS
 
 ## Licença
 

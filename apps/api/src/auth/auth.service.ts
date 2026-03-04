@@ -102,7 +102,16 @@ export class AuthService {
       }
     });
 
-    await this.sendOtpEmail(email, code, purpose);
+    try {
+      await this.sendOtpEmail(email, code, purpose);
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      }
+      throw new BadRequestException(
+        "Nao foi possivel enviar o e-mail com o codigo. Verifique a configuracao de SMTP ou tente novamente mais tarde."
+      );
+    }
 
     return { message: "Código enviado.", expiresAt };
   }

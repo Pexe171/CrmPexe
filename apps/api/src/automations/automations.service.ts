@@ -18,6 +18,7 @@ import { CreateAutomationTemplateDto } from "./dto/create-automation-template.dt
 import { CreateAutomationTemplateVersionDto } from "./dto/create-automation-template-version.dto";
 import { InstallAutomationTemplateDto } from "./dto/install-automation-template.dto";
 import { UpdateAutomationInstanceVersionDto } from "./dto/update-automation-instance-version.dto";
+import { SaveFlowDto } from "./dto/save-flow.dto";
 import { N8nClient } from "../n8n/n8n.client";
 import { WorkspaceVariablesService } from "../workspace-variables/workspace-variables.service";
 import { IntegrationCryptoService } from "../integration-accounts/integration-crypto.service";
@@ -40,6 +41,47 @@ export class AutomationsService {
     return this.prisma.automationTemplate.findMany({
       include: { currentVersion: true },
       orderBy: { createdAt: "desc" }
+    });
+  }
+
+  async saveFlowFromBuilder(userId: string, payload: SaveFlowDto) {
+    const name = (payload.name?.trim() || "Fluxo").slice(0, 200);
+    const definitionJson = {
+      nodes: payload.nodes ?? [],
+      edges: payload.edges ?? []
+    } as unknown as Record<string, unknown>;
+
+    return this.prisma.$transaction(async (transaction) => {
+      const template = await transaction.automationTemplate.create({
+        data: {
+          name,
+          description: "Fluxo criado pelo Construtor Visual",
+          version: "1.0.0",
+          changelog: null,
+          category: "flow-builder",
+          definitionJson: definitionJson as Prisma.InputJsonValue,
+          workflowData: definitionJson as Prisma.InputJsonValue,
+          requiredIntegrations: [],
+          createdByAdminId: userId
+        }
+      });
+
+      const versionEntry = await transaction.automationTemplateVersion.create({
+        data: {
+          templateId: template.id,
+          version: "1.0.0",
+          changelog: null,
+          definitionJson: definitionJson as Prisma.InputJsonValue,
+          requiredIntegrations: [],
+          createdByAdminId: userId
+        }
+      });
+
+      return transaction.automationTemplate.update({
+        where: { id: template.id },
+        data: { currentVersionId: versionEntry.id },
+        include: { currentVersion: true }
+      });
     });
   }
 

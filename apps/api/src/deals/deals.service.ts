@@ -11,6 +11,19 @@ export class DealsService {
     private readonly automationEngineService: AutomationEngineService
   ) {}
 
+  async listDeals(userId: string, workspaceId?: string) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+    return this.prisma.deal.findMany({
+      where: { workspaceId: resolvedWorkspaceId, deletedAt: null },
+      orderBy: [{ updatedAt: "desc" }],
+      include: {
+        contact: {
+          select: { id: true, name: true, email: true, phone: true }
+        }
+      }
+    });
+  }
+
   async createDeal(userId: string, payload: CreateDealDto, workspaceId?: string) {
     const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
     const title = this.normalizeRequiredString(payload.title, "title");

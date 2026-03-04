@@ -203,20 +203,30 @@ export class IntegrationAccountsService {
       return missingApiConfiguration;
     }
 
-    const result = await this.callWhatsappGateway(
-      account.id,
-      secrets,
-      "qrEndpoint",
-      "/whatsapp/qr"
-    );
-    await this.saveSession(
-      userId,
-      account.id,
-      secrets,
-      result.status,
-      result.qr
-    );
-    return result;
+    try {
+      const result = await this.callWhatsappGateway(
+        account.id,
+        secrets,
+        "qrEndpoint",
+        "/whatsapp/qr"
+      );
+      await this.saveSession(
+        userId,
+        account.id,
+        secrets,
+        result.status,
+        result.qr
+      );
+      return result;
+    } catch (err) {
+      const message =
+        err instanceof BadRequestException
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : "Falha ao conectar com a API do WhatsApp. Verifique a URL e o token.";
+      throw new BadRequestException(message);
+    }
   }
 
   async getWhatsappStatus(
@@ -240,20 +250,30 @@ export class IntegrationAccountsService {
       return missingApiConfiguration;
     }
 
-    const result = await this.callWhatsappGateway(
-      account.id,
-      secrets,
-      "statusEndpoint",
-      "/whatsapp/status"
-    );
-    await this.saveSession(
-      userId,
-      account.id,
-      secrets,
-      result.status,
-      result.qr
-    );
-    return result;
+    try {
+      const result = await this.callWhatsappGateway(
+        account.id,
+        secrets,
+        "statusEndpoint",
+        "/whatsapp/status"
+      );
+      await this.saveSession(
+        userId,
+        account.id,
+        secrets,
+        result.status,
+        result.qr
+      );
+      return result;
+    } catch (err) {
+      const message =
+        err instanceof BadRequestException
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : "Falha ao consultar status da API do WhatsApp. Verifique a URL e o token.";
+      throw new BadRequestException(message);
+    }
   }
 
   async connectWhatsappEvolution(
@@ -510,27 +530,46 @@ export class IntegrationAccountsService {
     const apiUrl = this.getRequiredSecret(secrets, "apiUrl");
     const apiToken = this.getRequiredSecret(secrets, "apiToken");
     const endpoint = secrets[endpointKey] || fallbackPath;
-    const url = new URL(endpoint, apiUrl).toString();
-
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${apiToken}`,
-        "X-Integration-Account-Id": integrationAccountId
-      }
-    });
-
-    if (!response.ok) {
-      const errorBody = await response.text();
+    let url: string;
+    try {
+      url = new URL(endpoint, apiUrl).toString();
+    } catch {
       throw new BadRequestException(
-        `Falha ao consultar gateway do WhatsApp: ${errorBody}`
+        "URL da API do WhatsApp inválida. Verifique o formato (ex: https://sua-api.com)."
       );
     }
 
-    const data = (await response.json()) as {
-      qr?: string | null;
-      status?: string | null;
-    };
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${apiToken}`,
+          "X-Integration-Account-Id": integrationAccountId
+        }
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erro de rede";
+      throw new BadRequestException(
+        `Não foi possível conectar na API do WhatsApp: ${msg}. Verifique se a URL está acessível.`
+      );
+    }
+
+    const text = await response.text();
+    if (!response.ok) {
+      throw new BadRequestException(
+        `API do WhatsApp respondeu com erro (${response.status}): ${text.slice(0, 200)}`
+      );
+    }
+
+    let data: { qr?: string | null; status?: string | null };
+    try {
+      data = JSON.parse(text) as { qr?: string | null; status?: string | null };
+    } catch {
+      throw new BadRequestException(
+        "A API do WhatsApp retornou uma resposta inválida (não é JSON)."
+      );
+    }
 
     return {
       qr: data.qr ?? null,

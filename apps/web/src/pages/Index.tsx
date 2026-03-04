@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { KpiCard } from "@/components/dashboard/KpiCard";
 import { SalesChart } from "@/components/dashboard/SalesChart";
@@ -9,8 +11,21 @@ import { useDashboardData } from "@/hooks/useDashboardData";
 import { MessageSquare, TrendingUp, Clock, Target, AlertCircle } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api/config";
 
+const WORKSPACE_UNDEFINED_MSG = "Workspace atual não definido";
+
 const Index = () => {
+  const navigate = useNavigate();
   const { data, isLoading, isError, error } = useDashboardData();
+  const isWorkspaceError =
+    isError &&
+    error instanceof Error &&
+    error.message.includes(WORKSPACE_UNDEFINED_MSG);
+
+  useEffect(() => {
+    if (isWorkspaceError) {
+      navigate("/workspace-setup", { replace: true });
+    }
+  }, [isWorkspaceError, navigate]);
 
   const formatCurrency = (value?: number) => {
     if (value == null) return undefined;
@@ -36,7 +51,7 @@ const Index = () => {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            {isError ? (
+            {isError && !isWorkspaceError ? (
               <>
                 <AlertCircle className="w-4 h-4 text-destructive" />
                 <span className="text-xs text-destructive">API offline</span>
@@ -50,8 +65,8 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Connection error banner */}
-        {isError && (
+        {/* Connection error banner — não exibir para erro de workspace (redireciona) */}
+        {isError && !isWorkspaceError && (
           <div className="glass-card rounded-xl p-4 border-destructive/30 flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
             <div>

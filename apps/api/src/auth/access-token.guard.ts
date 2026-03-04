@@ -1,6 +1,7 @@
 import {
   CanActivate,
   ExecutionContext,
+  HttpException,
   Injectable,
   UnauthorizedException
 } from "@nestjs/common";
@@ -20,34 +21,16 @@ export class AccessTokenGuard implements CanActivate {
     private readonly prisma: PrismaService
   ) {}
 
-  async canActivate(context: ExecutionContext) {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
 
-    console.log("[AccessTokenGuard][STEP 2] request recebido no guard", {
-      hasCookieHeader: Boolean(request.headers?.cookie),
-      cookieHeader: request.headers?.cookie ?? null,
-      hasAuthorizationHeader: Boolean(request.headers?.authorization),
-      authorizationHeader: request.headers?.authorization ?? null,
-      cookies: request.cookies ?? null
-    });
-    const token = this.extractToken(request);
-
-    if (!token) {
-      console.log("[AccessTokenGuard] Token de acesso ausente após extração", {
-        cookieToken: request.cookies?.[ACCESS_TOKEN_COOKIE] ?? null,
-        authorizationHeader: request.headers.authorization ?? null
-      });
-      throw new UnauthorizedException("Token de acesso ausente.");
-    }
-
     try {
-      console.log("[AccessTokenGuard][STEP 2] Token extraído", {
-        tokenPreview:
-          token.length > 12
-            ? `${token.slice(0, 6)}...${token.slice(-6)}`
-            : `${token.slice(0, 3)}***`,
-        jwtAccessSecretDefined: Boolean(process.env.JWT_ACCESS_SECRET)
-      });
+      const token = this.extractToken(request);
+
+      if (!token) {
+        throw new UnauthorizedException("Token de acesso ausente.");
+      }
+
       const payload = await this.jwtService.verifyAsync<{
         sub: string;
         email: string;
@@ -58,14 +41,7 @@ export class AccessTokenGuard implements CanActivate {
         secret: this.accessTokenSecret
       });
 
-      console.log("[AccessTokenGuard][STEP 2] JWT verificado com sucesso", {
-        sub: payload.sub,
-        role: payload.role,
-        impersonatedByUserId: payload.impersonatedByUserId ?? null,
-        impersonatedWorkspaceId: payload.impersonatedWorkspaceId ?? null
-      });
-
-      if (!payload.role) {
+      if (!payload?.role) {
         throw new UnauthorizedException("Role ausente no token.");
       }
 
@@ -142,42 +118,26 @@ export class AccessTokenGuard implements CanActivate {
         impersonatedByUserId: payload.impersonatedByUserId ?? null,
         impersonatedWorkspaceId: payload.impersonatedWorkspaceId ?? null
       };
-      console.log("[AccessTokenGuard][STEP 2] Usuário autenticado no guard", {
-        userId: request.user.id,
-        workspaceId: request.user.currentWorkspaceId ?? null
-      });
 
       return true;
-    } catch (error) {
-      console.log("[AccessTokenGuard][STEP 2] Falha ao validar token", {
-        message: error instanceof Error ? error.message : "erro desconhecido"
-      });
-      throw new UnauthorizedException("Token de acesso inválido.");
+    } catch (error: unknown) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new UnauthorizedException("Token de acesso invalido.");
     }
   }
 
-  private extractToken(request: AuthenticatedRequest) {
+  private extractToken(request: AuthenticatedRequest): string | null {
     const cookieToken = request.cookies?.[ACCESS_TOKEN_COOKIE];
     const authorization = request.headers.authorization;
-
-    console.log("[AccessTokenGuard][STEP 2] extractToken tentativa", {
-      cookieToken: cookieToken ?? null,
-      authorizationHeader: authorization ?? null
-    });
 
     if (cookieToken) {
       return cookieToken;
     }
-
     if (authorization?.startsWith("Bearer ")) {
       return authorization.slice(7);
     }
-
-    console.log("[AccessTokenGuard][STEP 2] extractToken falhou", {
-      cookieToken: cookieToken ?? null,
-      authorizationHeader: authorization ?? null
-    });
-
     return null;
   }
 }

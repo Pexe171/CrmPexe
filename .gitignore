@@ -52,6 +52,9 @@ Thumbs.db
 # TypeScript
 *.tsbuildinfo
 
+# Sessões WhatsApp (Baileys) – dados locais por conta
+data/
+
 # Prisma (apenas se usar SQLite localmente, mas bom prevenir)
 *.sqlite
 *.sqlite-journal

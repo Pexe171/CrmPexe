@@ -11,6 +11,9 @@ import {
   ChevronRight,
   Building2,
   ShieldCheck,
+  Workflow,
+  Tag,
+  ListOrdered,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useState } from "react";
@@ -22,6 +25,7 @@ const mainNav = [
   { title: "Contatos", url: "/contacts", icon: Users },
   { title: "Vendas", url: "/sales", icon: TrendingUp },
   { title: "Agentes", url: "/agents", icon: Bot },
+  { title: "Fluxo (Bot)", url: "/automations/flow", icon: Workflow },
   { title: "Integracoes", url: "/integrations", icon: Plug },
 ];
 
@@ -32,6 +36,8 @@ const adminNav = [
 const bottomNav = [
   { title: "Atendimento", url: "/support", icon: Headphones },
   { title: "Configuracoes", url: "/settings", icon: Settings },
+  { title: "Tags", url: "/settings/tags", icon: Tag },
+  { title: "Filas", url: "/settings/queues", icon: ListOrdered },
 ];
 
 export function AppSidebar() {

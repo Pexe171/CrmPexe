@@ -39,6 +39,8 @@ function extractErrorMessage(body: string, status: number, statusText: string): 
   return `Erro ${status}: ${statusText}`;
 }
 
+const DEBUG_API = typeof import.meta !== "undefined" && import.meta.env?.DEV;
+
 export async function apiFetch<T>(endpoint: string, init?: RequestInit): Promise<T> {
   const token = localStorage.getItem("crm_token");
 
@@ -51,6 +53,13 @@ export async function apiFetch<T>(endpoint: string, init?: RequestInit): Promise
     headers.Authorization = `Bearer ${token}`;
   }
 
+  if (DEBUG_API) {
+    console.debug("[CrmPexe API]", init?.method ?? "GET", endpoint, {
+      hasBearer: !!token,
+      credentials: "include"
+    });
+  }
+
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...init,
     headers,
@@ -60,6 +69,9 @@ export async function apiFetch<T>(endpoint: string, init?: RequestInit): Promise
   if (!response.ok) {
     const bodyText = await response.text();
     const message = extractErrorMessage(bodyText, response.status, response.statusText);
+    if (DEBUG_API) {
+      console.warn("[CrmPexe API] Erro", response.status, endpoint, { message, bodyPreview: bodyText.slice(0, 200) });
+    }
     throw new ApiError(message, response.status, bodyText.slice(0, 180));
   }
 
