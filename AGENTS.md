@@ -6,7 +6,7 @@
 
 CrmPexe (AtendeAi) is a TypeScript monorepo with two apps:
 - **API** (`apps/api`): NestJS + Prisma + PostgreSQL (port 3001)
-- **Web** (`apps/web`): React + Vite + Tailwind CSS (port 8080)
+- **Web** (`apps/web`): React + Vite + Tailwind CSS (port 8081)
 
 Infrastructure: PostgreSQL 16 and Redis 7 via Docker Compose. See `README.md` for full command reference.
 
@@ -28,7 +28,7 @@ n8n (`sudo docker compose up -d n8n`) is optional; only needed for automation/ag
 ```bash
 unset DATABASE_URL
 cd /workspace/apps/api && npx nest start --watch &   # API on port 3001
-cd /workspace/apps/web && npx vite &                  # Web on port 8080
+cd /workspace/apps/web && npx vite &                  # Web on port 8081
 ```
 
 Or from root: `unset DATABASE_URL && pnpm dev` (runs both via Turborepo).
