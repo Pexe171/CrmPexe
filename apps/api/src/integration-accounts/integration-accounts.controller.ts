@@ -13,6 +13,7 @@ import {
 import { AccessTokenGuard } from "../auth/access-token.guard";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { AuthUser } from "../auth/auth.types";
+import { CreateEvolutionInstanceDto } from "./dto/create-evolution-instance.dto";
 import { CreateIntegrationAccountDto } from "./dto/create-integration-account.dto";
 import { RequestWhatsappSmsDto } from "./dto/request-whatsapp-sms.dto";
 import { UpdateIntegrationAccountDto } from "./dto/update-integration-account.dto";
@@ -154,6 +155,26 @@ export class IntegrationAccountsController {
     return this.integrationAccountsService.connectWhatsappEvolution(
       user.id,
       accountId,
+      workspaceId
+    );
+  }
+
+  @Post(":id/whatsapp/evolution/instance")
+  async createEvolutionInstance(
+    @CurrentUser() user: AuthUser,
+    @Param("id") accountId: string,
+    @Body() body: CreateEvolutionInstanceDto,
+    @Headers("x-workspace-id") workspaceId?: string
+  ) {
+    return this.integrationAccountsService.createEvolutionInstance(
+      user.id,
+      accountId,
+      {
+        type: body.type,
+        instanceName: body.instanceName,
+        metaToken: body.metaToken,
+        metaPhoneNumberId: body.metaPhoneNumberId
+      },
       workspaceId
     );
   }

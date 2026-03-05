@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { KpiCard } from "@/components/dashboard/KpiCard";
 import { SalesChart } from "@/components/dashboard/SalesChart";
@@ -8,13 +8,24 @@ import { ConversionFunnel } from "@/components/dashboard/ConversionFunnel";
 import { RecentConversations } from "@/components/dashboard/RecentConversations";
 import { ProductivityTable } from "@/components/dashboard/ProductivityTable";
 import { useDashboardData } from "@/hooks/useDashboardData";
-import { MessageSquare, TrendingUp, Clock, Target, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { MessageSquare, TrendingUp, Clock, Target, AlertCircle, ChevronDown, ChevronUp, Plug } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api/config";
+
+const ONBOARDING_HIDDEN_KEY = "crmpexe_onboarding_hidden";
 
 const WORKSPACE_UNDEFINED_MSG = "Workspace atual não definido";
 
 const Index = () => {
   const navigate = useNavigate();
+  const [onboardingOpen, setOnboardingOpen] = useState(true);
+  const [onboardingVisible, setOnboardingVisible] = useState(() => {
+    try {
+      return !JSON.parse(localStorage.getItem(ONBOARDING_HIDDEN_KEY) ?? "false");
+    } catch {
+      return true;
+    }
+  });
   const { data, isLoading, isError, error } = useDashboardData();
   const isWorkspaceError =
     isError &&
@@ -39,6 +50,13 @@ const Index = () => {
     return `${Math.round(seconds / 60)}min`;
   };
 
+  const hideOnboarding = () => {
+    setOnboardingVisible(false);
+    try {
+      localStorage.setItem(ONBOARDING_HIDDEN_KEY, "true");
+    } catch {}
+  };
+
   return (
     <DashboardLayout>
       <div className="p-6 lg:p-8 space-y-6">
@@ -48,6 +66,24 @@ const Index = () => {
             <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
             <p className="text-sm text-muted-foreground mt-1">
               Visão geral do seu atendimento
+              {!onboardingVisible && (
+                <>
+                  {" · "}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOnboardingVisible(true);
+                      setOnboardingOpen(true);
+                      try {
+                        localStorage.removeItem(ONBOARDING_HIDDEN_KEY);
+                      } catch {}
+                    }}
+                    className="text-primary hover:underline"
+                  >
+                    Ver primeiros passos
+                  </button>
+                </>
+              )}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -78,6 +114,96 @@ const Index = () => {
                 Erro: {error instanceof Error ? error.message : "Desconhecido"}
               </p>
             </div>
+          </div>
+        )}
+
+        {/* Primeiros passos — passo a passo completo (visível ao entrar no CRM) */}
+        {onboardingVisible && (
+          <div className="rounded-xl border bg-card overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setOnboardingOpen((o) => !o)}
+              className="w-full flex items-center justify-between p-4 text-left hover:bg-muted/50 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Plug className="w-5 h-5 text-primary" />
+                <h2 className="font-semibold text-foreground">Primeiros passos — como usar o CRM</h2>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    hideOnboarding();
+                  }}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  Ocultar
+                </Button>
+                {onboardingOpen ? (
+                  <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                )}
+              </div>
+            </button>
+            {onboardingOpen && (
+              <div className="border-t px-4 pb-4 pt-2 space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Tudo é feito pelo painel. Siga os passos abaixo; você pode voltar aqui pelo menu <strong>Dashboard</strong>.
+                </p>
+
+                <ol className="space-y-4 list-none pl-0">
+                  <li className="flex gap-3">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary text-sm font-semibold">1</span>
+                    <div>
+                      <p className="font-medium text-foreground">Conectar WhatsApp</p>
+                      <p className="text-sm text-muted-foreground mt-0.5">
+                        Vá em <strong>Integrações</strong> (menu) → crie uma integração <strong>WhatsApp</strong> → escolha <strong>API externa (Evolution)</strong>. No Passo 1 informe a <strong>URL da Evolution</strong> e o <strong>Token</strong> (quem instalou a Evolution te passa). No Passo 2: use <strong>Conectar via QR Code (Gratuito)</strong> — clique em Gerar QR Code, escaneie com o celular (WhatsApp → Aparelhos conectados) — ou <strong>Conectar via API Oficial (Meta)</strong> — preencha Token e ID do número da Meta e clique em Conectar. Não é preciso usar Postman; tudo no painel.
+                      </p>
+                      <Button asChild size="sm" className="mt-2">
+                        <Link to="/integrations">Abrir Integrações e conectar WhatsApp</Link>
+                      </Button>
+                    </div>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary text-sm font-semibold">2</span>
+                    <div>
+                      <p className="font-medium text-foreground">Ver e responder conversas</p>
+                      <p className="text-sm text-muted-foreground mt-0.5">
+                        Depois de conectar o WhatsApp, as conversas aparecem em <strong>Conversas</strong> (menu). Clique em uma conversa para abrir o chat e enviar mensagens em tempo real.
+                      </p>
+                      <Button asChild size="sm" variant="outline" className="mt-2">
+                        <Link to="/conversations">Abrir Conversas</Link>
+                      </Button>
+                    </div>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary text-sm font-semibold">3</span>
+                    <div>
+                      <p className="font-medium text-foreground">Pipeline de vendas</p>
+                      <p className="text-sm text-muted-foreground mt-0.5">
+                        Em <strong>Pipeline</strong> você vê os negócios (Leads, Qualificação, Proposta, Negociação, Fechado). Arraste os cards entre colunas para mudar o estágio.
+                      </p>
+                      <Button asChild size="sm" variant="outline" className="mt-2">
+                        <Link to="/sales">Abrir Pipeline</Link>
+                      </Button>
+                    </div>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary text-sm font-semibold">4</span>
+                    <div>
+                      <p className="font-medium text-foreground">OpenAI e N8N (opcional)</p>
+                      <p className="text-sm text-muted-foreground mt-0.5">
+                        Em <strong>Integrações</strong> você também configura OpenAI (API Key) e N8N (URL + API Key) para automações e IA. Em <strong>Automações → Fluxo</strong> monta bots visuais.
+                      </p>
+                    </div>
+                  </li>
+                </ol>
+              </div>
+            )}
           </div>
         )}
 

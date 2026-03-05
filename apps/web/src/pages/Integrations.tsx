@@ -7,14 +7,16 @@ import { useAuthMe } from "@/hooks/useAuthMe";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { integrationsApi } from "@/lib/api/integrations";
 import type { IntegrationAccount, WhatsappQrResponse } from "@/lib/api/integrations";
+import { ApiError } from "@/lib/api/client";
 import { IntegrationKeysDialog } from "@/components/integrations/IntegrationKeysDialog";
 import { useWhatsappSocketStore } from "@/stores/whatsapp-socket";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Plug, MessageSquare, Plus, Trash2, QrCode, RefreshCw,
   CheckCircle, XCircle, AlertCircle, Loader2, Smartphone,
-  Shield, Wifi, WifiOff, Bot, Workflow
+  Shield, Wifi, WifiOff, Bot, Workflow, BookOpen, ChevronRight
 } from "lucide-react";
 
 type IntegrationType = "WHATSAPP" | "OPENAI" | "EMAIL" | "N8N" | "INSTAGRAM_DIRECT" | "FACEBOOK_MESSENGER" | "VOIP";
@@ -40,6 +42,8 @@ function WhatsappQrPanel({ account }: { account: IntegrationAccount }) {
 
   const [apiUrl, setApiUrl] = useState("");
   const [apiToken, setApiToken] = useState("");
+  const [metaToken, setMetaToken] = useState("");
+  const [metaPhoneNumberId, setMetaPhoneNumberId] = useState("");
 
   const isNativeSession = mode === "native";
   const socketQr = useWhatsappSocketStore((s) => s.qrByAccount[account.id]);
@@ -63,12 +67,56 @@ function WhatsappQrPanel({ account }: { account: IntegrationAccount }) {
     mutationFn: () => integrationsApi.upsertSecret(account.id, {
       apiUrl: apiUrl.trim(),
       apiToken: apiToken.trim(),
-      provider: "QR"
+      provider: "EVOLUTION"
     }),
     onSuccess: () => {
       setSecretsConfigured(true);
       setMode("api");
       queryClient.invalidateQueries({ queryKey: ["integrations"] });
+    }
+  });
+
+  const createEvolutionQrMutation = useMutation({
+    mutationFn: () =>
+      integrationsApi.createEvolutionInstance(account.id, { type: "QR" }),
+    onSuccess: (data) => {
+      setQrData(data);
+      if (data.status !== "connected" && data.status !== "ready") setPolling(true);
+      if (data.status === "connected" || data.status === "ready") {
+        setPolling(false);
+        queryClient.invalidateQueries({ queryKey: ["integrations"] });
+        queryClient.invalidateQueries({ queryKey: ["whatsapp-sessions", account.id] });
+      }
+      if (data.qr) {
+        toast.success("QR Code gerado. Escaneie no WhatsApp.");
+      }
+    }
+  });
+
+  const connectEvolutionMutation = useMutation({
+    mutationFn: () => integrationsApi.connectEvolution(account.id),
+    onSuccess: (data) => {
+      setQrData(data);
+      if (data.status !== "connected" && data.status !== "ready") setPolling(true);
+      if (data.status === "connected" || data.status === "ready") {
+        setPolling(false);
+        queryClient.invalidateQueries({ queryKey: ["integrations"] });
+        queryClient.invalidateQueries({ queryKey: ["whatsapp-sessions", account.id] });
+      }
+    }
+  });
+
+  const createEvolutionOfficialMutation = useMutation({
+    mutationFn: () =>
+      integrationsApi.createEvolutionInstance(account.id, {
+        type: "OFFICIAL",
+        metaToken: metaToken.trim(),
+        metaPhoneNumberId: metaPhoneNumberId.trim()
+      }),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["integrations"] });
+      queryClient.invalidateQueries({ queryKey: ["whatsapp-sessions", account.id] });
+      toast.success(data.message ?? "Instância oficial (Meta) criada.");
     }
   });
 
@@ -97,8 +145,31 @@ function WhatsappQrPanel({ account }: { account: IntegrationAccount }) {
         queryClient.invalidateQueries({ queryKey: ["integrations"] });
         queryClient.invalidateQueries({ queryKey: ["whatsapp-sessions", account.id] });
       }
+      if (data.status !== "connection_failed") {
+        const retorno = {
+          status: data.status,
+          qr: data.qr ? "presente" : null,
+          message: data.message ?? null,
+          needsSupport: data.needsSupport ?? null
+        };
+        toast.info("Retorno recebido da API", {
+          description: JSON.stringify(retorno, null, 2),
+          duration: data.status === "connecting" ? 14000 : 8000
+        });
+      }
     },
     onError: (err) => {
+      const status = err instanceof ApiError ? err.status : null;
+      const message = err instanceof ApiError ? err.message : (err instanceof Error ? err.message : String(err));
+      const details = err instanceof ApiError ? err.details : null;
+      const description = [
+        status != null && `HTTP ${status}`,
+        message,
+        details && `Resposta bruta: ${details}`
+      ]
+        .filter(Boolean)
+        .join("\n");
+      toast.error("Erro ao gerar QR Code", { description, duration: 12000 });
       if (import.meta.env?.DEV) {
         console.warn("[CrmPexe WhatsApp]", "Erro ao gerar QR", err);
       }
@@ -133,6 +204,20 @@ function WhatsappQrPanel({ account }: { account: IntegrationAccount }) {
     return () => clearInterval(interval);
   }, [polling, pollStatus]);
 
+  useEffect(() => {
+    if (qrData?.status === "connection_failed") {
+      const retorno = {
+        status: qrData.status,
+        qr: qrData.qr ? "presente" : null,
+        message: qrData.message ?? null
+      };
+      toast.error("Retorno da API (connection_failed)", {
+        description: JSON.stringify(retorno, null, 2),
+        duration: 12000
+      });
+    }
+  }, [qrData?.status, qrData?.message, qrData?.qr]);
+
   const { data: sessions = [] } = useQuery({
     queryKey: ["whatsapp-sessions", account.id],
     queryFn: () => integrationsApi.listWhatsappSessions(account.id),
@@ -147,30 +232,30 @@ function WhatsappQrPanel({ account }: { account: IntegrationAccount }) {
           Como conectar o WhatsApp
         </h3>
         <p className="text-xs text-muted-foreground">
-          Escolha uma forma de criar a sessao. A <strong>sessao integrada</strong> gera o QR Code
-          direto no sistema (como no app de computador), sem precisar de API externa.
+          O WhatsApp costuma bloquear IPs de servidores (incl. VPS). Para maior estabilidade, use
+          <strong> API externa (Evolution)</strong>. A sessão integrada pode falhar mesmo na VPS.
         </p>
         <div className="grid gap-3 sm:grid-cols-2">
           <button
             type="button"
-            onClick={() => setMode("native")}
+            onClick={() => setMode("api")}
             className="flex flex-col items-start gap-2 rounded-lg border-2 border-primary/30 bg-primary/5 p-4 text-left transition-colors hover:border-primary/50 hover:bg-primary/10"
           >
-            <Smartphone className="w-6 h-6 text-primary" />
-            <span className="font-medium text-sm">Sessao integrada (recomendado)</span>
+            <Shield className="w-6 h-6 text-primary" />
+            <span className="font-medium text-sm">API externa (Evolution) — recomendado</span>
             <span className="text-xs text-muted-foreground">
-              QR Code gerado pelo proprio sistema. Nao precisa configurar URL nem token.
+              URL + token da sua Evolution (ou API compativel). Funciona em VPS e evita bloqueios.
             </span>
           </button>
           <button
             type="button"
-            onClick={() => setMode("api")}
+            onClick={() => setMode("native")}
             className="flex flex-col items-start gap-2 rounded-lg border p-4 text-left transition-colors hover:bg-accent/30"
           >
-            <Shield className="w-6 h-6 text-muted-foreground" />
-            <span className="font-medium text-sm">API externa (Evolution, etc.)</span>
+            <Smartphone className="w-6 h-6 text-muted-foreground" />
+            <span className="font-medium text-sm">Sessão integrada (QR no próprio servidor)</span>
             <span className="text-xs text-muted-foreground">
-              Use sua propria API WhatsApp com URL e token.
+              QR gerado pela API. Muitas vezes falha (WhatsApp bloqueia IP de servidor/VPS).
             </span>
           </button>
         </div>
@@ -190,8 +275,34 @@ function WhatsappQrPanel({ account }: { account: IntegrationAccount }) {
           Configurar API do WhatsApp
         </h3>
         <p className="text-xs text-muted-foreground">
-          Para conectar via API externa (Evolution ou compativel), configure a URL e o token abaixo.
+          Evolution API (ou compativel) evita bloqueios do WhatsApp. Instale em Docker ou use um provedor; depois informe URL e token abaixo.
         </p>
+
+        <Collapsible className="group rounded-lg border border-border bg-muted/30">
+          <CollapsibleTrigger className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium hover:bg-muted/50 transition-colors">
+            <ChevronRight className="h-4 w-4 shrink-0 transition-transform group-data-[state=open]:rotate-90" />
+            <BookOpen className="h-4 w-4 shrink-0 text-primary" />
+            Como obter a URL e o Token? (tutorial)
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="px-3 pb-3 pt-0 text-xs text-muted-foreground space-y-3 border-t border-border mt-0 pt-3">
+              <div>
+                <p className="font-medium text-foreground mb-1">Se alguém instalou a Evolution para você (provedor/suporte)</p>
+                <p>Peça a <strong>URL</strong> (ex: <code className="bg-muted px-1 rounded">https://evolution.empresa.com</code>) e o <strong>Token</strong> (chave de API). Eles te passam e você cola nos campos abaixo.</p>
+              </div>
+              <div>
+                <p className="font-medium text-foreground mb-1">Se você mesmo instala (Docker / servidor)</p>
+                <ol className="list-decimal list-inside space-y-1.5 ml-1">
+                  <li>Instale a Evolution API (ex: repositório oficial no GitHub — busque por &quot;Evolution API&quot;).</li>
+                  <li>Configure a variável <strong>API_KEY</strong> (ou apikey) no ambiente — esse valor é o <strong>Token</strong> que você usa aqui.</li>
+                  <li>A <strong>URL</strong> é o endereço onde a API está rodando (ex: <code className="bg-muted px-1 rounded">http://seu-servidor:8080</code> ou <code className="bg-muted px-1 rounded">https://evolution.seudominio.com</code>).</li>
+                  <li>Depois de subir o serviço, use essa URL e o Token nos campos abaixo.</li>
+                </ol>
+              </div>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+
         <div className="space-y-3">
           <div className="space-y-1">
             <Label className="text-xs">URL da API</Label>
@@ -216,7 +327,7 @@ function WhatsappQrPanel({ account }: { account: IntegrationAccount }) {
               onClick={() => saveSecretsMutation.mutate()}
               disabled={saveSecretsMutation.isPending || !apiUrl.trim() || !apiToken.trim()}
             >
-              {saveSecretsMutation.isPending ? "Salvando..." : "Salvar e ir para QR Code"}
+              {saveSecretsMutation.isPending ? "Salvando..." : "Salvar e continuar"}
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setMode("choice")}>
               Voltar
@@ -233,38 +344,128 @@ function WhatsappQrPanel({ account }: { account: IntegrationAccount }) {
       <div className="p-4 rounded-lg border bg-card space-y-4">
         <div className="flex items-center gap-2 text-xs font-medium text-primary/80 uppercase tracking-wider">
           <span className="flex w-6 h-6 items-center justify-center rounded-full bg-primary/20">2</span>
-          Passo 2 — Conectar via QR Code
-        </div>
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <div className="flex items-center gap-2">
-            <h3 className="font-semibold text-sm flex items-center gap-2">
-              <QrCode className="w-4 h-4" />
-              Conectar WhatsApp via QR Code
-              {isNativeSession && (
-                <span className="text-xs font-normal text-muted-foreground">(sessao integrada)</span>
-              )}
-            </h3>
-            {isNativeSession && (
-              <Button size="sm" variant="ghost" onClick={() => setMode("choice")}>
-                Voltar
-              </Button>
-            )}
-          </div>
-          <Button
-            size="sm"
-            onClick={() => requestQrMutation.mutate(mode === "native")}
-            disabled={requestQrMutation.isPending}
-            className="gap-1"
-          >
-            {requestQrMutation.isPending ? (
-              <><Loader2 className="w-3 h-3 animate-spin" /> Gerando...</>
-            ) : (
-              <><QrCode className="w-3 h-3" /> {isNativeSession ? "Gerar QR Code" : "Conectar via QR Code"}</>
-            )}
-          </Button>
+          {mode === "api"
+            ? "Passo 2 — Conectar (QR gratuito ou API Oficial Meta)"
+            : "Passo 2 — Conectar via QR Code"}
         </div>
 
-        {requestQrMutation.isError && (
+        {mode === "api" && (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="rounded-lg border p-4 space-y-2">
+              <h3 className="font-semibold text-sm flex items-center gap-2">
+                <QrCode className="w-4 h-4 text-primary" />
+                Conectar via QR Code (Gratuito)
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Cria instância Baileys no Evolution e gera o QR para escanear.
+              </p>
+              <Button
+                size="sm"
+                onClick={() => createEvolutionQrMutation.mutate()}
+                disabled={createEvolutionQrMutation.isPending}
+                className="gap-1"
+              >
+                {createEvolutionQrMutation.isPending ? (
+                  <><Loader2 className="w-3 h-3 animate-spin" /> Gerando...</>
+                ) : (
+                  <><QrCode className="w-3 h-3" /> Gerar QR Code</>
+                )}
+              </Button>
+            </div>
+            <div className="rounded-lg border p-4 space-y-3">
+              <h3 className="font-semibold text-sm flex items-center gap-2">
+                <Shield className="w-4 h-4 text-muted-foreground" />
+                Conectar via API Oficial (Meta)
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Token e Phone ID do painel de desenvolvedores da Meta.
+              </p>
+              <div className="space-y-1">
+                <Label className="text-xs">Token da Meta</Label>
+                <Input
+                  type="password"
+                  placeholder="EAAL..."
+                  value={metaToken}
+                  onChange={(e) => setMetaToken(e.target.value)}
+                  className="text-xs"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">ID do número de telefone</Label>
+                <Input
+                  placeholder="1234567890"
+                  value={metaPhoneNumberId}
+                  onChange={(e) => setMetaPhoneNumberId(e.target.value)}
+                  className="text-xs"
+                />
+              </div>
+              <Button
+                size="sm"
+                onClick={() => createEvolutionOfficialMutation.mutate()}
+                disabled={
+                  createEvolutionOfficialMutation.isPending ||
+                  !metaToken.trim() ||
+                  !metaPhoneNumberId.trim()
+                }
+              >
+                {createEvolutionOfficialMutation.isPending ? (
+                  <><Loader2 className="w-3 h-3 animate-spin" /> Conectando...</>
+                ) : (
+                  "Conectar via API Oficial"
+                )}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {mode !== "api" && (
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold text-sm flex items-center gap-2">
+                <QrCode className="w-4 h-4" />
+                Conectar WhatsApp via QR Code
+                {isNativeSession && (
+                  <span className="text-xs font-normal text-muted-foreground">(sessão integrada)</span>
+                )}
+              </h3>
+              {isNativeSession && (
+                <Button size="sm" variant="ghost" onClick={() => setMode("choice")}>
+                  Voltar
+                </Button>
+              )}
+            </div>
+            <Button
+              size="sm"
+              onClick={() => requestQrMutation.mutate(true)}
+              disabled={requestQrMutation.isPending}
+              className="gap-1"
+            >
+              {requestQrMutation.isPending ? (
+                <><Loader2 className="w-3 h-3 animate-spin" /> Gerando...</>
+              ) : (
+                <><QrCode className="w-3 h-3" /> Gerar QR Code</>
+              )}
+            </Button>
+          </div>
+        )}
+
+        {mode === "api" && (createEvolutionQrMutation.isError || connectEvolutionMutation.isError) && (
+          <div className="p-3 rounded-lg border border-destructive/30 bg-destructive/5 text-sm">
+            <div className="flex items-start gap-2">
+              <XCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+              <div>
+                <p className="text-destructive font-medium">Erro Evolution</p>
+                <p className="text-muted-foreground text-xs mt-1">
+                  {(createEvolutionQrMutation.error ?? connectEvolutionMutation.error) instanceof Error
+                    ? (createEvolutionQrMutation.error ?? connectEvolutionMutation.error).message
+                    : "Verifique a URL e o token da Evolution."}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {mode === "native" && requestQrMutation.isError && (
           <div className="p-3 rounded-lg border border-destructive/30 bg-destructive/5 text-sm">
             <div className="flex items-start gap-2">
               <XCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
@@ -285,7 +486,7 @@ function WhatsappQrPanel({ account }: { account: IntegrationAccount }) {
             <div className="flex items-start gap-2">
               <AlertCircle className="w-4 h-4 text-yellow-400 shrink-0 mt-0.5" />
               <div>
-                <p className="text-yellow-400 font-medium">Configuracao necessaria</p>
+                <p className="text-yellow-400 font-medium">Configuração necessária</p>
                 <p className="text-muted-foreground text-xs mt-1">{qrData.message}</p>
                 {qrData.supportContactUrl && (
                   <a
@@ -337,21 +538,23 @@ function WhatsappQrPanel({ account }: { account: IntegrationAccount }) {
                 <CheckCircle className="w-10 h-10 text-green-400 mx-auto" />
                 <p className="text-sm font-medium text-green-400">WhatsApp conectado!</p>
                 <p className="text-xs text-muted-foreground">
-                  Conexao salva no sistema. Seu WhatsApp esta pronto para receber e enviar mensagens.
+                  Conexão salva no sistema. Seu WhatsApp esta pronto para receber e enviar mensagens.
                 </p>
               </div>
             ) : qrData.status === "connection_failed" ? (
               <div className="space-y-3">
                 <XCircle className="w-10 h-10 text-destructive mx-auto" />
-                <p className="text-sm font-medium text-destructive">Falha na conexao</p>
-                <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                  Nao foi possivel conectar aos servidores do WhatsApp a partir do servidor onde a API esta rodando. A conexao usa sempre a rede e o IP do servidor (ex.: VPS), nunca do seu navegador.
-                </p>
-                <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                  Em ambiente local (seu PC), redes domesticas ou corporativas costumam ser bloqueadas pelo WhatsApp. Rode a API em uma VPS e tente de novo ou use uma API externa (Evolution) abaixo.
-                </p>
+                <p className="text-sm font-medium text-destructive">Falha na conexão</p>
                 <div className="flex flex-wrap gap-2 justify-center">
-                  <Button size="sm" variant="outline" onClick={() => requestQrMutation.mutate(mode === "native")}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      mode === "api"
+                        ? connectEvolutionMutation.mutate()
+                        : requestQrMutation.mutate(true)
+                    }
+                  >
                     Tentar novamente
                   </Button>
                   <Button size="sm" onClick={() => { setQrData(null); setMode("api"); }}>
@@ -360,12 +563,25 @@ function WhatsappQrPanel({ account }: { account: IntegrationAccount }) {
                 </div>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <RefreshCw className="w-8 h-8 text-muted-foreground/40 mx-auto" />
                 <p className="text-xs text-muted-foreground">
                   Status: {qrData.status}
                 </p>
-                <Button size="sm" variant="outline" onClick={() => requestQrMutation.mutate(mode === "native")}>
+                {qrData.status === "connecting" && (
+                  <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                    O WhatsApp costuma bloquear IP de servidor (incl. VPS). Use &quot;API externa (Evolution)&quot; para conexão estável.
+                  </p>
+                )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    mode === "api"
+                      ? connectEvolutionMutation.mutate()
+                      : requestQrMutation.mutate(true)
+                  }
+                >
                   Tentar novamente
                 </Button>
               </div>
@@ -373,11 +589,16 @@ function WhatsappQrPanel({ account }: { account: IntegrationAccount }) {
           </div>
         )}
 
-        {!qrData && !requestQrMutation.isPending && (
+        {!qrData &&
+          !requestQrMutation.isPending &&
+          !createEvolutionQrMutation.isPending &&
+          !connectEvolutionMutation.isPending && (
           <div className="text-center py-6 space-y-2">
             <QrCode className="w-10 h-10 text-muted-foreground/30 mx-auto" />
             <p className="text-xs text-muted-foreground">
-              Clique em &quot;Conectar via QR Code&quot; para gerar o QR e salvar a conexao no sistema.
+              {mode === "api"
+                ? "Use &quot;Conectar via QR Code (Gratuito)&quot; ou &quot;Conectar via API Oficial&quot; acima."
+                : "Clique em &quot;Gerar QR Code&quot; para gerar o QR e salvar a conexão no sistema."}
             </p>
           </div>
         )}
@@ -439,7 +660,7 @@ export default function IntegrationsPage() {
     onSuccess: (created) => {
       setShowCreateForm(false);
       setNewName("");
-      setFeedback(`Integracao "${created.name}" criada com sucesso.`);
+      setFeedback(`Integração "${created.name}" criada com sucesso.`);
       queryClient.invalidateQueries({ queryKey: ["integrations"] });
       if (created.type === "WHATSAPP") {
         setExpandedId(created.id);
@@ -453,7 +674,7 @@ export default function IntegrationsPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => integrationsApi.deleteAccount(id),
     onSuccess: () => {
-      setFeedback("Integracao removida.");
+      setFeedback("Integração removida.");
       queryClient.invalidateQueries({ queryKey: ["integrations"] });
     }
   });
@@ -468,14 +689,14 @@ export default function IntegrationsPage() {
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <Plug className="w-6 h-6" />
-              Integracoes
+              Integrações
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
               Conecte WhatsApp, IA e outros servicos ao seu workspace.
             </p>
           </div>
           <Button onClick={() => setShowCreateForm(true)} className="gap-2">
-            <Plus className="w-4 h-4" /> Nova Integracao
+            <Plus className="w-4 h-4" /> Nova Integração
           </Button>
         </div>
 
@@ -529,7 +750,7 @@ export default function IntegrationsPage() {
 
         {showCreateForm && (
           <div className="rounded-xl border p-4 space-y-4 bg-card">
-            <h2 className="font-semibold">Adicionar nova integracao</h2>
+            <h2 className="font-semibold">Adicionar nova integração</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -559,7 +780,7 @@ export default function IntegrationsPage() {
                 onClick={() => createMutation.mutate()}
                 disabled={createMutation.isPending || !newName.trim()}
               >
-                {createMutation.isPending ? "Criando..." : "Criar Integracao"}
+                {createMutation.isPending ? "Criando..." : "Criar Integração"}
               </Button>
               <Button variant="outline" onClick={() => setShowCreateForm(false)}>
                 Cancelar
@@ -650,7 +871,7 @@ export default function IntegrationsPage() {
           <section className="space-y-3">
             <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider flex items-center gap-2">
               <Plug className="w-4 h-4" />
-              Outras Integracoes ({otherAccounts.length})
+              Outras Integrações ({otherAccounts.length})
             </h2>
 
             {otherAccounts.map((account) => {
@@ -690,12 +911,12 @@ export default function IntegrationsPage() {
         {accounts.length === 0 && !isLoading && !showCreateForm && (
           <div className="text-center py-16 border rounded-xl">
             <Plug className="w-12 h-12 mx-auto text-muted-foreground/30 mb-3" />
-            <p className="text-lg font-medium text-muted-foreground">Nenhuma integracao configurada</p>
+            <p className="text-lg font-medium text-muted-foreground">Nenhuma integração configurada</p>
             <p className="text-sm text-muted-foreground mt-1 mb-4">
               Adicione WhatsApp, IA ou outros servicos para comecar.
             </p>
             <Button onClick={() => setShowCreateForm(true)}>
-              <Plus className="w-4 h-4 mr-2" /> Adicionar Integracao
+              <Plus className="w-4 h-4 mr-2" /> Adicionar Integração
             </Button>
           </div>
         )}

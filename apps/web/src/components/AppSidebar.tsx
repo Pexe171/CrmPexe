@@ -26,7 +26,7 @@ const mainNav = [
   { title: "Vendas", url: "/sales", icon: TrendingUp },
   { title: "Agentes", url: "/agents", icon: Bot },
   { title: "Fluxo (Bot)", url: "/automations/flow", icon: Workflow },
-  { title: "Integracoes", url: "/integrations", icon: Plug },
+  { title: "Integrações", url: "/integrations", icon: Plug },
 ];
 
 const adminNav = [

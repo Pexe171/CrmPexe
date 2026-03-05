@@ -13,6 +13,7 @@ import { AuthenticatedRequest } from "./auth.types";
 
 @Injectable()
 export class AccessTokenGuard implements CanActivate {
+  /** Em produção, main.ts exige JWT_ACCESS_SECRET; fallback apenas para dev. */
   private readonly accessTokenSecret =
     process.env.JWT_ACCESS_SECRET || "dev_access_secret";
 
@@ -124,7 +125,7 @@ export class AccessTokenGuard implements CanActivate {
       if (error instanceof HttpException) {
         throw error;
       }
-      throw new UnauthorizedException("Token de acesso invalido.");
+      throw new UnauthorizedException("Token de acesso inválido.");
     }
   }
 

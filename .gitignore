@@ -30,8 +30,9 @@ lerna-debug.log*
 .env.production.local
 *.env
 
-# Exceção: Manter ficheiros de exemplo
+# Exceção: Manter ficheiros de exemplo (nunca cometer .env com segredos)
 !.env.example
+!.env.*.example
 
 # Testes e Cobertura
 coverage/

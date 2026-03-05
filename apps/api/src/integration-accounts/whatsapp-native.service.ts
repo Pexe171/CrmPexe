@@ -35,11 +35,14 @@ export class WhatsappNativeService {
     }
   }
 
+  private static readonly CONNECTION_FAILED_MESSAGE =
+    "WhatsApp bloqueou a conexão (IP de servidor/VPS costuma ser bloqueado). Use a opção API externa (Evolution) para maior estabilidade.";
+
   async startNativeSession(
     userId: string,
     accountId: string,
     workspaceId?: string
-  ): Promise<{ qr: string | null; status: string }> {
+  ): Promise<{ qr: string | null; status: string; message?: string }> {
     const account = await this.resolveAccount(userId, accountId, workspaceId);
     if (account.type !== IntegrationAccountType.WHATSAPP) {
       throw new BadRequestException("Integração não é do tipo WhatsApp.");
@@ -74,12 +77,21 @@ export class WhatsappNativeService {
         return { qr: null, status: current.status };
       }
       if (current?.status === "connection_failed") {
-        return { qr: null, status: "connection_failed" };
+        return {
+          qr: null,
+          status: "connection_failed",
+          message: WhatsappNativeService.CONNECTION_FAILED_MESSAGE
+        };
       }
     }
+    const final = this.stateByAccount.get(accountId);
+    const status = final?.status ?? "connecting";
     return {
-      qr: this.stateByAccount.get(accountId)?.qr ?? null,
-      status: this.stateByAccount.get(accountId)?.status ?? "connecting"
+      qr: final?.qr ?? null,
+      status,
+      ...(status === "connection_failed" && {
+        message: WhatsappNativeService.CONNECTION_FAILED_MESSAGE
+      })
     };
   }
 
@@ -87,11 +99,17 @@ export class WhatsappNativeService {
     userId: string,
     accountId: string,
     workspaceId?: string
-  ): Promise<{ qr: string | null; status: string }> {
+  ): Promise<{ qr: string | null; status: string; message?: string }> {
     await this.resolveAccount(userId, accountId, workspaceId);
     const state = this.stateByAccount.get(accountId);
     if (state) {
-      return { qr: state.qr, status: state.status };
+      return {
+        qr: state.qr,
+        status: state.status,
+        ...(state.status === "connection_failed" && {
+          message: WhatsappNativeService.CONNECTION_FAILED_MESSAGE
+        })
+      };
     }
     const dbSession = await this.prisma.whatsappSession.findUnique({
       where: {
@@ -102,9 +120,13 @@ export class WhatsappNativeService {
         }
       }
     });
+    const status = dbSession?.status ?? "disconnected";
     return {
       qr: dbSession?.qrCode ?? null,
-      status: dbSession?.status ?? "disconnected"
+      status,
+      ...(status === "connection_failed" && {
+        message: WhatsappNativeService.CONNECTION_FAILED_MESSAGE
+      })
     };
   }
 

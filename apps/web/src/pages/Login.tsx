@@ -14,12 +14,14 @@ const Login = () => {
 
   const handleRequestOtp = async (event: React.FormEvent) => {
     event.preventDefault();
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) return;
     setError(null);
     setFeedback(null);
     setIsLoading(true);
 
     try {
-      await authApi.requestOtp(email);
+      await authApi.requestOtp(trimmedEmail);
       setStep("code");
       setFeedback("Código enviado. Confira seu e-mail e informe o OTP.");
     } catch (requestError) {
@@ -35,12 +37,13 @@ const Login = () => {
 
   const handleVerifyOtp = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!email.trim() || !code.trim()) return;
     setError(null);
     setFeedback(null);
     setIsLoading(true);
 
     try {
-      await authApi.verifyOtp(email, code);
+      await authApi.verifyOtp(email.trim(), code.trim());
       navigate("/", { replace: true });
     } catch (verifyError) {
       if (verifyError instanceof ApiError) {

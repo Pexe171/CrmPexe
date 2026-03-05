@@ -304,11 +304,15 @@ export class IntegrationAccountsService {
       return missingApiConfiguration;
     }
 
+    const fallbackPath =
+      secrets.instanceName != null
+        ? `/instance/connect/${secrets.instanceName}`
+        : "/whatsapp/evolution/qr";
     const result = await this.callWhatsappGateway(
       account.id,
       secrets,
       "qrEndpoint",
-      "/whatsapp/evolution/qr"
+      fallbackPath
     );
     await this.saveSession(
       userId,
@@ -323,6 +327,210 @@ export class IntegrationAccountsService {
       provider: "EVOLUTION",
       mode: "QR"
     };
+  }
+
+  /**
+   * Cria instância no Evolution (Baileys/QR ou Meta Oficial) e opcionalmente retorna QR.
+   */
+  async createEvolutionInstance(
+    userId: string,
+    accountId: string,
+    body: {
+      type: "QR" | "OFFICIAL";
+      instanceName?: string;
+      metaToken?: string;
+      metaPhoneNumberId?: string;
+    },
+    workspaceId?: string
+  ): Promise<{ qr: string | null; status: string; message?: string }> {
+    const { account, secrets } = await this.getAccountWithSecrets(
+      userId,
+      accountId,
+      workspaceId
+    );
+
+    if (account.type !== IntegrationAccountType.WHATSAPP) {
+      throw new BadRequestException("Integração não é do tipo WhatsApp.");
+    }
+
+    const missingApiConfiguration =
+      this.getMissingApiConfigurationResponse(secrets);
+    if (missingApiConfiguration) {
+      return {
+        qr: null,
+        status: missingApiConfiguration.status,
+        message: missingApiConfiguration.message
+      };
+    }
+
+    const apiUrl = this.getRequiredSecret(secrets, "apiUrl").replace(/\/$/, "");
+    const apiToken = this.getRequiredSecret(secrets, "apiToken");
+    const instanceName =
+      body.instanceName?.trim() || `CrmPexe-${accountId.slice(-8)}`;
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      apikey: apiToken
+    };
+
+    if (body.type === "OFFICIAL") {
+      const metaToken = body.metaToken?.trim();
+      const metaPhoneNumberId = body.metaPhoneNumberId?.trim();
+      if (!metaToken || !metaPhoneNumberId) {
+        throw new BadRequestException(
+          "Para API Oficial (Meta) são obrigatórios metaToken e metaPhoneNumberId."
+        );
+      }
+
+      const createPayload = {
+        instanceName,
+        token: apiToken,
+        integration: "WHATSAPP-BUSINESS",
+        metaToken,
+        metaPhoneNumberId
+      };
+
+      const createRes = await fetch(`${apiUrl}/instance/create`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(createPayload)
+      });
+
+      if (!createRes.ok) {
+        const errText = await createRes.text();
+        throw new BadRequestException(
+          `Evolution API (create): ${createRes.status} - ${errText.slice(0, 200)}`
+        );
+      }
+
+      await this.mergeSecretPayload(userId, account.id, {
+        instanceName,
+        evolutionType: "META",
+        provider: "EVOLUTION"
+      });
+
+      return {
+        qr: null,
+        status: "created",
+        message: "Instância oficial (Meta) criada. Use o painel da Meta para verificar a conexão."
+      };
+    }
+
+    const createPayload = {
+      instanceName,
+      token: apiToken,
+      integration: "WHATSAPP-BAILEYS"
+    };
+
+    const createRes = await fetch(`${apiUrl}/instance/create`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(createPayload)
+    });
+
+    if (!createRes.ok && createRes.status !== 403) {
+      const errText = await createRes.text();
+      throw new BadRequestException(
+        `Evolution API (create): ${createRes.status} - ${errText.slice(0, 200)}`
+      );
+    }
+
+    const instanceAlreadyExists = createRes.status === 403;
+    if (!instanceAlreadyExists) {
+      await this.mergeSecretPayload(userId, account.id, {
+        instanceName,
+        qrEndpoint: `/instance/connect/${instanceName}`,
+        evolutionType: "BAILEYS",
+        provider: "EVOLUTION"
+      });
+    } else {
+      const existingSecrets = await this.getAccountWithSecrets(
+        userId,
+        accountId,
+        workspaceId
+      );
+      const hasInstance =
+        existingSecrets.secrets.instanceName === instanceName ||
+        String(existingSecrets.secrets.qrEndpoint || "").includes(instanceName);
+      if (!hasInstance) {
+        await this.mergeSecretPayload(userId, account.id, {
+          instanceName,
+          qrEndpoint: `/instance/connect/${instanceName}`,
+          evolutionType: "BAILEYS",
+          provider: "EVOLUTION"
+        });
+      }
+    }
+
+    const connectUrl = `${apiUrl}/instance/connect/${instanceName}`;
+    const connectRes = await fetch(connectUrl, { method: "GET", headers });
+
+    if (!connectRes.ok) {
+      const errText = await connectRes.text();
+      throw new BadRequestException(
+        `Evolution API (connect): ${connectRes.status} - ${errText.slice(0, 200)}`
+      );
+    }
+
+    let connectData: { code?: string; qr?: string; status?: string };
+    try {
+      connectData = (await connectRes.json()) as {
+        code?: string;
+        qr?: string;
+        status?: string;
+      };
+    } catch {
+      return {
+        qr: null,
+        status: "connecting",
+        message: "Instância criada. Chame 'Conectar via QR Code' para obter o QR."
+      };
+    }
+
+    const qr = connectData.qr ?? connectData.code ?? null;
+    await this.saveSession(userId, account.id, secrets, "connecting", qr);
+
+    return {
+      qr,
+      status: "connecting"
+    };
+  }
+
+  private async mergeSecretPayload(
+    userId: string,
+    accountId: string,
+    additionalPayload: Record<string, string>,
+    workspaceId?: string
+  ): Promise<void> {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(
+      userId,
+      workspaceId
+    );
+    const account = await this.prisma.integrationAccount.findFirst({
+      where: { id: accountId, workspaceId: resolvedWorkspaceId }
+    });
+    if (!account) {
+      throw new NotFoundException("Integração não encontrada.");
+    }
+
+    const secret = await this.prisma.integrationSecret.findUnique({
+      where: { integrationAccountId: account.id }
+    });
+    if (!secret) {
+      throw new BadRequestException("Configure URL e token da API antes de criar a instância.");
+    }
+
+    const current = this.integrationCryptoService.decrypt(
+      secret.encryptedPayload
+    );
+    const merged = { ...current, ...additionalPayload };
+    const encryptedPayload =
+      this.integrationCryptoService.encrypt(merged);
+
+    await this.prisma.integrationSecret.update({
+      where: { integrationAccountId: account.id },
+      data: { encryptedPayload }
+    });
   }
 
   async listWhatsappSessions(
@@ -539,15 +747,17 @@ export class IntegrationAccountsService {
       );
     }
 
+    const isEvolution =
+      secrets.evolutionType != null ||
+      (endpoint && String(endpoint).includes("/instance/"));
+    const headers: Record<string, string> = {
+      ...(isEvolution ? { apikey: apiToken } : { Authorization: `Bearer ${apiToken}` }),
+      "X-Integration-Account-Id": integrationAccountId
+    };
+
     let response: Response;
     try {
-      response = await fetch(url, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${apiToken}`,
-          "X-Integration-Account-Id": integrationAccountId
-        }
-      });
+      response = await fetch(url, { method: "GET", headers });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Erro de rede";
       throw new BadRequestException(
@@ -562,17 +772,22 @@ export class IntegrationAccountsService {
       );
     }
 
-    let data: { qr?: string | null; status?: string | null };
+    let data: { qr?: string | null; status?: string | null; code?: string | null };
     try {
-      data = JSON.parse(text) as { qr?: string | null; status?: string | null };
+      data = JSON.parse(text) as {
+        qr?: string | null;
+        status?: string | null;
+        code?: string | null;
+      };
     } catch {
       throw new BadRequestException(
         "A API do WhatsApp retornou uma resposta inválida (não é JSON)."
       );
     }
 
+    const qr = data.qr ?? data.code ?? null;
     return {
-      qr: data.qr ?? null,
+      qr,
       status: data.status ?? "connecting"
     };
   }

@@ -146,7 +146,7 @@ function ContactPanel({ conversation }: { conversation: ConversationDetail }) {
       </div>
 
       <div className="p-4 space-y-2 border-t border-border">
-        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Acoes</h4>
+        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Ações</h4>
 
         <select
           className="w-full h-9 rounded-md border bg-background px-3 text-xs"

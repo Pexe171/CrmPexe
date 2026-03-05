@@ -23,6 +23,7 @@ import { LoginAttemptsService } from "./login-attempts.service";
 
 @Injectable()
 export class AuthService {
+  /** Em produção, main.ts exige JWT_ACCESS_SECRET/JWT_REFRESH_SECRET; fallback apenas para dev. */
   private readonly accessTokenSecret =
     process.env.JWT_ACCESS_SECRET || "dev_access_secret";
   private readonly refreshTokenSecret =

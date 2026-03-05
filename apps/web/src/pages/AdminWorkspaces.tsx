@@ -175,7 +175,7 @@ export default function AdminWorkspacesPage() {
                   <div className="space-y-2">
                     <Label className="flex items-center gap-2">
                       <Calendar className="w-4 h-4" />
-                      Validade (data de expiracao)
+                      Validade (data de expiração)
                     </Label>
                     <Input
                       type="date"
@@ -184,7 +184,7 @@ export default function AdminWorkspacesPage() {
                       min={new Date().toISOString().split("T")[0]}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Deixe vazio para acesso sem data de expiracao.
+                      Deixe vazio para acesso sem data de expiração.
                       Para 30 dias, selecione a data correspondente.
                     </p>
                   </div>
@@ -194,7 +194,7 @@ export default function AdminWorkspacesPage() {
                       onClick={() => assignMutation.mutate()}
                       disabled={assignMutation.isPending || !assignAgentId}
                     >
-                      {assignMutation.isPending ? "Atribuindo..." : "Confirmar Atribuicao"}
+                      {assignMutation.isPending ? "Atribuindo..." : "Confirmar Atribuição"}
                     </Button>
                     <Button variant="outline" onClick={() => setShowAssignForm(false)}>
                       Cancelar

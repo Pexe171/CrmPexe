@@ -6,11 +6,14 @@ import {
   createBrowserRouter,
   createRoutesFromElements,
   Navigate,
+  Outlet,
   Route,
   RouterProvider,
   useLocation
 } from "react-router-dom";
 import { ReactNode } from "react";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { Button } from "@/components/ui/button";
 import { useAuthMe } from "./hooks/useAuthMe";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
@@ -41,7 +44,7 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   if (isLoading) {
     return (
       <main className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">
-        Validando sessao...
+        Validando sessão...
       </main>
     );
   }
@@ -79,9 +82,23 @@ const LoginRoute = () => {
   return <Login />;
 };
 
+function RouteErrorFallback() {
+  return (
+    <main className="min-h-screen flex items-center justify-center p-6 bg-background">
+      <div className="max-w-md w-full text-center space-y-4">
+        <h1 className="text-lg font-semibold">Erro ao carregar esta página</h1>
+        <p className="text-sm text-muted-foreground">
+          Tente recarregar ou voltar ao início.
+        </p>
+        <Button onClick={() => (window.location.href = "/")}>Ir para o início</Button>
+      </div>
+    </main>
+  );
+}
+
 const router = createBrowserRouter(
   createRoutesFromElements(
-    <>
+    <Route element={<Outlet />} errorElement={<RouteErrorFallback />}>
       <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       <Route path="/agents" element={<ProtectedRoute><AgentsPage /></ProtectedRoute>} />
       <Route path="/conversations" element={<ProtectedRoute><ConversationsPage /></ProtectedRoute>} />
@@ -98,7 +115,7 @@ const router = createBrowserRouter(
       <Route path="/login" element={<LoginRoute />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="*" element={<NotFound />} />
-    </>
+    </Route>
   ),
   {
     future: {
@@ -109,13 +126,15 @@ const router = createBrowserRouter(
 );
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <RouterProvider router={router} />
-    </TooltipProvider>
-  </QueryClientProvider>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <RouterProvider router={router} />
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;

@@ -90,7 +90,7 @@ function AgentCard({
       {variables.length > 0 && (
         <div>
           <p className="text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1">
-            <Plug className="w-3 h-3" /> Variaveis necessarias ({variables.length})
+            <Plug className="w-3 h-3" /> Variáveis necessárias ({variables.length})
           </p>
           <div className="flex flex-wrap gap-1.5">
             {variables.slice(0, 5).map((v) => (
@@ -242,7 +242,7 @@ export default function AgentsPage() {
       <div className="p-6 lg:p-8 space-y-6 max-w-6xl">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Gestao de Agentes</h1>
+            <h1 className="text-2xl font-bold">Gestão de Agentes</h1>
             <p className="text-sm text-muted-foreground mt-1">
               Importe, publique e gerencie agentes de IA integrados ao n8n.
             </p>
@@ -400,7 +400,7 @@ export default function AgentsPage() {
             </div>
 
             <div className="space-y-2">
-              <Label>Variaveis do agente (JSON)</Label>
+              <Label>Variáveis do agente (JSON)</Label>
               <Textarea
                 value={configJsonText}
                 onChange={(e) => setConfigJsonText(e.target.value)}

@@ -24,7 +24,16 @@ pnpm install
 docker compose up -d postgres redis
 ```
 
-> O n8n é opcional: `docker compose up -d n8n` (automações e workflows). API e n8n compartilham a rede `crm_network` para comunicação interna.
+### 2b) (Opcional) Ativar o n8n
+
+Para usar **automações, workflows e gestão de agentes**, suba o container do n8n:
+
+```bash
+docker compose up -d n8n
+```
+
+- Interface do n8n: http://localhost:5678 (quando estiver rodando).
+- A API acessa o n8n em `http://n8n:5678` na rede `crm_network`; configure `N8N_BASE_URL` e `N8N_API_TOKEN` no `.env` da API.
 
 ### 3) Configurar variáveis de ambiente
 
@@ -64,63 +73,79 @@ pnpm dev
 
 ## Como usar o sistema
 
-### Login (OTP)
+### Primeiro acesso
 
-1. Acesse http://localhost:8080 → redireciona para `/login`
-2. Informe o e-mail cadastrado e clique **Receber código OTP**
-3. O código OTP é enviado por e-mail (se SMTP estiver configurado)
-4. Informe o código e clique **Entrar**
-5. O token é salvo no navegador; a API só é chamada quando há token (evita requisições desnecessárias)
+1. **Abrir o sistema**  
+   Acesse o front (ex.: http://localhost:8080 em dev; a porta pode variar conforme o `vite.config.ts`). Se não estiver logado, será redirecionado para `/login`.
 
-### Sem workspace
+2. **Login com OTP**
+   - Informe o e-mail cadastrado e clique em **Receber código OTP**.
+   - O código é enviado por e-mail (configure SMTP no `.env` da API para funcionar).
+   - Digite o código recebido e clique em **Entrar**.
+   - O token fica salvo no navegador; as chamadas à API usam esse token.
 
-Se o usuário ainda não tiver workspace, ao entrar aparece a tela **Escolha seu workspace**: pode **Criar novo workspace** (nome + senha) ou **Entrar em um workspace** (código + senha fornecidos pelo administrador).
+3. **Workspace**
+   - Se você ainda não tiver workspace, aparece a tela **Escolha seu workspace**.
+   - **Criar novo workspace:** informe nome e senha do workspace.
+   - **Entrar em um workspace:** use o código e a senha fornecidos pelo administrador.
 
-### Páginas disponíveis
+Após o login, o menu lateral permite ir para Dashboard, Conversas, Pipeline, Integrações, Agentes, Automações e Configurações.
 
-| Rota | Página | Descrição |
-|------|--------|-----------|
-| `/` | Dashboard | KPIs, gráficos de vendas, conversas recentes, funil de conversão |
-| `/conversations` | Conversas | Lista de conversas, chat em tempo real (WebSocket), painel do contato; painéis redimensionáveis |
-| `/sales` | Pipeline | Kanban de negócios (Deals) por estágio; arrastar e soltar para mudar estágio |
-| `/agents` | Gestão de Agentes | Importar JSON do n8n, publicar, listar, excluir agentes |
-| `/automations/flow` | Fluxo (Bot) | Construtor visual de fluxos com React Flow; nós Gatilho, Ação, OpenAI; salvar como template |
-| `/integrations` | Integrações | Cards OpenAI e N8N (modal com chaves); WhatsApp: sessão integrada (QR no sistema) ou API externa; QR em tempo real via WebSocket |
-| `/settings/tags` | Configurações: Tags | Listar, criar, editar e excluir tags (tabela + DropdownMenu) |
-| `/settings/queues` | Configurações: Filas | Listar, criar, editar e excluir filas |
-| `/admin/workspaces` | Admin: Workspaces | Buscar workspaces, atribuir agentes com data de validade |
-| `/workspace-setup` | Escolha de workspace | Criar ou entrar em workspace (quando não há workspace definido) |
-| `/login` | Login | Autenticação via OTP |
+### Páginas e o que fazer em cada uma
 
-### Chat em tempo real (Conversas)
+| Rota | Página | O que você pode fazer |
+|------|--------|------------------------|
+| `/` | **Dashboard** | Ver KPIs, gráficos de vendas, conversas recentes e funil de conversão. |
+| `/conversations` | **Conversas** | Ver lista de conversas, abrir chat em tempo real (WebSocket), ver painel do contato e enviar mensagens. Painéis são redimensionáveis. |
+| `/sales` | **Pipeline** | Ver negócios (Deals) em colunas (Leads, Qualificação, Proposta, Negociação, Fechado, etc.). Arrastar um card para outra coluna altera o estágio do negócio. |
+| `/integrations` | **Integrações** | Configurar WhatsApp (QR ou Evolution), OpenAI e N8N. Ver sessões ativas e chaves salvas. |
+| `/agents` | **Gestão de Agentes** | Importar agentes (JSON do n8n), publicar, listar e excluir. Admin pode atribuir agentes a workspaces. |
+| `/automations/flow` | **Fluxo (Bot)** | Montar fluxos visuais com nós (Gatilho, Ação, OpenAI), conectar com setas e salvar como template de automação. |
+| `/settings/tags` | **Configurações: Tags** | Criar, editar e excluir tags usadas em conversas e negócios. |
+| `/settings/queues` | **Configurações: Filas** | Criar, editar e excluir filas para organização de atendimento. |
+| `/admin/workspaces` | **Admin: Workspaces** | (Admin) Buscar workspaces e atribuir agentes com data de validade. |
+| `/workspace-setup` | **Escolha de workspace** | Aparece quando o usuário ainda não tem workspace; criar novo ou entrar em um existente. |
+| `/login` | **Login** | Autenticação via OTP por e-mail. |
 
-- A API emite evento `newMessage` via WebSocket (namespace `/conversations`) quando uma mensagem é criada (envio ou recebimento).
-- O front conecta com `workspaceId` e atualiza a lista de mensagens na hora com Zustand.
-- Mensagens são mescladas (API + pendentes do socket) para evitar duplicidade.
+### Conversas (chat em tempo real)
 
-### Pipeline (Vendas)
+- Em **Conversas** você vê a lista de conversas e, ao clicar em uma, o chat à direita.
+- Novas mensagens (enviadas ou recebidas) aparecem na hora via WebSocket.
+- O sistema evita duplicidade mesclando mensagens da API com as do socket.
 
-- Colunas: Leads, Qualificação, Proposta, Negociação, Fechado (+ Sem estágio / Outros).
-- Arrastar um card para outra coluna chama `PATCH /api/deals/:id/stage` e atualiza o estágio no banco.
+### Pipeline (vendas)
 
-### Construtor de fluxo (Automations)
-
-- Em `/automations/flow` é possível adicionar nós (Gatilho, Ação, OpenAI), conectar com edges e clicar em **Salvar**.
-- O JSON (nodes + edges) é enviado para `POST /api/automations/flow` e gravado como template de automação (categoria `flow-builder`).
+- Cada negócio aparece como card em uma coluna (estágio).
+- **Arrastar o card** para outra coluna atualiza o estágio no banco (`PATCH /api/deals/:id/stage`).
 
 ### Conectar WhatsApp
 
-1. Vá em `/integrations` e crie uma integração WhatsApp (**Nova Integração** ou card).
-2. Escolha **Sessão integrada** (QR gerado pelo próprio sistema, sem API externa) ou **API externa** (Evolution ou compatível).
-3. Sessão integrada: clique **Gerar QR Code**; o QR pode ser atualizado em tempo real via WebSocket (`whatsapp_qr_update`). Ao conectar, o evento `whatsapp_connected` dispara e um toast confirma.
-4. API externa: informe URL e Token da API, depois **Gerar QR Code** e escaneie no celular (WhatsApp → Aparelhos conectados).
-5. Em ambiente local (PC), a conexão pode falhar por restrições do WhatsApp; para uso estável, rode a API em uma VPS.
+Tudo é feito pelo painel: o cliente **não precisa** usar Postman nem gerar nada fora do CrmPexe. Recomendado usar **API externa (Evolution)** para evitar bloqueios do WhatsApp.
+
+1. Vá em **Integrações** e crie uma integração do tipo **WhatsApp** (botão **Nova Integração** ou card WhatsApp).
+2. Escolha **API externa (Evolution) — recomendado** ou **Sessão integrada** (QR no próprio sistema; costuma falhar em PC/VPS).
+
+**API externa (Evolution) — fluxo prático para o cliente:**
+
+1. **Passo 1:** informe a **URL da Evolution** e o **Token** (fornecidos por quem instalou a Evolution). Clique em **Salvar e ir para passo 2**.
+2. **Passo 2:** escolha uma opção:
+   - **Conectar via QR Code (Gratuito)** — clique em **Gerar QR Code**; o sistema cria a instância e mostra o QR na tela. Escaneie com o WhatsApp (Aparelhos conectados). Se o QR expirar, use **Tentar novamente**.
+   - **Conectar via API Oficial (Meta)** — preencha **Token da Meta** e **ID do número de telefone** (obtidos no [Painel de Desenvolvedores da Meta](https://developers.facebook.com/)). Clique em **Conectar via API Oficial**. O CRM cria a instância na Evolution.
+
+As conversas passam a aparecer em **Conversas**.  
+**Sessão integrada:** use **Gerar QR Code** no painel; em rede local ou VPS o WhatsApp costuma bloquear — nesses casos prefira Evolution.  
+Guia completo: [docs/EVOLUTION-SETUP.md](docs/EVOLUTION-SETUP.md) (inclui instruções para quem instala a Evolution).
 
 ### Integrações OpenAI e N8N
 
-- Clique nos cards **OpenAI** ou **N8N** na página de Integrações.
-- No modal, preencha Nome e chaves (API Key para OpenAI; URL e API Key para N8N), com validação via react-hook-form + zod.
-- Ao salvar, a conta é criada e os segredos gravados.
+- Na página **Integrações**, clique no card **OpenAI** ou **N8N**.
+- No modal: informe **Nome** e as chaves (API Key para OpenAI; URL e API Key para N8N).
+- Ao salvar, a conta é criada e os segredos ficam gravados e criptografados.
+
+### Construtor de fluxo (Automations)
+
+- Em **Automações** → **Fluxo** você monta o bot com nós (Gatilho, Ação, OpenAI) e conexões entre eles.
+- Ao clicar em **Salvar**, o fluxo é enviado como template de automação (categoria `flow-builder`).
 
 ---
 

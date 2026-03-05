@@ -75,5 +75,9 @@ export async function apiFetch<T>(endpoint: string, init?: RequestInit): Promise
     throw new ApiError(message, response.status, bodyText.slice(0, 180));
   }
 
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
   return safeParseJson<T>(response);
 }

@@ -66,6 +66,20 @@ export const integrationsApi = {
       method: "POST"
     }),
 
+  createEvolutionInstance: (
+    id: string,
+    body: {
+      type: "QR" | "OFFICIAL";
+      instanceName?: string;
+      metaToken?: string;
+      metaPhoneNumberId?: string;
+    }
+  ) =>
+    apiFetch<WhatsappQrResponse>(`/integration-accounts/${id}/whatsapp/evolution/instance`, {
+      method: "POST",
+      body: JSON.stringify(body)
+    }),
+
   /** Sessão integrada (QR gerado pelo próprio sistema, sem API externa) */
   requestNativeWhatsappQr: (id: string) =>
     apiFetch<WhatsappQrResponse>(`/integration-accounts/${id}/whatsapp/native/start`, {
