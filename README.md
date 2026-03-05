@@ -237,7 +237,7 @@ Principais pastas no front:
 - `POST /api/automations/flow` — Salvar fluxo do construtor (nodes + edges) como template
 
 ### Agentes (Admin)
-- `POST /api/agent-templates/import` — Importar JSON do n8n
+- `POST /api/agent-templates/import` — Importar JSON do n8n (body até 100MB; use o JSON exportado do workflow)
 - `POST /api/agent-templates/:id/publish` — Publicar no n8n
 - `GET /api/agent-templates` — Listar agentes
 - Outros: ver código em `apps/api/src/agent-templates`, `workspace-agents`
@@ -279,6 +279,7 @@ No `docker-compose.yml` (e prod), a rede `crm_network` une postgres, redis, n8n 
 - **Erro de conexão com banco**: confirme se Docker está rodando e `DATABASE_URL` está correto
 - **Erro com Prisma**: rode `pnpm prisma:generate` e depois `pnpm prisma:migrate:dev`
 - **Portas ocupadas**: finalize processos nas portas 8080/3001
+- **"request entity too large" ao importar agente (JSON do n8n)**: a API aceita body até 100MB. Se o erro persistir, reinicie a API (`pnpm dev:api` ou o processo que atende na porta 3001) para carregar o body parser com o limite correto.
 - **401 no frontend**: o front só chama `/auth/me` quando existe `crm_token` no localStorage; sem token, redireciona para `/login` sem bater na API
 - **Muitos 401 em /auth/me**: atualização feita para não chamar a API sem token e com `refetchOnWindowFocus: false` e `staleTime` na query de auth
 - **WhatsApp “Falha na conexão” em ambiente local**: comum em redes domésticas; para uso estável, rode a API em uma VPS

@@ -1,6 +1,8 @@
 import "reflect-metadata";
+import * as bodyParser from "body-parser";
 import { ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
+import { NestExpressApplication } from "@nestjs/platform-express";
 import { IoAdapter } from "@nestjs/platform-socket.io";
 import * as cookieParser from "cookie-parser";
 import { AppModule } from "./app.module";
@@ -8,6 +10,9 @@ import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
 import { CorrelationIdMiddleware } from "./common/logging/correlation-id.middleware";
 import { JsonLoggerService } from "./common/logging/json-logger.service";
 import { RequestLoggerMiddleware } from "./common/logging/request-logger.middleware";
+
+/** Limite de body (100MB) para import de JSON do n8n; evita "request entity too large". */
+const BODY_LIMIT = "100mb";
 
 async function bootstrap() {
   const isProduction = process.env.NODE_ENV === "production";
@@ -24,7 +29,13 @@ async function bootstrap() {
     }
   }
 
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    bodyParser: false
+  });
+  // Registrar body parser com limite alto como PRIMEIRO middleware (antes de qualquer app.use)
+  app.use(bodyParser.json({ limit: BODY_LIMIT }));
+  app.use(bodyParser.urlencoded({ extended: true, limit: BODY_LIMIT }));
+  console.log(`[API] Body parser limit: ${BODY_LIMIT} (import agent-templates)`);
   app.useWebSocketAdapter(new IoAdapter(app));
   app.useLogger(app.get(JsonLoggerService));
   const corsOrigins = (process.env.CORS_ORIGIN || "http://localhost:3000")

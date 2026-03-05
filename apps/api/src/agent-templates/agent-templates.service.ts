@@ -17,7 +17,8 @@ import { ListAgentTemplatesQueryDto } from "./dto/list-agent-templates-query.dto
 import { UpdateAgentTemplateDto } from "./dto/update-agent-template.dto";
 import { N8nAgentPublisherService } from "./n8n-agent-publisher.service";
 
-const MAX_JSON_PAYLOAD_BYTES = 512_000;
+/** 100MB — alinhado ao limite do body parser no main.ts (import de JSON do n8n). */
+const MAX_JSON_PAYLOAD_BYTES = 100 * 1024 * 1024;
 
 @Injectable()
 export class AgentTemplatesService {
@@ -478,7 +479,7 @@ export class AgentTemplatesService {
   private ensurePayloadSize(payload: Record<string, unknown>) {
     const bytes = Buffer.byteLength(JSON.stringify(payload));
     if (bytes > MAX_JSON_PAYLOAD_BYTES) {
-      throw new BadRequestException("Payload excede o limite de 500KB.");
+      throw new BadRequestException("Payload excede o limite de 100MB.");
     }
   }
 
