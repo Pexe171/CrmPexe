@@ -3,6 +3,7 @@ import { ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { IoAdapter } from "@nestjs/platform-socket.io";
 import * as cookieParser from "cookie-parser";
+import { json, urlencoded } from "express";
 import { AppModule } from "./app.module";
 import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
 import { CorrelationIdMiddleware } from "./common/logging/correlation-id.middleware";
@@ -10,6 +11,7 @@ import { JsonLoggerService } from "./common/logging/json-logger.service";
 import { RequestLoggerMiddleware } from "./common/logging/request-logger.middleware";
 
 async function bootstrap() {
+  const requestBodyLimit = "200mb";
   const isProduction = process.env.NODE_ENV === "production";
   if (isProduction) {
     const missingSecrets = [
@@ -46,6 +48,8 @@ async function bootstrap() {
     origin: corsOrigins,
     credentials: true
   });
+  app.use(json({ limit: requestBodyLimit }));
+  app.use(urlencoded({ extended: true, limit: requestBodyLimit }));
   app.setGlobalPrefix("api");
   app.use(cookieParser());
   const correlationMiddleware = app.get(CorrelationIdMiddleware);
