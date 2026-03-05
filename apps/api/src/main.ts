@@ -11,7 +11,7 @@ import { JsonLoggerService } from "./common/logging/json-logger.service";
 import { RequestLoggerMiddleware } from "./common/logging/request-logger.middleware";
 
 async function bootstrap() {
-  const requestBodyLimit = "2mb";
+  const requestBodyLimit = "200mb";
   const isProduction = process.env.NODE_ENV === "production";
   if (isProduction) {
     const missingSecrets = [
