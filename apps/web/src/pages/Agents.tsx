@@ -168,6 +168,7 @@ export default function AgentsPage() {
   });
 
   const allTemplates = templatesResponse?.data ?? [];
+  const activeTemplates = allTemplates.filter((t) => t.status !== "ARCHIVED");
   const publishedTemplates = allTemplates.filter((t) => t.status === "PUBLISHED");
 
   const importMutation = useMutation({
@@ -202,7 +203,7 @@ export default function AgentsPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => agentsApi.deleteTemplate(id),
     onSuccess: async () => {
-      setFeedback("Agente excluido.");
+      setFeedback("Agente excluído.");
       await queryClient.invalidateQueries({ queryKey: ["agents"] });
     },
     onError: (err) => {
@@ -289,7 +290,7 @@ export default function AgentsPage() {
           <div className="space-y-4">
             {loadingTemplates && <p className="text-sm text-muted-foreground">Carregando agentes...</p>}
 
-            {allTemplates.length === 0 && !loadingTemplates && (
+            {activeTemplates.length === 0 && !loadingTemplates && (
               <div className="text-center py-12 border rounded-xl">
                 <Bot className="w-12 h-12 mx-auto text-muted-foreground/30 mb-3" />
                 <p className="text-muted-foreground">Nenhum agente cadastrado.</p>
@@ -300,7 +301,7 @@ export default function AgentsPage() {
             )}
 
             <div className="grid gap-4 md:grid-cols-2">
-              {allTemplates.map((agent) => (
+              {activeTemplates.map((agent) => (
                 <AgentCard
                   key={agent.id}
                   agent={agent}
