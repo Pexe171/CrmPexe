@@ -6,7 +6,7 @@
 
 CrmPexe (AtendeAi) is a TypeScript monorepo with two apps:
 - **API** (`apps/api`): NestJS + Prisma + PostgreSQL (port 3001)
-- **Web** (`apps/web`): React + Vite + Tailwind CSS (port 8080)
+- **Web** (`apps/web`): React + Vite + Tailwind CSS (port **8081** in dev)
 
 Infrastructure: PostgreSQL 16 and Redis 7 via Docker Compose. See `README.md` for full command reference.
 
@@ -28,7 +28,7 @@ n8n (`sudo docker compose up -d n8n`) is optional; only needed for automation/ag
 ```bash
 unset DATABASE_URL
 cd /workspace/apps/api && npx nest start --watch &   # API on port 3001
-cd /workspace/apps/web && npx vite &                  # Web on port 8080
+cd /workspace/apps/web && npx vite &                  # Web on port 8081
 ```
 
 Or from root: `unset DATABASE_URL && pnpm dev` (runs both via Turborepo).
@@ -43,24 +43,45 @@ Standard commands from `package.json` scripts:
 
 ### OTP login in dev (no SMTP)
 
-There is no real SMTP configured locally. To authenticate:
-1. Request OTP: `POST http://localhost:3001/api/auth/request-otp` with `{"email":"davidhenriquesms18@gmail.com"}`
-2. Retrieve OTP from DB by brute-forcing the SHA-256 hash (6-digit code, 100000-999999):
-   ```bash
-   cd /workspace/apps/api && unset DATABASE_URL && node -e "
-   const { PrismaClient } = require('@prisma/client');
-   const crypto = require('crypto');
-   const prisma = new PrismaClient();
-   (async () => {
-     const otp = await prisma.otpCode.findFirst({ where: { email: 'davidhenriquesms18@gmail.com', usedAt: null }, orderBy: { createdAt: 'desc' } });
-     if (!otp) { console.log('No OTP found'); return; }
-     for (let i = 100000; i < 1000000; i++) {
-       if (crypto.createHash('sha256').update(i.toString()).digest('hex') === otp.codeHash) { console.log('OTP:', i); break; }
-     }
-   })().finally(() => prisma.\$disconnect());
-   "
-   ```
-3. Verify OTP: `POST http://localhost:3001/api/auth/verify-otp` with `{"email":"...","code":"<otp>"}`
+There is no real SMTP configured locally. The OTP has a short effective TTL (~60s), so **request + brute-force + verify must happen in a single script** to avoid expiry. Use this all-in-one Node script:
+
+```bash
+cd /workspace/apps/api && unset DATABASE_URL && node -e "
+const http = require('http');
+const { PrismaClient } = require('@prisma/client');
+const crypto = require('crypto');
+const prisma = new PrismaClient();
+function post(path, body) {
+  return new Promise((resolve, reject) => {
+    const data = JSON.stringify(body);
+    const req = http.request({ hostname:'localhost', port:3001, path, method:'POST', headers:{'Content-Type':'application/json','Content-Length':data.length} }, res => { let b=''; res.on('data',c=>b+=c); res.on('end',()=>resolve(JSON.parse(b))); });
+    req.on('error', reject); req.end(data);
+  });
+}
+(async () => {
+  const email = 'davidhenriquesms18@gmail.com';
+  await post('/api/auth/request-otp', { email });
+  const otp = await prisma.otpCode.findFirst({ where: { email, usedAt: null }, orderBy: { createdAt: 'desc' } });
+  if (!otp) { console.log('No OTP found'); return; }
+  let code;
+  for (let i = 100000; i < 1000000; i++) {
+    if (crypto.createHash('sha256').update(i.toString()).digest('hex') === otp.codeHash) { code = i.toString(); break; }
+  }
+  const r = await post('/api/auth/verify-otp', { email, code });
+  console.log(JSON.stringify(r));
+})().finally(() => prisma.\\\$disconnect());
+"
+```
+
+The result JSON contains `user` and `tokens.accessToken` for subsequent API calls.
+
+### Initial DB setup (first time only)
+
+Before running Prisma migrations, the shadow database must exist:
+
+```bash
+sudo docker exec crmpexe-postgres psql -U crmpexe -c "CREATE DATABASE crmpexe_shadow;" 2>/dev/null || true
+```
 
 ### Seeded data
 
