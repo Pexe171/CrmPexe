@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsString } from "class-validator";
+import { IsEmail, IsNotEmpty, IsString, Length, Matches } from "class-validator";
 
 export class VerifyOtpDto {
   @IsEmail()
@@ -6,5 +6,7 @@ export class VerifyOtpDto {
 
   @IsString()
   @IsNotEmpty()
+  @Length(6, 6, { message: "O código OTP deve ter exatamente 6 dígitos." })
+  @Matches(/^\d{6}$/, { message: "O código OTP deve conter apenas números." })
   code!: string;
 }

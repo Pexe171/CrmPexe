@@ -56,13 +56,27 @@ Documento gerado a partir da análise de QA do projeto. Lista o que foi verifica
 
 ---
 
-## 4. Sugestões para próximas revisões
+## 4. Implementações da análise QA sênior (segurança, resposta, otimização)
+
+- **CORS WebSocket:** Gateway de conversas passou a usar `CorsIoAdapter`, que aplica `CORS_ORIGIN` ao Socket.IO (em vez de `origin: true`).
+- **Helmet:** Adicionado na API para headers de segurança (X-Content-Type-Options, X-Frame-Options, etc.).
+- **Validação OTP:** DTO `verify-otp` com `@Length(6, 6)` e `@Matches(/^\d{6}$/)`.
+- **Resposta de erro padronizada:** `HttpExceptionFilter` passa a incluir `errorCode` (ex.: `VALIDATION_ERROR`, `UNAUTHORIZED`) e opcionalmente `details` para erros de validação.
+- **Payload de integração:** `UpsertIntegrationSecretDto` com validador que limita número de chaves e tamanho dos valores.
+- **WorkspaceContextService:** Serviço centralizado para `resolveWorkspaceId` e `normalizeWorkspaceId`; `AuditLogsService` refatorado para usá-lo (outros módulos podem migrar gradualmente).
+- **Lazy loading:** Rotas do front com `React.lazy` e `Suspense` e fallback "Carregando...".
+- **Dependências removidas:** API: `body-parser`. Web: `@dnd-kit/sortable`, `@fontsource/space-grotesk`, `date-fns`, `embla-carousel-react`; componente `carousel` removido. Export não usado `reducer` removido de `use-toast.ts`.
+- **Variáveis de ambiente:** `.env.example` da API atualizado com `RATE_LIMIT_REDIS_*`, `AI_PROCESSING_CONCURRENCY`, `WHATSAPP_SUPPORT_URL`, `NEXT_PUBLIC_WHATSAPP_LINK`.
+
+## 5. Sugestões para próximas revisões (baixa prioridade)
 
 - Adicionar testes E2E para fluxos críticos (login, integrações, conversas).
 - Revisar endpoints sensíveis (impersonation, admin, billing) quanto a checagem de role e workspace.
-- Considerar `Suspense` + lazy loading nas rotas para feedback de carregamento consistente.
+- **Token em cookie httpOnly:** Migrar access token de `localStorage` para cookie httpOnly (exige ajustes em CORS, cliente e fluxo de login).
+- **CSRF:** Considerar token CSRF ou double-submit cookie para ações sensíveis (alterar senha, billing).
+- **Padrão de listagens:** Opcional padronizar respostas de listagem com `{ data, meta }` (total, page, limit/cursor) para facilitar tabelas e paginação no front.
 - Manter `.env.example` da API e da web alinhados às variáveis usadas no código.
 
 ---
 
-*Última revisão: aplicada às alterações descritas neste documento.*
+*Última revisão: aplicada às alterações descritas neste documento (incl. plano de análise QA sênior).*

@@ -1,6 +1,8 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
 import { Prisma, UserRole } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import { WorkspaceContextService } from "../common/workspace/workspace-context.service";
+import { normalizeWorkspaceId } from "../common/workspace/workspace.util";
 import { AuthUser } from "../auth/auth.types";
 import { AuditLogAction } from "./audit-log.types";
 
@@ -11,7 +13,10 @@ type AuditScope = "workspace" | "global";
 
 @Injectable()
 export class AuditLogsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly workspaceContext: WorkspaceContextService
+  ) {}
 
   async listAuditLogs(
     user: AuthUser,
@@ -38,7 +43,7 @@ export class AuditLogsService {
       );
     }
 
-    const normalizedWorkspaceId = workspaceId?.trim();
+    const normalizedWorkspaceId = normalizeWorkspaceId(workspaceId);
     let where: Prisma.AuditLogWhereInput;
 
     if (canReadGlobalScope) {
@@ -46,7 +51,7 @@ export class AuditLogsService {
         ? { workspaceId: normalizedWorkspaceId }
         : {};
     } else {
-      const currentWorkspaceId = await this.resolveWorkspaceId(
+      const currentWorkspaceId = await this.workspaceContext.resolveWorkspaceId(
         user.id,
         normalizedWorkspaceId
       );
@@ -140,38 +145,8 @@ export class AuditLogsService {
     return value !== null && typeof value === "object" && !Array.isArray(value);
   }
 
+  /** Delegates to WorkspaceContextService for reuse; kept for backward compatibility. */
   async resolveWorkspaceId(userId: string, workspaceId?: string) {
-    const normalized = workspaceId?.trim();
-    if (normalized) {
-      await this.ensureWorkspaceMembership(userId, normalized);
-      return normalized;
-    }
-
-    const currentWorkspaceId = await this.getCurrentWorkspaceId(userId);
-    if (!currentWorkspaceId) {
-      return null;
-    }
-
-    await this.ensureWorkspaceMembership(userId, currentWorkspaceId);
-    return currentWorkspaceId;
-  }
-
-  async getCurrentWorkspaceId(userId: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { currentWorkspaceId: true }
-    });
-
-    return user?.currentWorkspaceId ?? null;
-  }
-
-  private async ensureWorkspaceMembership(userId: string, workspaceId: string) {
-    const membership = await this.prisma.workspaceMember.findFirst({
-      where: { userId, workspaceId }
-    });
-
-    if (!membership) {
-      throw new BadRequestException("Workspace inválido.");
-    }
+    return this.workspaceContext.resolveWorkspaceId(userId, workspaceId);
   }
 }

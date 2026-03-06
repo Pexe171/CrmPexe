@@ -11,8 +11,8 @@ import { CONVERSATION_NEW_MESSAGE, NewMessagePayload } from "./events/new-messag
 const WS_NAMESPACE = "conversations";
 
 @WebSocketGateway({
-  namespace: WS_NAMESPACE,
-  cors: { origin: true }
+  namespace: WS_NAMESPACE
+  // CORS is applied at server level via CorsIoAdapter (CORS_ORIGIN env)
 })
 export class ConversationsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()

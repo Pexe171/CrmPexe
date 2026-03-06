@@ -11,24 +11,25 @@ import {
   RouterProvider,
   useLocation
 } from "react-router-dom";
-import { ReactNode } from "react";
+import { lazy, ReactNode, Suspense } from "react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Button } from "@/components/ui/button";
 import { useAuthMe } from "./hooks/useAuthMe";
-import Index from "./pages/Index";
-import Login from "./pages/Login";
-import NotFound from "./pages/NotFound";
-import AgentsPage from "./pages/Agents";
-import ConversationsPage from "./pages/Conversations";
-import AdminWorkspacesPage from "./pages/AdminWorkspaces";
-import IntegrationsPage from "./pages/Integrations";
-import FlowBuilderPage from "./pages/Automations/FlowBuilder";
-import ComingSoon from "./pages/ComingSoon";
-import PipelinePage from "./pages/Pipeline";
-import SettingsTagsPage from "./pages/Settings/Tags";
-import SettingsQueuesPage from "./pages/Settings/Queues";
-import Signup from "./pages/Signup";
-import WorkspaceSetup from "./pages/WorkspaceSetup";
+
+const Index = lazy(() => import("./pages/Index"));
+const Login = lazy(() => import("./pages/Login"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const AgentsPage = lazy(() => import("./pages/Agents"));
+const ConversationsPage = lazy(() => import("./pages/Conversations"));
+const AdminWorkspacesPage = lazy(() => import("./pages/AdminWorkspaces"));
+const IntegrationsPage = lazy(() => import("./pages/Integrations"));
+const FlowBuilderPage = lazy(() => import("./pages/Automations/FlowBuilder"));
+const ComingSoon = lazy(() => import("./pages/ComingSoon"));
+const PipelinePage = lazy(() => import("./pages/Pipeline"));
+const SettingsTagsPage = lazy(() => import("./pages/Settings/Tags"));
+const SettingsQueuesPage = lazy(() => import("./pages/Settings/Queues"));
+const Signup = lazy(() => import("./pages/Signup"));
+const WorkspaceSetup = lazy(() => import("./pages/WorkspaceSetup"));
 
 const queryClient = new QueryClient();
 
@@ -96,9 +97,24 @@ function RouteErrorFallback() {
   );
 }
 
+function PageLoader() {
+  return (
+    <main className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">
+      Carregando...
+    </main>
+  );
+}
+
 const router = createBrowserRouter(
   createRoutesFromElements(
-    <Route element={<Outlet />} errorElement={<RouteErrorFallback />}>
+    <Route
+      element={
+        <Suspense fallback={<PageLoader />}>
+          <Outlet />
+        </Suspense>
+      }
+      errorElement={<RouteErrorFallback />}
+    >
       <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       <Route path="/agents" element={<ProtectedRoute><AgentsPage /></ProtectedRoute>} />
       <Route path="/conversations" element={<ProtectedRoute><ConversationsPage /></ProtectedRoute>} />

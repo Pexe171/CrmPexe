@@ -1,14 +1,15 @@
 import "reflect-metadata";
 import { ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
-import { IoAdapter } from "@nestjs/platform-socket.io";
 import * as cookieParser from "cookie-parser";
 import { json, urlencoded } from "express";
+import helmet from "helmet";
 import { AppModule } from "./app.module";
 import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
 import { CorrelationIdMiddleware } from "./common/logging/correlation-id.middleware";
 import { JsonLoggerService } from "./common/logging/json-logger.service";
 import { RequestLoggerMiddleware } from "./common/logging/request-logger.middleware";
+import { CorsIoAdapter } from "./common/websocket/cors-io.adapter";
 
 async function bootstrap() {
   const requestBodyLimit = "200mb";
@@ -27,8 +28,9 @@ async function bootstrap() {
   }
 
   const app = await NestFactory.create(AppModule);
-  app.useWebSocketAdapter(new IoAdapter(app));
+  app.useWebSocketAdapter(new CorsIoAdapter(app));
   app.useLogger(app.get(JsonLoggerService));
+  app.use(helmet());
   const corsOrigins = (process.env.CORS_ORIGIN || "http://localhost:3000")
     .split(",")
     .map((origin) => origin.trim())

@@ -3,6 +3,7 @@ import { Test } from "@nestjs/testing";
 import { UserRole } from "@prisma/client";
 import { AuditLogsService } from "./audit-logs.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { WorkspaceContextService } from "../common/workspace/workspace-context.service";
 
 const prismaMock = {
   auditLog: {
@@ -18,20 +19,36 @@ const prismaMock = {
   }
 };
 
+async function resolveWorkspaceIdImpl(userId: string, workspaceId?: string | null): Promise<string | null> {
+  const normalized = workspaceId?.trim() || undefined;
+  if (normalized) {
+    const m = await prismaMock.workspaceMember.findFirst({ where: { userId, workspaceId: normalized } } as never);
+    if (!m) throw new BadRequestException("Workspace inválido.");
+    return normalized;
+  }
+  const user = await prismaMock.user.findUnique({ where: { id: userId }, select: { currentWorkspaceId: true } } as never);
+  const current = user?.currentWorkspaceId ?? null;
+  if (!current) return null;
+  const mem = await prismaMock.workspaceMember.findFirst({ where: { userId, workspaceId: current } } as never);
+  if (!mem) throw new BadRequestException("Workspace inválido.");
+  return current;
+}
+
+const workspaceContextMock = { resolveWorkspaceId: jest.fn() };
+
 describe("AuditLogsService", () => {
   let service: AuditLogsService;
 
   beforeEach(async () => {
     jest.clearAllMocks();
     prismaMock.workspaceMember.findFirst.mockResolvedValue({ id: "member-1" });
+    workspaceContextMock.resolveWorkspaceId.mockImplementation(resolveWorkspaceIdImpl);
 
     const moduleRef = await Test.createTestingModule({
       providers: [
         AuditLogsService,
-        {
-          provide: PrismaService,
-          useValue: prismaMock
-        }
+        { provide: PrismaService, useValue: prismaMock },
+        { provide: WorkspaceContextService, useValue: workspaceContextMock }
       ]
     }).compile();
 

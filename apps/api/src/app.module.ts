@@ -31,6 +31,7 @@ import { AiModule } from "./ai/ai.module";
 import { SuperAdminModule } from "./super-admin/super-admin.module";
 import { LoggingModule } from "./common/logging/logging.module";
 import { RateLimitModule } from "./common/rate-limit/rate-limit.module";
+import { WorkspaceModule } from "./common/workspace/workspace.module";
 import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
 import { MarketplaceModule } from "./marketplace/marketplace.module";
 import { AgentTemplatesModule } from "./agent-templates/agent-templates.module";
@@ -42,6 +43,7 @@ import { WorkspaceAgentsModule } from "./workspace-agents/workspace-agents.modul
     LoggingModule,
     RateLimitModule,
     PrismaModule,
+    WorkspaceModule,
     AuthModule,
     AutomationsModule,
     WorkspacesModule,
