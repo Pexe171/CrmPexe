@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from "@nestjs/comm
 import { PrismaService } from "../prisma/prisma.service";
 import { AutomationEngineService } from "../automation-engine/automation-engine.service";
 import { CreateDealDto } from "./dto/create-deal.dto";
+import { UpdateDealDto } from "./dto/update-deal.dto";
 import { UpdateDealStageDto } from "./dto/update-deal-stage.dto";
 
 @Injectable()
@@ -81,6 +82,56 @@ export class DealsService {
     });
 
     return updated;
+  }
+
+  async updateDeal(userId: string, dealId: string, payload: UpdateDealDto, workspaceId?: string) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+
+    const deal = await this.prisma.deal.findFirst({
+      where: { id: dealId, workspaceId: resolvedWorkspaceId, deletedAt: null }
+    });
+
+    if (!deal) {
+      throw new NotFoundException("Negócio não encontrado.");
+    }
+
+    const data: { title?: string; amount?: number | null; stage?: string | null; contactId?: string | null } = {};
+    if (payload.title !== undefined) {
+      const t = payload.title?.trim();
+      if (!t) throw new BadRequestException("title não pode ser vazio.");
+      data.title = t;
+    }
+    if (payload.amount !== undefined) data.amount = payload.amount;
+    if (payload.stage !== undefined) data.stage = this.normalizeOptionalString(payload.stage);
+    if (payload.contactId !== undefined) data.contactId = this.normalizeOptionalString(payload.contactId);
+
+    if (Object.keys(data).length === 0) {
+      return deal;
+    }
+
+    return this.prisma.deal.update({
+      where: { id: deal.id },
+      data
+    });
+  }
+
+  async deleteDeal(userId: string, dealId: string, workspaceId?: string) {
+    const resolvedWorkspaceId = await this.resolveWorkspaceId(userId, workspaceId);
+
+    const deal = await this.prisma.deal.findFirst({
+      where: { id: dealId, workspaceId: resolvedWorkspaceId, deletedAt: null }
+    });
+
+    if (!deal) {
+      throw new NotFoundException("Negócio não encontrado.");
+    }
+
+    await this.prisma.deal.update({
+      where: { id: deal.id },
+      data: { deletedAt: new Date() }
+    });
+
+    return { id: deal.id, deletedAt: new Date() };
   }
 
   private async resolveWorkspaceId(userId: string, workspaceId?: string) {

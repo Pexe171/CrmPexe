@@ -10,6 +10,8 @@ import { ChannelsService } from "./channels.service";
 import { WhatsappProvider } from "./providers/whatsapp.provider";
 import { MockOmnichannelProvider } from "./providers/mock-omnichannel.provider";
 import { EmailProvider } from "./providers/email.provider";
+import { InstagramProvider } from "./providers/instagram.provider";
+import { FacebookMessengerProvider } from "./providers/facebook-messenger.provider";
 
 @Module({
   imports: [
@@ -21,7 +23,14 @@ import { EmailProvider } from "./providers/email.provider";
     QueuesModule
   ],
   controllers: [ChannelsController],
-  providers: [ChannelsService, WhatsappProvider, EmailProvider, MockOmnichannelProvider],
+  providers: [
+    ChannelsService,
+    WhatsappProvider,
+    EmailProvider,
+    MockOmnichannelProvider,
+    InstagramProvider,
+    FacebookMessengerProvider
+  ],
   exports: [ChannelsService]
 })
 export class ChannelsModule {}

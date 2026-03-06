@@ -92,6 +92,7 @@ export class AuditLogsService {
     entity: string;
     entityId: string;
     metadata?: Record<string, unknown>;
+    ipAddress?: string | null;
   }) {
     const metadata =
       payload.metadata === undefined
@@ -105,7 +106,8 @@ export class AuditLogsService {
         action: payload.action,
         entity: payload.entity,
         entityId: payload.entityId,
-        metadata
+        metadata,
+        ipAddress: payload.ipAddress ?? undefined
       }
     });
   }

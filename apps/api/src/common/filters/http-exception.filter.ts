@@ -7,6 +7,7 @@ import {
   Injectable
 } from "@nestjs/common";
 import { Request, Response } from "express";
+import * as Sentry from "@sentry/node";
 import { JsonLoggerService } from "../logging/json-logger.service";
 
 type RequestWithCorrelationId = Request & { correlationId?: string };
@@ -87,6 +88,16 @@ export class HttpExceptionFilter implements ExceptionFilter {
       );
     } catch {
       // ignore logger failure
+    }
+
+    if (statusCode >= 500 && exception instanceof Error) {
+      try {
+        Sentry.captureException(exception, {
+          extra: { path: request?.url, method: request?.method, statusCode }
+        });
+      } catch {
+        // ignore Sentry failure
+      }
     }
 
     try {

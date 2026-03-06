@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { JsonLoggerService } from "./json-logger.service";
 
 type ExternalCallPayload = {
-  system: "n8n" | "whatsapp" | "billing" | "email";
+  system: "n8n" | "whatsapp" | "billing" | "email" | "instagram" | "messenger";
   operation: string;
   method?: string;
   url?: string;

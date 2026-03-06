@@ -31,6 +31,7 @@
     "@nestjs/platform-socket.io": "^11.1.15",
     "@nestjs/websockets": "^11.1.15",
     "@prisma/client": "^5.20.0",
+    "@sentry/node": "^10.42.0",
     "@whiskeysockets/baileys": "7.0.0-rc.9",
     "archiver": "^6.0.2",
     "bullmq": "^5.16.0",

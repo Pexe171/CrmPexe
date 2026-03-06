@@ -1,4 +1,7 @@
-import { IsNotEmpty, IsString } from "class-validator";
+import { IsIn, IsNotEmpty, IsOptional, IsString } from "class-validator";
+
+export const WORKSPACE_TEMPLATES = ["blank", "real_estate", "agency"] as const;
+export type WorkspaceTemplate = (typeof WORKSPACE_TEMPLATES)[number];
 
 export class CreateWorkspaceDto {
   @IsString()
@@ -8,4 +11,9 @@ export class CreateWorkspaceDto {
   @IsString()
   @IsNotEmpty()
   password!: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(WORKSPACE_TEMPLATES)
+  template?: WorkspaceTemplate;
 }

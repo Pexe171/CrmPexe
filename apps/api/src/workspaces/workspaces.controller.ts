@@ -43,7 +43,8 @@ export class WorkspacesController {
   ) {
     return this.workspacesService.createWorkspace(user.id, {
       name: body.name,
-      password: body.password
+      password: body.password,
+      template: body.template
     });
   }
 

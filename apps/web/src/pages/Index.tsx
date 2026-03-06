@@ -7,9 +7,9 @@ import { ChannelDistribution } from "@/components/dashboard/ChannelDistribution"
 import { ConversionFunnel } from "@/components/dashboard/ConversionFunnel";
 import { RecentConversations } from "@/components/dashboard/RecentConversations";
 import { ProductivityTable } from "@/components/dashboard/ProductivityTable";
-import { useDashboardData } from "@/hooks/useDashboardData";
+import { useDashboardData, useAutomationDashboardData } from "@/hooks/useDashboardData";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, TrendingUp, Clock, Target, AlertCircle, ChevronDown, ChevronUp, Plug } from "lucide-react";
+import { MessageSquare, TrendingUp, Clock, Target, AlertCircle, ChevronDown, ChevronUp, Plug, Workflow } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api/config";
 
 const ONBOARDING_HIDDEN_KEY = "crmpexe_onboarding_hidden";
@@ -27,6 +27,7 @@ const Index = () => {
     }
   });
   const { data, isLoading, isError, error } = useDashboardData();
+  const { data: automationData } = useAutomationDashboardData();
   const isWorkspaceError =
     isError &&
     error instanceof Error &&
@@ -257,6 +258,44 @@ const Index = () => {
 
         {/* Productivity */}
         <ProductivityTable data={data?.produtividadeUsuarios} isLoading={isLoading} />
+
+        {/* Automation dashboard */}
+        {automationData && (
+          <div className="rounded-xl border bg-card p-6">
+            <h3 className="font-semibold text-foreground flex items-center gap-2 mb-1">
+              <Workflow className="w-5 h-5 text-primary" />
+              Automações
+            </h3>
+            <p className="text-sm text-muted-foreground mb-4">Execuções e taxa de falha no período</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="rounded-lg bg-muted/50 p-4">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">Execuções</p>
+                <p className="text-2xl font-semibold mt-1">{automationData.taxaFalha.total}</p>
+              </div>
+              <div className="rounded-lg bg-muted/50 p-4">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">Falhas</p>
+                <p className="text-2xl font-semibold mt-1 text-destructive">{automationData.taxaFalha.falhas}</p>
+              </div>
+              <div className="rounded-lg bg-muted/50 p-4">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">Taxa de falha</p>
+                <p className="text-2xl font-semibold mt-1">{automationData.taxaFalha.percentual.toFixed(1)}%</p>
+              </div>
+            </div>
+            {automationData.templatesMaisUsados?.length > 0 && (
+              <div className="mt-4">
+                <p className="text-xs font-medium text-muted-foreground mb-2">Templates mais usados</p>
+                <ul className="space-y-1 text-sm">
+                  {automationData.templatesMaisUsados.slice(0, 5).map((t) => (
+                    <li key={t.templateId} className="flex justify-between">
+                      <span className="truncate">{t.nome || t.templateId}</span>
+                      <span className="text-muted-foreground">{t.quantidade}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );

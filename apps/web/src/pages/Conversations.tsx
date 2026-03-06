@@ -11,9 +11,10 @@ import type { ConversationListItem, ConversationDetail, Message } from "@/lib/ap
 import { useConversationMessagesStore } from "@/stores/conversation-messages";
 import {
   MessageSquare, Search, Send, User, Phone, Mail, Clock,
-  CheckCircle, AlertCircle, XCircle, Filter, Hash,
-  UserCheck, Bot, ArrowDown, Loader2, Star, X
+  CheckCircle, AlertCircle, XCircle, Hash,
+  UserCheck, Bot, Loader2, Star, ArrowLeft
 } from "lucide-react";
+import { useIsMobile } from "@/hooks/useMediaQuery";
 
 const STATUS_OPTIONS = [
   { value: "", label: "Todas", color: "text-foreground" },
@@ -57,7 +58,7 @@ function timeAgo(dateStr: string) {
   return `${days}d`;
 }
 
-function ContactPanel({ conversation }: { conversation: ConversationDetail }) {
+function ContactPanel({ conversation, onMobile }: { conversation: ConversationDetail; onMobile?: boolean }) {
   const c = conversation.contact;
   const s = statusConfig(conversation.status);
   const ch = channelIcon(conversation.channel);
@@ -81,7 +82,7 @@ function ContactPanel({ conversation }: { conversation: ConversationDetail }) {
   });
 
   return (
-    <div className="w-72 border-l border-border flex flex-col overflow-auto">
+    <div className={`flex flex-col overflow-auto ${onMobile ? "w-full" : "w-72 border-l border-border"}`}>
       <div className="p-4 border-b border-border">
         <div className="flex items-center gap-3 mb-3">
           <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
@@ -178,6 +179,7 @@ function ContactPanel({ conversation }: { conversation: ConversationDetail }) {
 export default function ConversationsPage() {
   const { data: me } = useAuthMe();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
   const token = typeof window !== "undefined" ? localStorage.getItem("crm_token") : null;
   useSocket(me?.currentWorkspaceId ?? null, token);
 
@@ -260,12 +262,7 @@ export default function ConversationsPage() {
 
   const openCount = conversations.filter((c) => c.status !== "CLOSED").length;
 
-  return (
-    <DashboardLayout>
-      <div className="h-[calc(100vh-0px)]">
-        <ResizablePanelGroup direction="horizontal" className="h-full">
-          {/* Left panel: conversation list */}
-          <ResizablePanel defaultSize={22} minSize={18} maxSize={35} className="flex flex-col shrink-0">
+  const listPanel = (
         <div className="flex flex-col h-full border-r border-border">
           {/* Header */}
           <div className="p-3 border-b border-border space-y-2">
@@ -373,10 +370,9 @@ export default function ConversationsPage() {
             })}
           </div>
         </div>
-          </ResizablePanel>
-          <ResizableHandle withHandle className="shrink-0" />
-          {/* Center: chat */}
-          <ResizablePanel defaultSize={55} minSize={40} className="flex flex-col min-w-0">
+  );
+
+  const chatPanel = (
         <div className="flex flex-col h-full flex-1">
           {!selectedId ? (
             <div className="flex-1 flex items-center justify-center">
@@ -395,34 +391,52 @@ export default function ConversationsPage() {
           ) : (
             <>
               {/* Chat header */}
-              <div className="px-4 py-3 border-b border-border flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-3">
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center ${statusConfig(detail.status).bg}`}>
+              <div className="px-4 py-3 border-b border-border flex items-center justify-between shrink-0 gap-2">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  {isMobile && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="shrink-0 h-9 w-9"
+                      onClick={() => setSelectedId(null)}
+                      aria-label="Voltar para lista"
+                    >
+                      <ArrowLeft className="w-5 h-5" />
+                    </Button>
+                  )}
+                  <div className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center ${statusConfig(detail.status).bg}`}>
                     <User className={`w-4 h-4 ${statusConfig(detail.status).color}`} />
                   </div>
-                  <div>
-                    <h2 className="font-semibold text-sm">{detail.contact.name}</h2>
-                    <p className="text-xs text-muted-foreground">
+                  <div className="min-w-0">
+                    <h2 className="font-semibold text-sm truncate">{detail.contact.name}</h2>
+                    <p className="text-xs text-muted-foreground truncate">
                       {detail.contact.phone ?? detail.contact.email ?? "Sem contato"}
-                      {" · "}
-                      <span className={channelIcon(detail.channel).color}>
-                        {channelIcon(detail.channel).label}
-                      </span>
+                      {!isMobile && (
+                        <>
+                          {" · "}
+                          <span className={channelIcon(detail.channel).color}>
+                            {channelIcon(detail.channel).label}
+                          </span>
+                        </>
+                      )}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className={`text-xs px-2 py-1 rounded-full border ${statusConfig(detail.status).color} ${statusConfig(detail.status).bg}`}>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className={`text-xs px-2 py-1 rounded-full border hidden sm:inline ${statusConfig(detail.status).color} ${statusConfig(detail.status).bg}`}>
                     {statusConfig(detail.status).label}
                   </span>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setShowContactPanel(!showContactPanel)}
-                    className="text-xs"
-                  >
-                    <User className="w-4 h-4" />
-                  </Button>
+                  {!isMobile && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setShowContactPanel(!showContactPanel)}
+                      className="text-xs"
+                    >
+                      <User className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
 
@@ -517,6 +531,28 @@ export default function ConversationsPage() {
             </>
           )}
         </div>
+  );
+
+  if (isMobile) {
+    return (
+      <DashboardLayout>
+        <div className="h-[calc(100vh-0px)] flex flex-col">
+          {!selectedId ? listPanel : chatPanel}
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  return (
+    <DashboardLayout>
+      <div className="h-[calc(100vh-0px)]">
+        <ResizablePanelGroup direction="horizontal" className="h-full">
+          <ResizablePanel defaultSize={22} minSize={18} maxSize={35} className="flex flex-col shrink-0 min-w-0">
+            {listPanel}
+          </ResizablePanel>
+          <ResizableHandle withHandle className="shrink-0" />
+          <ResizablePanel defaultSize={55} minSize={40} className="flex flex-col min-w-0">
+            {chatPanel}
           </ResizablePanel>
           {showContactPanel && detail && (
             <>

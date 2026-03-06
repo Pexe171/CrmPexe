@@ -18,6 +18,8 @@ import { IChannelProvider } from "./interfaces/channel-provider.interface";
 import { WhatsappProvider } from "./providers/whatsapp.provider";
 import { MockOmnichannelProvider } from "./providers/mock-omnichannel.provider";
 import { EmailProvider } from "./providers/email.provider";
+import { InstagramProvider } from "./providers/instagram.provider";
+import { FacebookMessengerProvider } from "./providers/facebook-messenger.provider";
 import {
   ChannelInboundMessage,
   ChannelContact,
@@ -40,13 +42,15 @@ export class ChannelsService {
     private readonly eventEmitter: EventEmitter2,
     whatsappProvider: WhatsappProvider,
     emailProvider: EmailProvider,
-    mockOmnichannelProvider: MockOmnichannelProvider
+    mockOmnichannelProvider: MockOmnichannelProvider,
+    instagramProvider: InstagramProvider,
+    facebookMessengerProvider: FacebookMessengerProvider
   ) {
     this.providers.set(whatsappProvider.channel, whatsappProvider);
     this.providers.set(emailProvider.channel, emailProvider);
-    ["instagram", "messenger", "voip"].forEach((channel) => {
-      this.providers.set(channel, mockOmnichannelProvider);
-    });
+    this.providers.set(instagramProvider.channel, instagramProvider);
+    this.providers.set(facebookMessengerProvider.channel, facebookMessengerProvider);
+    this.providers.set("voip", mockOmnichannelProvider);
   }
 
   async receiveWebhook(

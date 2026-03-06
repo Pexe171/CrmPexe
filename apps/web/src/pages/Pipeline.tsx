@@ -13,12 +13,15 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { dealsApi, type Deal } from "@/lib/api/deals";
+import { workspacesApi } from "@/lib/api/workspaces";
 import { useAuthMe } from "@/hooks/useAuthMe";
 import { KanbanColumn } from "@/components/kanban/KanbanColumn";
 import { DealCard } from "@/components/kanban/DealCard";
 import { LayoutGrid, Loader2, Plus } from "lucide-react";
 
-const DEFAULT_STAGES = [
+type StageDef = { id: string; label: string };
+
+const DEFAULT_STAGES: StageDef[] = [
   { id: "leads", label: "Leads" },
   { id: "qualificacao", label: "Qualificação" },
   { id: "proposta", label: "Proposta" },
@@ -26,25 +29,25 @@ const DEFAULT_STAGES = [
   { id: "fechado", label: "Fechado" }
 ];
 
-function normalizeStage(stage: string | null): string {
+function normalizeStage(stage: string | null, stages: StageDef[]): string {
   if (!stage?.trim()) return "";
   const s = stage.trim().toLowerCase();
   if (s === "outros") return "_other";
-  const found = DEFAULT_STAGES.find(
+  const found = stages.find(
     (st) => st.id === s || st.label.toLowerCase() === s
   );
   return found ? found.id : "_other";
 }
 
-function groupDealsByStage(deals: Deal[]) {
+function groupDealsByStage(deals: Deal[], stages: StageDef[]) {
   const map: Record<string, Deal[]> = {};
-  for (const stage of DEFAULT_STAGES) {
+  for (const stage of stages) {
     map[stage.id] = [];
   }
   map[""] = [];
   map["_other"] = [];
   for (const deal of deals) {
-    const key = normalizeStage(deal.stage);
+    const key = normalizeStage(deal.stage, stages);
     if (!map[key]) map["_other"] = [...(map["_other"] ?? []), deal];
     else map[key].push(deal);
   }
@@ -55,6 +58,18 @@ export default function PipelinePage() {
   const { data: me } = useAuthMe();
   const queryClient = useQueryClient();
   const [activeId, setActiveId] = useState<string | null>(null);
+
+  const { data: workspace } = useQuery({
+    queryKey: ["workspace", "current"],
+    queryFn: () => workspacesApi.getCurrentWorkspace(),
+    enabled: !!me?.currentWorkspaceId
+  });
+
+  const stages = useMemo(() => {
+    const ws = workspace?.pipelineStages;
+    if (Array.isArray(ws) && ws.length > 0) return ws as StageDef[];
+    return DEFAULT_STAGES;
+  }, [workspace?.pipelineStages]);
 
   const { data: deals = [], isLoading } = useQuery({
     queryKey: ["deals"],
@@ -70,7 +85,7 @@ export default function PipelinePage() {
     }
   });
 
-  const byStage = useMemo(() => groupDealsByStage(deals), [deals]);
+  const byStage = useMemo(() => groupDealsByStage(deals, stages), [deals, stages]);
   const activeDeal = useMemo(
     () => (activeId ? deals.find((d) => d.id === activeId) : null),
     [activeId, deals]
@@ -99,7 +114,7 @@ export default function PipelinePage() {
         ? ""
         : newStageId === "_other"
           ? "Outros"
-          : DEFAULT_STAGES.find((s) => s.id === newStageId)?.label ?? newStageId;
+          : stages.find((s) => s.id === newStageId)?.label ?? newStageId;
     updateStageMutation.mutate({ dealId, stage: stageValue });
   };
 
@@ -128,7 +143,7 @@ export default function PipelinePage() {
             onDragEnd={handleDragEnd}
           >
             <div className="flex gap-4 overflow-x-auto pb-4 min-h-[70vh]">
-              {DEFAULT_STAGES.map((stage) => (
+              {stages.map((stage) => (
                 <KanbanColumn
                   key={stage.id}
                   id={stage.id}

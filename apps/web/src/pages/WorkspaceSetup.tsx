@@ -12,6 +12,7 @@ const WorkspaceSetup = () => {
 
   const [createName, setCreateName] = useState("");
   const [createPassword, setCreatePassword] = useState("");
+  const [createTemplate, setCreateTemplate] = useState<"blank" | "real_estate" | "agency">("blank");
   const [joinCode, setJoinCode] = useState("");
   const [joinPassword, setJoinPassword] = useState("");
 
@@ -27,6 +28,7 @@ const WorkspaceSetup = () => {
       await workspacesApi.createWorkspace({
         name: createName.trim(),
         password: createPassword,
+        template: createTemplate,
       });
       await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
       navigate("/", { replace: true });
@@ -103,10 +105,38 @@ const WorkspaceSetup = () => {
             </button>
             <h1 className="text-2xl font-bold">Criar workspace</h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Defina um nome e uma senha para o workspace. A senha será usada quando alguém quiser entrar com o código.
+              Defina um nome e uma senha para o workspace. Escolha um modelo para começar com colunas e tags prontas.
             </p>
           </div>
           <form onSubmit={handleCreate} className="space-y-3">
+            <label className="text-sm font-medium">Modelo do workspace</label>
+            <div className="grid gap-2">
+              {[
+                { value: "blank" as const, label: "Em branco", desc: "Pipeline e tags vazios para configurar do zero" },
+                { value: "real_estate" as const, label: "CRM para Imobiliária", desc: "Colunas: Qualificação, Visita, Proposta, Negociação, Fechado + tags de imóveis" },
+                { value: "agency" as const, label: "CRM para Agência", desc: "Colunas: Lead, Reunião, Proposta, Fechado + tags Serviço/Produto" },
+              ].map((opt) => (
+                <label
+                  key={opt.value}
+                  className={`flex items-start gap-3 rounded-lg border border-border p-3 cursor-pointer transition-colors ${
+                    createTemplate === opt.value ? "border-primary bg-primary/5" : "hover:bg-muted/50"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="template"
+                    value={opt.value}
+                    checked={createTemplate === opt.value}
+                    onChange={() => setCreateTemplate(opt.value)}
+                    className="mt-1"
+                  />
+                  <div>
+                    <p className="font-medium text-sm">{opt.label}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{opt.desc}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
             <label className="text-sm font-medium" htmlFor="create-name">
               Nome do workspace
             </label>

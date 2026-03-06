@@ -12,6 +12,38 @@ import {
 } from "@prisma/client";
 import { createHash, randomBytes } from "crypto";
 import { PrismaService } from "../prisma/prisma.service";
+import type { WorkspaceTemplate } from "./dto/create-workspace.dto";
+
+type PipelineStage = { id: string; label: string };
+
+const TEMPLATE_PIPELINE_STAGES: Record<Exclude<WorkspaceTemplate, "blank">, PipelineStage[]> = {
+  real_estate: [
+    { id: "qualificacao", label: "Qualificação" },
+    { id: "visita", label: "Visita" },
+    { id: "proposta", label: "Proposta" },
+    { id: "negociacao", label: "Negociação" },
+    { id: "fechado", label: "Fechado" }
+  ],
+  agency: [
+    { id: "lead", label: "Lead" },
+    { id: "reuniao", label: "Reunião" },
+    { id: "proposta", label: "Proposta" },
+    { id: "fechado", label: "Fechado" }
+  ]
+};
+
+const TEMPLATE_TAGS: Record<Exclude<WorkspaceTemplate, "blank">, { name: string; color?: string }[]> = {
+  real_estate: [
+    { name: "Imóvel residencial", color: "#3b82f6" },
+    { name: "Imóvel comercial", color: "#8b5cf6" },
+    { name: "Interesse venda", color: "#10b981" },
+    { name: "Interesse aluguel", color: "#f59e0b" }
+  ],
+  agency: [
+    { name: "Serviço", color: "#06b6d4" },
+    { name: "Produto", color: "#ec4899" }
+  ]
+};
 
 @Injectable()
 export class WorkspacesService {
@@ -19,10 +51,11 @@ export class WorkspacesService {
 
   async createWorkspace(
     userId: string,
-    payload: { name: string; password: string }
+    payload: { name: string; password: string; template?: WorkspaceTemplate }
   ) {
     const trimmedName = payload.name?.trim();
     const trimmedPassword = payload.password?.trim();
+    const template = payload.template === "blank" || !payload.template ? undefined : payload.template;
 
     if (!trimmedName) {
       throw new BadRequestException("Nome do workspace é obrigatório.");
@@ -32,6 +65,11 @@ export class WorkspacesService {
       throw new BadRequestException("Senha do workspace é obrigatória.");
     }
 
+    const pipelineStages =
+      template && TEMPLATE_PIPELINE_STAGES[template]
+        ? (TEMPLATE_PIPELINE_STAGES[template] as unknown as Prisma.InputJsonValue)
+        : undefined;
+
     return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const workspace = await tx.workspace.create({
         data: {
@@ -39,7 +77,8 @@ export class WorkspacesService {
           code: await this.generateWorkspaceCode(tx),
           passwordHash: this.hashWorkspacePassword(trimmedPassword),
           brandName: trimmedName,
-          locale: "pt-BR"
+          locale: "pt-BR",
+          ...(pipelineStages && { pipelineStages })
         }
       });
 
@@ -67,6 +106,18 @@ export class WorkspacesService {
           status: WorkspaceMembershipStatus.APPROVED
         }
       });
+
+      if (template && TEMPLATE_TAGS[template]) {
+        for (const tag of TEMPLATE_TAGS[template]) {
+          await tx.tag.create({
+            data: {
+              workspaceId: workspace.id,
+              name: tag.name,
+              color: tag.color ?? null
+            }
+          });
+        }
+      }
 
       await tx.user.update({
         where: { id: userId },
@@ -232,6 +283,7 @@ export class WorkspacesService {
         brandSecondaryColor: true,
         customDomain: true,
         locale: true,
+        pipelineStages: true,
         createdAt: true,
         updatedAt: true
       }

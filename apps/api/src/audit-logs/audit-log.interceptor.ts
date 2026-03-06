@@ -34,13 +34,16 @@ export class AuditLogInterceptor implements NestInterceptor {
           return data;
         }
 
+        const ipAddress = this.getClientIp(request);
+
         await this.auditLogsService.record({
           workspaceId,
           userId: request.user.id,
           action,
           entity: metadata.entity,
           entityId,
-          metadata: metadata.metadata?.(request, data)
+          metadata: metadata.metadata?.(request, data),
+          ipAddress
         });
 
         return data;
@@ -132,6 +135,22 @@ export class AuditLogInterceptor implements NestInterceptor {
       return header[0];
     }
     return header;
+  }
+
+  private getClientIp(request: AuthenticatedRequest): string | null {
+    const forwarded = request.headers["x-forwarded-for"];
+    if (forwarded) {
+      const first = Array.isArray(forwarded) ? forwarded[0] : forwarded;
+      const ip = typeof first === "string" ? first.split(",")[0]?.trim() : null;
+      if (ip) return ip;
+    }
+    const realIp = request.headers["x-real-ip"];
+    if (realIp) {
+      const ip = Array.isArray(realIp) ? realIp[0] : realIp;
+      if (typeof ip === "string" && ip.trim()) return ip.trim();
+    }
+    if (request.ip) return request.ip;
+    return null;
   }
 
   private getValueByPath(target: unknown, path: string) {

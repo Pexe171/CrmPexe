@@ -17,7 +17,7 @@ export function KanbanColumn({
   return (
     <Card
       ref={setNodeRef}
-      className={`w-72 shrink-0 flex flex-col max-h-[70vh] ${
+      className={`w-72 min-w-[260px] shrink-0 flex flex-col max-h-[70vh] md:max-h-[70vh] ${
         isOver ? "ring-2 ring-primary/50 bg-primary/5" : ""
       }`}
     >

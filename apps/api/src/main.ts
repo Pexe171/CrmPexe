@@ -4,12 +4,23 @@ import { NestFactory } from "@nestjs/core";
 import * as cookieParser from "cookie-parser";
 import { json, urlencoded } from "express";
 import helmet from "helmet";
+import * as Sentry from "@sentry/node";
 import { AppModule } from "./app.module";
 import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
 import { CorrelationIdMiddleware } from "./common/logging/correlation-id.middleware";
 import { JsonLoggerService } from "./common/logging/json-logger.service";
 import { RequestLoggerMiddleware } from "./common/logging/request-logger.middleware";
 import { CorsIoAdapter } from "./common/websocket/cors-io.adapter";
+
+const SENTRY_DSN = process.env.SENTRY_DSN?.trim();
+if (SENTRY_DSN) {
+  Sentry.init({
+    dsn: SENTRY_DSN,
+    environment: process.env.SENTRY_ENVIRONMENT ?? process.env.NODE_ENV ?? "development",
+    release: process.env.SENTRY_RELEASE,
+    tracesSampleRate: 0.1
+  });
+}
 
 async function bootstrap() {
   const requestBodyLimit = "200mb";
